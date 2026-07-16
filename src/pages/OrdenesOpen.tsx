@@ -105,11 +105,11 @@ export default function OrdenesOpen({ onEditar }: OrdenesOpenProps) {
   };
 
   return (
-    <section className="ordenes-page px-3 pt-0" style={{ background: "#f8fafc", minHeight: "100vh", paddingBottom: "60px" }}>
-      <div className="container-fluid pt-2">
+    <section className="ordenes-page px-1 px-md-3 pt-0" style={{ background: "#f8fafc", minHeight: "100vh", paddingBottom: "60px" }}>
+      <div className="container-fluid pt-2 px-1 px-md-2">
         
         {/* Header Premium */}
-        <header className="bg-white p-2 px-4 mb-4 rounded-4 shadow-premium d-flex justify-content-between align-items-center flex-wrap gap-2" style={{ minHeight: "70px" }}>
+        <header className="bg-white p-2 px-3 px-md-4 mb-3 mb-md-4 rounded-4 shadow-premium d-flex justify-content-between align-items-center flex-wrap gap-2" style={{ minHeight: "70px" }}>
           <div className="d-flex align-items-center gap-3">
             <div className="premium-icon-box" style={{ width: "34px", height: "34px", background: "linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)", color: "#fff", borderRadius: "10px", display : "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 10px rgba(239, 68, 68, 0.15)" }}>
               <FiLayers size={18} />
@@ -126,7 +126,7 @@ export default function OrdenesOpen({ onEditar }: OrdenesOpenProps) {
         </header>
 
         {/* Datatable Card container */}
-        <div className="bg-white rounded-4 shadow-premium p-4 border-0">
+        <div className="bg-white rounded-4 shadow-premium p-2 p-md-4 border-0">
           
           {/* Controls bar */}
           <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">

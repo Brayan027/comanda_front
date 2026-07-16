@@ -31,66 +31,52 @@ export interface TicketEmpresa {
   empresaId: string;
 }
 
-const formatMoneda = (val: number) => {
-  return new Intl.NumberFormat("es-CO", {
-    style: "currency",
-    currency: "COP",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(val);
-};
-
 function crearTicketHTML(orden: TicketOrden, empresa: TicketEmpresa): string {
+  const lineSeparador = "=".repeat(38);
   return `
-    <div style="text-align:center;font-size:12px;line-height:1.35;font-family:Arial,sans-serif;color:#000;">
-      <strong style="font-size:14px;text-transform:uppercase;">${empresa.nombre || "DIANASIS RESTAURANTE"}</strong>
-      <div style="font-size:11px;margin-top:2px;">PUNTO: ${empresa.puntoVenta || "PRINCIPAL"}</div>
-      <div style="font-size:11px;">Empresa: ${empresa.empresaId || "02"}</div>
-    </div>
-    <div style="border-top:2px dashed #000;margin:10px 0;"></div>
-    <div style="font-size:12px;line-height:1.45;font-family:Arial,sans-serif;color:#000;">
-      <div style="text-align:center;font-weight:700;font-size:13px;margin-bottom:6px;">TICKET DE COMANDA</div>
-      <div><strong>Orden No:</strong> #${orden.nro_orden}</div>
-      <div><strong>Mesa:</strong> ${orden.mesa}</div>
-      <div><strong>Mesero:</strong> ${orden.mesero}</div>
-      <div><strong>Personas:</strong> ${orden.numPersonas}</div>
-      <div><strong>Fecha:</strong> ${orden.fecha} <strong>Hora:</strong> ${orden.hora}</div>
-    </div>
-    <div style="border-top:1px dashed #000;margin:8px 0;"></div>
-    <table style="width:100%;border-collapse:collapse;font-size:11px;font-family:Arial,sans-serif;color:#000;">
-      <thead>
-        <tr>
-          <th style="text-align:left;border-bottom:1px solid #000;padding-bottom:4px;width:10%;">Cant</th>
-          <th style="text-align:left;border-bottom:1px solid #000;padding-bottom:4px;width:65%;">Producto</th>
-          <th style="text-align:right;border-bottom:1px solid #000;padding-bottom:4px;width:25%;">Total</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${orden.productos.map((p) => `
+    <div style="font-size:12px;line-height:1.35;font-family:monospace;color:#000;width:100%;box-sizing:border-box;padding:4px;">
+      <div style="text-align:center;font-weight:bold;font-size:13px;text-transform:uppercase;">${empresa.nombre || "DIANASIS RESTAURANTE"}</div>
+      <div style="text-align:center;font-size:11px;margin-top:2px;">COMANDA</div>
+      <br/>
+      <div>MESA: ${orden.mesa}</div>
+      <div>Mesero: ${orden.mesero}</div>
+      <div>Personas: ${orden.numPersonas}</div>
+      <div>Fecha: ${orden.fecha} Hora: ${orden.hora}</div>
+      
+      <div style="margin:4px 0;letter-spacing:-1px;">${lineSeparador}</div>
+      
+      <table style="width:100%;border-collapse:collapse;font-size:12px;font-family:monospace;color:#000;">
+        <thead>
           <tr>
-            <td style="vertical-align:top;padding:6px 0;font-weight:bold;">${p.cantidad}</td>
-            <td style="vertical-align:top;padding:6px 4px;">
-              <div style="font-weight:bold;text-transform:uppercase;">${p.ProStDescripcion}</div>
-              ${p.adicionales && p.adicionales.length > 0 ? `
-                <div style="font-size:9.5px;color:#333;padding-left:8px;margin-top:2px;font-style:italic;">
-                  ${p.adicionales.map((ad) => `+ ${ad.ProStDescripcion}`).join("<br/>")}
-                </div>
-              ` : ""}
-            </td>
-            <td style="vertical-align:top;text-align:right;padding:6px 0;font-weight:bold;">${formatMoneda(p.total)}</td>
+            <th style="text-align:left;font-weight:bold;padding-bottom:2px;">PRODUCTO</th>
+            <th style="text-align:right;font-weight:bold;padding-bottom:2px;width:20%;">CANT.</th>
           </tr>
-        `).join("")}
-      </tbody>
-    </table>
-    <div style="border-top:2px dashed #000;margin:10px 0;"></div>
-    <div style="font-size:11px;line-height:1.5;font-family:Arial,sans-serif;color:#000;">
-      <div style="display:flex;justify-content:space-between;"><span>Subtotal</span><strong style="white-space:nowrap;">${formatMoneda(orden.totales.subtotal)}</strong></div>
-      <div style="display:flex;justify-content:space-between;"><span>IVA (Deducido)</span><strong style="white-space:nowrap;">${formatMoneda(orden.totales.iva)}</strong></div>
-      <div style="display:flex;justify-content:space-between;"><span>INC (Deducido 8%)</span><strong style="white-space:nowrap;">${formatMoneda(orden.totales.impoconsumo)}</strong></div>
-      <div style="display:flex;justify-content:space-between;font-size:14px;margin-top:6px;border-top:1px solid #000;padding-top:4px;"><strong>TOTAL</strong><strong>${formatMoneda(orden.totales.total)}</strong></div>
-    </div>
-    <div style="text-align:center;font-size:10px;margin-top:20px;font-family:Arial,sans-serif;color:#000;">
-      <i>Gracias por su visita</i>
+          <tr>
+            <td colspan="2" style="letter-spacing:-1px;padding:2px 0;">${lineSeparador}</td>
+          </tr>
+        </thead>
+        <tbody>
+          ${orden.productos.map((p) => `
+            <tr>
+              <td style="vertical-align:top;padding:3px 0;text-transform:uppercase;">${p.ProStDescripcion}</td>
+              <td style="vertical-align:top;text-align:right;padding:3px 0;">${p.cantidad}</td>
+            </tr>
+            ${p.adicionales && p.adicionales.length > 0 ? p.adicionales.map((ad) => `
+              <tr>
+                <td colspan="2" style="vertical-align:top;padding:1px 0 1px 12px;font-size:10.5px;color:#333;text-transform:uppercase;">
+                  + ${ad.ProStDescripcion}
+                </td>
+              </tr>
+            `).join("") : ""}
+          `).join("")}
+        </tbody>
+      </table>
+      
+      <div style="border-top:1px solid #000;margin:8px 0;"></div>
+      <br/>
+      <div style="text-align:center;font-size:10px;font-family:monospace;color:#000;">
+        "Impreso por Software DIANASIS WEB"
+      </div>
     </div>
   `;
 }

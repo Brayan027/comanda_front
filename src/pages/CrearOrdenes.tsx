@@ -66,6 +66,7 @@ interface CartItem {
   ProInIvaVenta?: number;
   ProInPorcentajeImpoconsumo?: number;
   ProStIvaIncluido?: string | number;
+  MopStImpreso?: string;
   adicionales: {
     ApmIdInProducto: number;
     ProStDescripcion: string;
@@ -221,6 +222,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
                   ProInIvaVenta: p.MopInPorIva || 0,
                   ProInPorcentajeImpoconsumo: p.MopInPorcentajeImpoconsumo || 0,
                   ProStIvaIncluido: p.MopInPorIva > 0 || p.MopInPorcentajeImpoconsumo > 0 ? "1" : "0",
+                  MopStImpreso: String(p.MopStImpreso || '0'),
                   adicionales
                 };
               });
@@ -370,6 +372,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
               ProInIvaVenta: Number(p.ProInIvaVenta) || 0,
               ProInPorcentajeImpoconsumo: Number(p.ProInPorcentajeImpoconsumo) || 0,
               ProStIvaIncluido: p.ProStIvaIncluido !== undefined ? p.ProStIvaIncluido : '1',
+              MopStImpreso: String(p.MopStImpreso || '0'),
               adicionales
             };
           });
@@ -1064,9 +1067,13 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
                 const itemTotal = (item.precioVenta + sidesPrice) * item.cantidad;
 
                 return (
-                  <article key={item.idUnicoCart} className="co-cart-item">
+                  <article 
+                    key={item.idUnicoCart} 
+                    className="co-cart-item"
+                    style={item.MopStImpreso === '1' ? { opacity: 0.55 } : {}}
+                  >
                     <div className="co-cart-info">
-                      <strong>{item.ProStDescripcion}</strong>
+                      <strong>{item.ProStDescripcion} {item.MopStImpreso === '1' && <span className="badge bg-light text-secondary ms-1" style={{ fontSize: '0.65rem' }}>Impreso</span>}</strong>
                       <small>x{item.cantidad}</small>
                     </div>
                     
@@ -1147,10 +1154,10 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
                     const itemTotal = (item.precioVenta + itemSidesPrice) * item.cantidad;
 
                     return (
-                      <tr key={idx}>
+                      <tr key={idx} style={item.MopStImpreso === '1' ? { opacity: 0.55 } : {}}>
                         <td className="qty-col">{item.cantidad}</td>
                         <td>
-                          {item.ProStDescripcion}
+                          {item.ProStDescripcion} {item.MopStImpreso === '1' && <span className="badge bg-light text-secondary ms-2" style={{ fontSize: '0.65rem' }}>Impreso</span>}
                           {item.adicionales.length > 0 && (
                             <div className="co-bill-sides-list">
                               {item.adicionales.map((ad, sIdx) => (

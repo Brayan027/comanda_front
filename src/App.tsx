@@ -167,7 +167,10 @@ export default function App() {
           ordenIdEdicion !== null ? (
             <CrearOrdenes initialOrdenId={ordenIdEdicion} onClearInitial={() => setOrdenIdEdicion(null)} />
           ) : (
-            <OrdenesOpen onEditar={(id) => setOrdenIdEdicion(id)} />
+            <OrdenesOpen onEditar={(id) => {
+              setOrdenIdEdicion(id);
+              setMenuActivo("comanda");
+            }} />
           )
         ) : null}
       </section>
