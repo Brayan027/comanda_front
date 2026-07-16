@@ -131,7 +131,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
   const [busquedaProducto, setBusquedaProducto] = useState("");
   const [productos, setProductos] = useState<Product[]>([]);
   const [cargandoProductos, setCargandoProductos] = useState(false);
-
+  const [cargandoComanda, setCargandoComanda] = useState(false);
   const [carrito, setCarrito] = useState<CartItem[]>([]);
   
   // Selectores de cantidad rápida por tarjeta de producto
@@ -169,6 +169,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
   useEffect(() => {
     if (initialOrdenId) {
       const loadComanda = async () => {
+        setCargandoComanda(true);
         try {
           const resp = await fetch(`${API_BASE_URL}/ordenes/${initialOrdenId}`, {
             method: "GET",
@@ -233,6 +234,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
         } catch (e) {
           console.error("Error loading initial comanda by ID", e);
         } finally {
+          setCargandoComanda(false);
           if (onClearInitial) onClearInitial();
         }
       };
@@ -319,6 +321,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
   const verificarMesa = async () => {
     if (!mesa.trim()) return;
 
+    setCargandoComanda(true);
     try {
       const resp = await fetch(`${API_BASE_URL}/ordenes/mesa/${encodeURIComponent(mesa.trim())}`, {
         method: "GET",
@@ -404,6 +407,8 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
       }
     } catch (e) {
       console.error("Error verificando mesa", e);
+    } finally {
+      setCargandoComanda(false);
     }
   };
 
@@ -799,6 +804,27 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
 
   return (
     <section className="crear-ordenes-page px-0 px-md-3" aria-label="Crear Órdenes">
+      {cargandoComanda && (
+        <div 
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(255, 255, 255, 0.8)",
+            zIndex: 9999,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            backdropFilter: "blur(3px)"
+          }}
+        >
+          <div className="spinner-border text-danger mb-3" role="status" style={{ width: "3.5rem", height: "3.5rem" }}>
+            <span className="visually-hidden">Cargando...</span>
+          </div>
+          <h4 className="fw-bold text-dark mb-1" style={{ fontFamily: "'Outfit', sans-serif" }}>Cargando comanda...</h4>
+          <p className="text-muted small m-0">Recuperando datos del pedido abierto en la mesa</p>
+        </div>
+      )}
       <div className="container-fluid pt-2 px-1 px-md-2">
         {/* Header Strip */}
         <header className="co-header">
@@ -1073,8 +1099,20 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
                     style={item.MopStImpreso === '1' ? { opacity: 0.55 } : {}}
                   >
                     <div className="co-cart-info">
-                      <strong>{item.ProStDescripcion} {item.MopStImpreso === '1' && <span className="badge bg-light text-secondary ms-1" style={{ fontSize: '0.65rem' }}>Impreso</span>}</strong>
-                      <small>x{item.cantidad}</small>
+                      {item.MopStImpreso === '1' ? (
+                        <strong>
+                          {item.ProStDescripcion}{" "}
+                          <span className="badge bg-light text-secondary ms-1" style={{ fontSize: '0.65rem' }}>Impreso</span>
+                        </strong>
+                      ) : (
+                        <strong style={{ color: "#000000", fontWeight: 800 }}>
+                          {item.ProStDescripcion}{" "}
+                          <span className="badge bg-success ms-1" style={{ fontSize: '0.65rem', background: "#22c55e", color: "#ffffff" }}>Nuevo</span>
+                        </strong>
+                      )}
+                      <small style={item.MopStImpreso !== '1' ? { color: "#000000", fontWeight: "bold" } : {}}>
+                        x{item.cantidad}
+                      </small>
                     </div>
                     
                     <span className="co-cart-total">{formatMoneda(itemTotal)}</span>
@@ -1155,9 +1193,19 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
 
                     return (
                       <tr key={idx} style={item.MopStImpreso === '1' ? { opacity: 0.55 } : {}}>
-                        <td className="qty-col">{item.cantidad}</td>
+                        <td className="qty-col" style={item.MopStImpreso !== '1' ? { color: "#000000", fontWeight: "bold" } : {}}>{item.cantidad}</td>
                         <td>
-                          {item.ProStDescripcion} {item.MopStImpreso === '1' && <span className="badge bg-light text-secondary ms-2" style={{ fontSize: '0.65rem' }}>Impreso</span>}
+                          {item.MopStImpreso === '1' ? (
+                            <span>
+                              {item.ProStDescripcion}{" "}
+                              <span className="badge bg-light text-secondary ms-2" style={{ fontSize: '0.65rem' }}>Impreso</span>
+                            </span>
+                          ) : (
+                            <strong style={{ color: "#000000", fontWeight: 800 }}>
+                              {item.ProStDescripcion}{" "}
+                              <span className="badge bg-success ms-2" style={{ fontSize: '0.65rem', background: "#22c55e", color: "#ffffff" }}>Nuevo</span>
+                            </strong>
+                          )}
                           {item.adicionales.length > 0 && (
                             <div className="co-bill-sides-list">
                               {item.adicionales.map((ad, sIdx) => (
