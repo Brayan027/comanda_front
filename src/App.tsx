@@ -6,7 +6,7 @@ import CrearOrdenes from "./pages/CrearOrdenes";
 import OrdenesOpen from "./pages/OrdenesOpen";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
-import { FiHome } from "react-icons/fi";
+import { FiHome, FiPlus, FiLayers, FiChevronRight } from "react-icons/fi";
 import type { MenuKey } from "./components/layout/Sidebar";
 
 export default function App() {
@@ -134,28 +134,93 @@ export default function App() {
                 </div>
               </header>
 
-              {/* Contenido en Blanco con Tarjeta de Bienvenida Minimalista */}
-              <main className="row justify-content-center pt-5">
-                <div className="col-12 col-md-8 col-lg-6">
-                  <div className="bg-white p-5 rounded-4 shadow-premium text-center border-0">
+              {/* Accesos Rápidos de Inicio matching Screenshot */}
+              <main className="container-fluid pt-2 px-1 px-md-3">
+                <div className="row g-4 mt-1">
+                  {/* Tarjeta Nuevo Pedido */}
+                  <div className="col-12 col-md-6">
                     <div
-                      className="d-inline-flex align-items-center justify-content-center mb-4"
-                      style={{
-                        width: "80px",
-                        height: "80px",
-                        borderRadius: "50%",
-                        background: "rgba(239, 68, 68, 0.08)",
-                        color: "#ef4444"
+                      className="bg-white p-3 rounded-4 shadow-premium border-0 d-flex align-items-center justify-content-between cursor-pointer"
+                      style={{ cursor: "pointer", transition: "transform 0.2s ease, box-shadow 0.2s ease" }}
+                      onClick={() => setMenuActivo("comanda")}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = "translateY(-2px)";
+                        e.currentTarget.style.boxShadow = "0 8px 25px rgba(0,0,0,0.08)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = "none";
+                        e.currentTarget.style.boxShadow = "none";
                       }}
                     >
-                      <FiHome size={36} />
+                      <div className="d-flex align-items-center gap-3">
+                        <div
+                          className="d-flex align-items-center justify-content-center animate-hover"
+                          style={{
+                            width: "56px",
+                            height: "56px",
+                            borderRadius: "14px",
+                            background: "rgba(239, 68, 68, 0.08)",
+                            color: "#ef4444"
+                          }}
+                        >
+                          <FiPlus size={24} />
+                        </div>
+                        <div className="d-flex flex-column text-start">
+                          <h3 className="m-0 fw-bold" style={{ fontSize: "1.1rem", color: "#1e293b" }}>
+                            Nuevo Pedido
+                          </h3>
+                          <p className="m-0 text-muted" style={{ fontSize: "0.85rem", marginTop: "2px" }}>
+                            Crear y registrar un nuevo pedido para un cliente de forma rápida.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-muted ps-2">
+                        <FiChevronRight size={20} />
+                      </div>
                     </div>
-                    <h2 className="fw-bold mb-3" style={{ color: "#1e293b", fontSize: "1.75rem" }}>
-                      ¡Bienvenido al Panel de Comandas!
-                    </h2>
-                    <p className="text-muted mx-auto" style={{ maxWidth: "420px", fontSize: "0.95rem", lineHeight: "1.6" }}>
-                      Has iniciado sesión correctamente en el sistema de comandas. En próximas actualizaciones se añadirán los módulos de gestión.
-                    </p>
+                  </div>
+
+                  {/* Tarjeta Órdenes Abiertas */}
+                  <div className="col-12 col-md-6">
+                    <div
+                      className="bg-white p-3 rounded-4 shadow-premium border-0 d-flex align-items-center justify-content-between cursor-pointer"
+                      style={{ cursor: "pointer", transition: "transform 0.2s ease, box-shadow 0.2s ease" }}
+                      onClick={() => setMenuActivo("ordenes")}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = "translateY(-2px)";
+                        e.currentTarget.style.boxShadow = "0 8px 25px rgba(0,0,0,0.08)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = "none";
+                        e.currentTarget.style.boxShadow = "none";
+                      }}
+                    >
+                      <div className="d-flex align-items-center gap-3">
+                        <div
+                          className="d-flex align-items-center justify-content-center"
+                          style={{
+                            width: "56px",
+                            height: "56px",
+                            borderRadius: "14px",
+                            background: "rgba(245, 158, 11, 0.08)",
+                            color: "#f59e0b"
+                          }}
+                        >
+                          <FiLayers size={22} />
+                        </div>
+                        <div className="d-flex flex-column text-start">
+                          <h3 className="m-0 fw-bold" style={{ fontSize: "1.1rem", color: "#1e293b" }}>
+                            Órdenes Abiertas
+                          </h3>
+                          <p className="m-0 text-muted" style={{ fontSize: "0.85rem", marginTop: "2px" }}>
+                            Visualizar, editar y gestionar pedidos que aún están en proceso.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-muted ps-2">
+                        <FiChevronRight size={20} />
+                      </div>
+                    </div>
                   </div>
                 </div>
               </main>
