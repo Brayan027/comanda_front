@@ -378,7 +378,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 @media (min-width: 992px) {
   .app-content {
     margin-left: 280px;
-    padding: 32px 40px;
+    padding: 10px 40px 32px 40px;
     max-width: calc(100% - 280px);
   }
 }
@@ -563,9 +563,9 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   }
 
   .app-content {
-    margin-left: 240px;
+    margin-left: 280px;
     /* Usamos margin en lugar de padding */
-    width: calc(100% - 240px);
+    width: calc(100% - 280px);
   }
 }
 
@@ -632,7 +632,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   top: 0;
   left: 0;
   bottom: 0;
-  width: 240px;
+  width: 280px;
   /* Reducido de 260px */
   background: #ffffff;
   border-right: 1px solid #e2e8f0;
@@ -678,7 +678,7 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   padding: 10px 16px 5px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
 }
 
 .brand-group {

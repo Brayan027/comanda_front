@@ -1,9 +1,10 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { LOGIN_URL, sanitizarError } from "../config/api";
-import { FaUser, FaLock, FaEye, FaEyeSlash } from "react-icons/fa";
+import { FaUser, FaLock, FaEye, FaEyeSlash, FaDesktop } from "react-icons/fa";
 import logo from "../assets/log1.png";
 import "../styles/Login.css";
+
 
 type LoginProps = {
   onLogin: () => void;
@@ -17,6 +18,9 @@ type RespuestaLogin = {
     token?: string;
     access_token?: string;
     jwt?: string;
+    vendedor?: any;
+    infoPuntoVenta?: any;
+    usuario?: any;
   };
   message?: string;
   mensaje?: string;
@@ -66,20 +70,36 @@ export default function Login({ onLogin }: LoginProps) {
   const [error, setError] = useState("");
   const [verClave, setVerClave] = useState(false);
 
+  // Cargar estado inicial del dispositivo desde localStorage (si existe)
+  const [nombreTerminal, setNombreTerminal] = useState(() => localStorage.getItem("terminal") || "");
+
   async function manejarSubmit(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
     if (!usuario.trim() || !clave.trim()) {
       return;
     }
 
+    if (!nombreTerminal.trim()) {
+      setError("Por favor ingrese el nombre del dispositivo");
+      return;
+    }
+
     setEnviando(true);
     setError("");
+
+    // Si coincide con la guardada es 0, si cambió o es nueva es 1 (crear terminal)
+    const esPrimeraVezCalculado = nombreTerminal.trim() === localStorage.getItem("terminal") ? 0 : 1;
 
     try {
       const resp = await fetch(LOGIN_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ usuario, clave }),
+        body: JSON.stringify({
+          idUsu: usuario,
+          password: clave,
+          nombre_terminal: nombreTerminal,
+          es_primera_vez: esPrimeraVezCalculado,
+        }),
       });
 
       const textoRespuesta = await resp.text();
@@ -111,6 +131,23 @@ export default function Login({ onLogin }: LoginProps) {
 
       localStorage.setItem("token", token);
       localStorage.setItem("last_login", Date.now().toString());
+      localStorage.setItem("terminal", nombreTerminal.trim()); // Guardar terminal
+      
+      if (data?.body) {
+        if (data.body.vendedor) {
+          localStorage.setItem("vendedor", JSON.stringify(data.body.vendedor));
+        }
+        if (data.body.infoPuntoVenta) {
+          localStorage.setItem("infoPuntoVenta", JSON.stringify(data.body.infoPuntoVenta));
+        }
+        if (data.body.usuario) {
+          localStorage.setItem("usuario", JSON.stringify(data.body.usuario));
+        }
+      }
+
+      // Si existe localstorage de lineas (config anterior), se limpia
+      localStorage.removeItem("lineas");
+
       onLogin();
     } catch (err) {
       const mensajeOriginal = err instanceof Error ? err.message : "Error de login";
@@ -164,6 +201,21 @@ export default function Login({ onLogin }: LoginProps) {
               >
                 {verClave ? <FaEyeSlash /> : <FaEye />}
               </button>
+            </div>
+          </div>
+
+          {/* Campo nombre de dispositivo / terminal siempre visible */}
+          <div className="login-form-group">
+            <div className="login-input-wrapper">
+              <FaDesktop className="login-input-icon" />
+              <input
+                type="text"
+                className="login-input"
+                value={nombreTerminal}
+                onChange={(e) => setNombreTerminal(e.target.value)}
+                placeholder="Nombre del dispositivo"
+                required
+              />
             </div>
           </div>
 

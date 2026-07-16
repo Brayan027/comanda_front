@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import "./styles/App.css";
 import Login from "./pages/Login";
 import Sidebar from "./components/layout/Sidebar";
+import CrearOrdenes from "./pages/CrearOrdenes";
+import OrdenesOpen from "./pages/OrdenesOpen";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import { FiHome } from "react-icons/fi";
@@ -25,6 +27,7 @@ export default function App() {
   });
 
   const [menuActivo, setMenuActivo] = useState<MenuKey>("home");
+  const [ordenIdEdicion, setOrdenIdEdicion] = useState<number | null>(null);
 
   useEffect(() => {
     if (!logueado) return;
@@ -93,7 +96,7 @@ export default function App() {
       <section className="app-content">
         {menuActivo === "home" ? (
           <section
-            className="premium-home-panel px-3 pt-4"
+            className="premium-home-panel px-3 pt-0"
             aria-label="Pantalla de inicio"
             style={{ background: "#f8fafc", minHeight: "100vh", paddingBottom: "60px" }}
           >
@@ -112,7 +115,7 @@ export default function App() {
                       background: "linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)",
                       color: "#fff",
                       borderRadius: "10px",
-                      display: "flex",
+                      display : "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       boxShadow: "0 4px 10px rgba(239, 68, 68, 0.15)",
@@ -122,7 +125,7 @@ export default function App() {
                   </div>
                   <div className="d-flex flex-column">
                     <span className="text-muted fw-bold text-uppercase mb-0" style={{ fontSize: "0.65rem", letterSpacing: "0.1em" }}>
-                      Sotracor
+                      Comanda
                     </span>
                     <h1 className="m-0 text-uppercase" style={{ fontSize: "1.35rem", color: "#334155", fontWeight: 600, letterSpacing: "0.02em" }}>
                       Inicio
@@ -148,16 +151,24 @@ export default function App() {
                       <FiHome size={36} />
                     </div>
                     <h2 className="fw-bold mb-3" style={{ color: "#1e293b", fontSize: "1.75rem" }}>
-                      ¡Bienvenido al Panel de Sotracor!
+                      ¡Bienvenido al Panel de Comandas!
                     </h2>
                     <p className="text-muted mx-auto" style={{ maxWidth: "420px", fontSize: "0.95rem", lineHeight: "1.6" }}>
-                      Has iniciado sesión correctamente en el sistema de reportes. En próximas actualizaciones se añadirán los módulos de gestión.
+                      Has iniciado sesión correctamente en el sistema de comandas. En próximas actualizaciones se añadirán los módulos de gestión.
                     </p>
                   </div>
                 </div>
               </main>
             </div>
           </section>
+        ) : menuActivo === "comanda" ? (
+          <CrearOrdenes initialOrdenId={ordenIdEdicion} onClearInitial={() => setOrdenIdEdicion(null)} />
+        ) : menuActivo === "ordenes" ? (
+          ordenIdEdicion !== null ? (
+            <CrearOrdenes initialOrdenId={ordenIdEdicion} onClearInitial={() => setOrdenIdEdicion(null)} />
+          ) : (
+            <OrdenesOpen onEditar={(id) => setOrdenIdEdicion(id)} />
+          )
         ) : null}
       </section>
     </div>

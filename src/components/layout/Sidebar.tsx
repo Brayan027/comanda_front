@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { FiHome, FiLogOut, FiMenu } from "react-icons/fi";
+import { FiHome, FiLogOut, FiMenu, FiLayers, FiList } from "react-icons/fi";
 import logoReporte from "../../assets/LogoReportes.png";
 
-export type MenuKey = "home";
+export type MenuKey = "home" | "comanda" | "ordenes";
 type SidebarProps = {
     activo: MenuKey;
     onCambiar: (menu: MenuKey) => void;
@@ -14,6 +14,8 @@ export default function Sidebar({ activo, onCambiar, onSalir }: SidebarProps) {
 
     const opciones = [
         { key: "home", label: "Inicio", icon: FiHome },
+        { key: "comanda", label: "Crear órdenes", icon: FiLayers },
+        { key: "ordenes", label: "Órdenes abiertas", icon: FiList },
     ] as const;
 
     function seleccionar(menu: MenuKey) {
@@ -42,8 +44,8 @@ export default function Sidebar({ activo, onCambiar, onSalir }: SidebarProps) {
 
             {/* SIDEBAR PRINCIPAL */}
             <aside className={`premium-sidebar ${abierto ? "is-open" : ""}`} style={{ background: '#ffffff' }}>
-                <div className="sidebar-header d-flex flex-column align-items-center justify-content-center pt-4 pb-1">
-                    <div className="brand-group text-center">
+                <div className="sidebar-header d-flex align-items-center justify-content-start pt-2 pb-1">
+                    <div className="d-flex align-items-center justify-content-start w-100">
                         <img
                             src={logoReporte}
                             alt="Logo Reportes"
