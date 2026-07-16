@@ -244,13 +244,14 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
 
   // Obtener la lista de productos al cambiar el término de búsqueda (con Debounce)
   useEffect(() => {
+    if (cargandoComanda) return; // Evitar consultas pesadas en paralelo a la base de datos mientras carga la comanda
     if (productSearchTimeout.current) clearTimeout(productSearchTimeout.current);
-    productSearchTimeout.current = setTimeout(cargarProductos, 300);
+    productSearchTimeout.current = setTimeout(cargarProductos, 200);
 
     return () => {
       if (productSearchTimeout.current) clearTimeout(productSearchTimeout.current);
     };
-  }, [busquedaProducto]);
+  }, [busquedaProducto, cargandoComanda]);
 
   // Cargar las sugerencias de autocompletado de meseros
   const fetchWaiters = async (term: string) => {
@@ -1106,8 +1107,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
                         </strong>
                       ) : (
                         <strong style={{ color: "#000000", fontWeight: 800 }}>
-                          {item.ProStDescripcion}{" "}
-                          <span className="badge bg-success ms-1" style={{ fontSize: '0.65rem', background: "#22c55e", color: "#ffffff" }}>Nuevo</span>
+                          {item.ProStDescripcion}
                         </strong>
                       )}
                       <small style={item.MopStImpreso !== '1' ? { color: "#000000", fontWeight: "bold" } : {}}>
@@ -1202,8 +1202,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
                             </span>
                           ) : (
                             <strong style={{ color: "#000000", fontWeight: 800 }}>
-                              {item.ProStDescripcion}{" "}
-                              <span className="badge bg-success ms-2" style={{ fontSize: '0.65rem', background: "#22c55e", color: "#ffffff" }}>Nuevo</span>
+                              {item.ProStDescripcion}
                             </strong>
                           )}
                           {item.adicionales.length > 0 && (
