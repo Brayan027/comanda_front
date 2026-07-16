@@ -798,8 +798,8 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
   };
 
   return (
-    <section className="crear-ordenes-page px-3" aria-label="Crear Órdenes">
-      <div className="container-fluid pt-2">
+    <section className="crear-ordenes-page px-0 px-md-3" aria-label="Crear Órdenes">
+      <div className="container-fluid pt-2 px-1 px-md-2">
         {/* Header Strip */}
         <header className="co-header">
           <div className="d-flex align-items-center gap-3">
