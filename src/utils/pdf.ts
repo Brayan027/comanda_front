@@ -16,6 +16,8 @@ export interface TicketOrden {
     adicionales: {
       ProStDescripcion: string;
     }[];
+    MopStImpreso?: string;
+    ImpNombre1?: string;
   }[];
   totales: {
     subtotal: number;
@@ -56,19 +58,26 @@ function crearTicketHTML(orden: TicketOrden, empresa: TicketEmpresa): string {
           </tr>
         </thead>
         <tbody>
-          ${orden.productos.map((p) => `
-            <tr>
-              <td style="vertical-align:top;padding:3px 0;text-transform:uppercase;">${p.ProStDescripcion}</td>
-              <td style="vertical-align:top;text-align:right;padding:3px 0;">${p.cantidad}</td>
-            </tr>
-            ${p.adicionales && p.adicionales.length > 0 ? p.adicionales.map((ad) => `
-              <tr>
-                <td colspan="2" style="vertical-align:top;padding:1px 0 1px 12px;font-size:10.5px;color:#333;text-transform:uppercase;">
-                  + ${ad.ProStDescripcion}
+          ${orden.productos.map((p) => {
+            const isNuevo = p.MopStImpreso === '0';
+            const labelNuevo = isNuevo ? ' <span style="color:#ef4444;font-weight:bold;font-size:10px;padding:1px 4px;border:1px solid #ef4444;border-radius:3px;">[NUEVO]</span>' : '';
+            const rowStyle = isNuevo ? 'background-color:#fffbeb;font-weight:bold;' : '';
+            return `
+              <tr style="${rowStyle}">
+                <td style="vertical-align:top;padding:3px 0;text-transform:uppercase;">
+                  ${p.ProStDescripcion}${labelNuevo}
                 </td>
+                <td style="vertical-align:top;text-align:right;padding:3px 0;">${p.cantidad}</td>
               </tr>
-            `).join("") : ""}
-          `).join("")}
+              ${p.adicionales && p.adicionales.length > 0 ? p.adicionales.map((ad) => `
+                <tr style="${rowStyle}">
+                  <td colspan="2" style="vertical-align:top;padding:1px 0 1px 12px;font-size:10.5px;color:#333;text-transform:uppercase;">
+                    + ${ad.ProStDescripcion}
+                  </td>
+                </tr>
+              `).join("") : ""}
+            `;
+          }).join("")}
         </tbody>
       </table>
       
@@ -124,31 +133,73 @@ export async function generarPDF(orden: TicketOrden, empresa: TicketEmpresa): Pr
 }
 
 export async function descargarPDF(orden: TicketOrden, empresa: TicketEmpresa): Promise<void> {
-  const pdf = await generarPDF(orden, empresa);
-  const url = URL.createObjectURL(pdf);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = pdf.name;
-  a.click();
-  URL.revokeObjectURL(url);
+  // Agrupar productos por impresora
+  const groups = new Map<string, typeof orden.productos>();
+  orden.productos.forEach(p => {
+    const printer = p.ImpNombre1 || "Comanda General";
+    if (!groups.has(printer)) {
+      groups.set(printer, []);
+    }
+    groups.get(printer)!.push(p);
+  });
+
+  // Generar un PDF descargable por cada impresora
+  for (const [printer, products] of groups.entries()) {
+    const splitOrden: TicketOrden = {
+      ...orden,
+      productos: products
+    };
+    const splitEmpresa: TicketEmpresa = {
+      ...empresa,
+      nombre: `${empresa.nombre} - ${printer.toUpperCase()}`
+    };
+    const pdf = await generarPDF(splitOrden, splitEmpresa);
+    const url = URL.createObjectURL(pdf);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${printer.toLowerCase().replace(/\s+/g, '_')}_${pdf.name}`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 }
 
 export async function compartirPDF(orden: TicketOrden, empresa: TicketEmpresa): Promise<boolean> {
-  const pdf = await generarPDF(orden, empresa);
+  const groups = new Map<string, typeof orden.productos>();
+  orden.productos.forEach(p => {
+    const printer = p.ImpNombre1 || "Comanda General";
+    if (!groups.has(printer)) {
+      groups.set(printer, []);
+    }
+    groups.get(printer)!.push(p);
+  });
 
-  if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [pdf] }))) {
-    try {
-      await navigator.share({
-        files: [pdf],
-        title: `Comanda_Mesa_${orden.mesa}_Orden_${orden.nro_orden}.pdf`,
-      });
-      return true;
-    } catch (err: unknown) {
-      if (err && typeof err === "object" && "name" in err && (err as Error).name === "AbortError") {
-        return true;
+  let allSuccess = true;
+  for (const [printer, products] of groups.entries()) {
+    const splitOrden: TicketOrden = {
+      ...orden,
+      productos: products
+    };
+    const splitEmpresa: TicketEmpresa = {
+      ...empresa,
+      nombre: `${empresa.nombre} - ${printer.toUpperCase()}`
+    };
+    const pdf = await generarPDF(splitOrden, splitEmpresa);
+
+    if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [pdf] }))) {
+      try {
+        await navigator.share({
+          files: [pdf],
+          title: `${printer.toUpperCase()} - Comanda Mesa ${orden.mesa}`,
+        });
+      } catch (err: unknown) {
+        if (err && typeof err === "object" && "name" in err && (err as Error).name === "AbortError") {
+          continue;
+        }
+        allSuccess = false;
       }
-      return false;
+    } else {
+      allSuccess = false;
     }
   }
-  return false;
+  return allSuccess;
 }

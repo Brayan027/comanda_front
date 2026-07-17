@@ -39,6 +39,7 @@ interface Product {
   ProStIvaIncluido?: string | number;
   ExiInCantidadFinalBodega: number;
   PreStAbreviatura: string;
+  ImpNombre1?: string;
 }
 
 interface AccompanimentOption {
@@ -68,6 +69,7 @@ interface CartItem {
   ProInPorcentajeImpoconsumo?: number;
   ProStIvaIncluido?: string | number;
   MopStImpreso?: string;
+  ImpNombre1?: string;
   adicionales: {
     ApmIdInProducto: number;
     ProStDescripcion: string;
@@ -227,6 +229,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
                   ProInPorcentajeImpoconsumo: p.MopInPorcentajeImpoconsumo || 0,
                   ProStIvaIncluido: p.MopInPorIva > 0 || p.MopInPorcentajeImpoconsumo > 0 ? "1" : "0",
                   MopStImpreso: String(p.MopStImpreso || '0'),
+                  ImpNombre1: p.ImpNombre1 || "Comanda General",
                   adicionales
                 };
               });
@@ -380,6 +383,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
               ProInPorcentajeImpoconsumo: Number(p.ProInPorcentajeImpoconsumo) || 0,
               ProStIvaIncluido: p.ProStIvaIncluido !== undefined ? p.ProStIvaIncluido : '1',
               MopStImpreso: String(p.MopStImpreso || '0'),
+              ImpNombre1: p.ImpNombre1 || "Comanda General",
               adicionales
             };
           });
@@ -534,6 +538,8 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
             ProInIvaVenta: Number(p.ProInIva) || 0,
             ProInPorcentajeImpoconsumo: Number(p.ProInPorcentajeImpoconsumo) || 0,
             ProStIvaIncluido: p.ProStIvaIncluido !== undefined ? p.ProStIvaIncluido : '1',
+            MopStImpreso: '0',
+            ImpNombre1: p.ImpNombre1 || "Comanda General",
             adicionales: sides
           }
         ];
@@ -696,6 +702,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
           precioVenta: item.precioVenta,
           cantidad: item.cantidad,
           ProIdInUnidadVenta: item.ProIdInUnidadVenta,
+          MopStImpreso: item.MopStImpreso || '0',
           adicionales: item.adicionales.map(ad => ({
             ApmIdInProducto: ad.ApmIdInProducto,
             precioVenta: ad.precioVenta
@@ -748,7 +755,9 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
           total: (item.precioVenta + item.adicionales.reduce((acc, ad) => acc + ad.precioVenta, 0)) * item.cantidad,
           adicionales: item.adicionales.map(ad => ({
             ProStDescripcion: ad.ProStDescripcion
-          }))
+          })),
+          MopStImpreso: item.MopStImpreso || '0',
+          ImpNombre1: item.ImpNombre1 || "Comanda General"
         })),
         totales: {
           subtotal: resumenTotales.total - resumenTotales.iva - resumenTotales.impoconsumo,
@@ -1138,14 +1147,17 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
                       {item.MopStImpreso === '1' ? (
                         <strong>
                           {item.ProStDescripcion}{" "}
-                          <span className="badge bg-light text-secondary ms-1" style={{ fontSize: '0.65rem' }}>Impreso</span>
+                          <span className="badge bg-success-subtle text-success border border-success-subtle ms-1" style={{ fontSize: '0.65rem' }}>Impreso</span>
+                          {item.ImpNombre1 && <span className="badge bg-light text-muted border ms-1" style={{ fontSize: '0.65rem' }}>{item.ImpNombre1}</span>}
                         </strong>
                       ) : (
-                        <strong style={{ color: "#000000", fontWeight: 800 }}>
-                          {item.ProStDescripcion}
+                        <strong style={{ color: "#ef4444", fontWeight: 800 }}>
+                          {item.ProStDescripcion}{" "}
+                          <span className="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle ms-1" style={{ fontSize: '0.65rem' }}>Por Imprimir</span>
+                          {item.ImpNombre1 && <span className="badge bg-danger-subtle text-danger border border-danger-subtle ms-1" style={{ fontSize: '0.65rem' }}>{item.ImpNombre1}</span>}
                         </strong>
                       )}
-                      <small style={item.MopStImpreso !== '1' ? { color: "#000000", fontWeight: "bold" } : {}}>
+                      <small style={item.MopStImpreso !== '1' ? { color: "#ef4444", fontWeight: "bold" } : {}}>
                         x{item.cantidad}
                       </small>
                     </div>
@@ -1233,11 +1245,14 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
                           {item.MopStImpreso === '1' ? (
                             <span>
                               {item.ProStDescripcion}{" "}
-                              <span className="badge bg-light text-secondary ms-2" style={{ fontSize: '0.65rem' }}>Impreso</span>
+                              <span className="badge bg-success-subtle text-success border border-success-subtle ms-2" style={{ fontSize: '0.65rem' }}>Impreso</span>
+                              {item.ImpNombre1 && <span className="badge bg-light text-muted border ms-1" style={{ fontSize: '0.65rem' }}>{item.ImpNombre1}</span>}
                             </span>
                           ) : (
-                            <strong style={{ color: "#000000", fontWeight: 800 }}>
-                              {item.ProStDescripcion}
+                            <strong style={{ color: "#ef4444", fontWeight: 800 }}>
+                              {item.ProStDescripcion}{" "}
+                              <span className="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle ms-2" style={{ fontSize: '0.65rem' }}>Por Imprimir</span>
+                              {item.ImpNombre1 && <span className="badge bg-danger-subtle text-danger border border-danger-subtle ms-1" style={{ fontSize: '0.65rem' }}>{item.ImpNombre1}</span>}
                             </strong>
                           )}
                           {item.adicionales.length > 0 && (
