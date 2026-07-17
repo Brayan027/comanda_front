@@ -9,7 +9,8 @@ import {
   FiGrid,
   FiX,
   FiList,
-  FiCheck
+  FiCheck,
+  FiInfo
 } from "react-icons/fi";
 import { Modal, Button, Badge } from "react-bootstrap";
 import Swal from "sweetalert2";
@@ -133,6 +134,8 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
   const [cargandoProductos, setCargandoProductos] = useState(false);
   const [cargandoComanda, setCargandoComanda] = useState(false);
   const [carrito, setCarrito] = useState<CartItem[]>([]);
+  
+  const infoSuperiorCompleta = mesa.trim() !== "" && mesero !== null;
   
   // Selectores de cantidad rápida por tarjeta de producto
   const [cantidadesRapidas, setCantidadesRapidas] = useState<Record<number, number>>({});
@@ -1006,18 +1009,50 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
             </select>
           </div>
           
-          <div className="co-search-bar">
+          <div className="co-search-bar" style={{ opacity: infoSuperiorCompleta ? 1 : 0.6 }}>
             <FiSearch size={16} />
             <input
               type="text"
               value={busquedaProducto}
               onChange={(e) => setBusquedaProducto(e.target.value)}
               placeholder="BUSCAR PRODUCTO O CODIGO"
+              disabled={!infoSuperiorCompleta}
             />
           </div>
 
           <div className="co-products-scroll">
-            {cargandoProductos && productos.length === 0 ? (
+            {!infoSuperiorCompleta ? (
+              <div 
+                className="d-flex flex-column align-items-center justify-content-center text-center py-5 px-3"
+                style={{
+                  background: "#fdf2f2",
+                  borderRadius: "12px",
+                  border: "1px dashed #fca5a5",
+                  marginTop: "20px",
+                  minHeight: "180px"
+                }}
+              >
+                <div 
+                  style={{
+                    width: "48px",
+                    height: "48px",
+                    borderRadius: "50%",
+                    background: "#fee2e2",
+                    color: "#ef4444",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginBottom: "12px"
+                  }}
+                >
+                  <FiInfo size={24} />
+                </div>
+                <h5 className="fw-bold text-danger mb-1" style={{ fontFamily: "'Outfit', sans-serif" }}>Información Requerida</h5>
+                <p className="text-muted small m-0" style={{ maxWidth: "280px" }}>
+                  Por favor, digite la mesa y seleccione el mesero responsable para comenzar a agregar productos.
+                </p>
+              </div>
+            ) : cargandoProductos && productos.length === 0 ? (
               <div className="text-center py-5 text-muted">Buscando productos...</div>
             ) : productos.length === 0 ? (
               <div className="text-center py-5 text-muted">No hay productos para mostrar</div>

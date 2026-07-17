@@ -6,7 +6,7 @@ import CrearOrdenes from "./pages/CrearOrdenes";
 import OrdenesOpen from "./pages/OrdenesOpen";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
-import { FiHome, FiPlus, FiLayers, FiChevronRight } from "react-icons/fi";
+import { FiHome, FiPlus, FiLayers, FiChevronRight, FiCalendar, FiMonitor } from "react-icons/fi";
 import type { MenuKey } from "./components/layout/Sidebar";
 
 export default function App() {
@@ -28,6 +28,13 @@ export default function App() {
 
   const [menuActivo, setMenuActivo] = useState<MenuKey>("home");
   const [ordenIdEdicion, setOrdenIdEdicion] = useState<number | null>(null);
+  const [fechaActual] = useState(() => {
+    const f = new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    return f.charAt(0).toUpperCase() + f.slice(1);
+  });
+  const [fechaCorta] = useState(() => {
+    return new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  });
 
   useEffect(() => {
     if (!logueado) return;
@@ -103,33 +110,83 @@ export default function App() {
             <div className="container-fluid">
               {/* Header Premium Simplificado */}
               <header
-                className="bg-white p-2 px-4 mb-4 rounded-4 shadow-premium d-flex justify-content-between align-items-center flex-wrap gap-2"
-                style={{ minHeight: "70px" }}
+                className="bg-white p-3 px-4 mb-4 rounded-4 shadow-premium d-flex justify-content-between align-items-center gap-2 border border-light"
+                style={{ minHeight: "75px" }}
               >
+                {/* Izquierda: Titulo */}
                 <div className="d-flex align-items-center gap-3">
                   <div
                     className="premium-icon-box"
                     style={{
-                      width: "34px",
-                      height: "34px",
+                      width: "38px",
+                      height: "38px",
                       background: "linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)",
                       color: "#fff",
-                      borderRadius: "10px",
+                      borderRadius: "12px",
                       display : "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      boxShadow: "0 4px 10px rgba(239, 68, 68, 0.15)",
+                      boxShadow: "0 4px 12px rgba(239, 68, 68, 0.18)",
                     }}
                   >
                     <FiHome size={18} />
                   </div>
                   <div className="d-flex flex-column">
-                    <span className="text-muted fw-bold text-uppercase mb-0" style={{ fontSize: "0.65rem", letterSpacing: "0.1em" }}>
+                    <span className="text-muted fw-bold text-uppercase mb-0" style={{ fontSize: "0.6rem", letterSpacing: "0.12em", color: "#94a3b8" }}>
                       Comanda
                     </span>
-                    <h1 className="m-0 text-uppercase" style={{ fontSize: "1.35rem", color: "#334155", fontWeight: 600, letterSpacing: "0.02em" }}>
+                    <h1 className="m-0 text-uppercase" style={{ fontSize: "1.25rem", color: "#1e293b", fontWeight: 700, letterSpacing: "0.02em" }}>
                       Inicio
                     </h1>
+                  </div>
+                </div>
+
+                {/* Derecha: Meta Información (Siempre en una misma línea alineados) */}
+                <div className="d-flex align-items-center gap-2 ms-auto flex-nowrap">
+                  {/* Fecha */}
+                  <div 
+                    className="d-flex align-items-center gap-2 px-3 py-2 rounded-3 border flex-nowrap"
+                    style={{ 
+                      fontSize: "0.85rem", 
+                      backgroundColor: "#f8fafc", 
+                      borderColor: "#e2e8f0",
+                      color: "#475569",
+                      whiteSpace: "nowrap"
+                    }}
+                  >
+                    <FiCalendar style={{ color: "#ef4444" }} size={16} />
+                    <span className="fw-medium d-none d-md-inline">{fechaActual}</span>
+                    <span className="fw-medium d-inline d-md-none">{fechaCorta}</span>
+                  </div>
+
+                  {/* Terminal */}
+                  <div 
+                    className="d-flex align-items-center gap-2 px-3 py-2 rounded-3 border flex-nowrap"
+                    style={{ 
+                      fontSize: "0.85rem", 
+                      backgroundColor: "#f8fafc", 
+                      borderColor: "#e2e8f0",
+                      color: "#475569",
+                      whiteSpace: "nowrap"
+                    }}
+                  >
+                    <div className="position-relative d-flex align-items-center justify-content-center">
+                      <FiMonitor style={{ color: "#64748b" }} size={16} />
+                      <span 
+                        className="position-absolute rounded-circle border border-white"
+                        style={{ 
+                          top: "-2px", 
+                          right: "-2px", 
+                          width: "8px", 
+                          height: "8px", 
+                          backgroundColor: "#22c55e",
+                          boxShadow: "0 0 4px #22c55e"
+                        }}
+                      ></span>
+                    </div>
+                    <span className="fw-bold text-uppercase" style={{ letterSpacing: "0.03em" }}>
+                      {localStorage.getItem("terminal") || "Terminal Desconocida"}
+                    </span>
                   </div>
                 </div>
               </header>
