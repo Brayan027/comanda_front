@@ -10,7 +10,8 @@ import {
   FiX,
   FiList,
   FiCheck,
-  FiInfo
+  FiInfo,
+  FiEdit
 } from "react-icons/fi";
 import { Modal, Button, Badge } from "react-bootstrap";
 import Swal from "sweetalert2";
@@ -70,6 +71,7 @@ interface CartItem {
   ProStIvaIncluido?: string | number;
   MopStImpreso?: string;
   ImpNombre1?: string;
+  observacion?: string;
   adicionales: {
     ApmIdInProducto: number;
     ProStDescripcion: string;
@@ -78,12 +80,19 @@ interface CartItem {
   }[];
 }
 
-
+interface SelectedSideItem {
+  ApmIdInProducto: number;
+  ProStDescripcion: string;
+  precioVenta: number;
+  cantidad: number;
+  ApmStIncrementaPrecio: string;
+  ApmInValorFijo: number;
+}
 
 type VistaMovil = "productos" | "carrito" | "factura";
 
 interface CrearOrdenesProps {
-  initialOrdenId?: number | null;
+  initialOrdenId?: string | number | null;
   onClearInitial?: () => void;
 }
 
@@ -107,6 +116,19 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
     }
   })();
 
+  const loggedUsuario = (() => {
+    try {
+      const stored = localStorage.getItem("usuario");
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  })();
+
+  const esAdministrador = useMemo(() => {
+    return loggedUsuario?.UsuStIdGrupoUsuario === "ADMS" || loggedUsuario?.UsuStIdGrupoUsuario === "ADM";
+  }, [loggedUsuario]);
+
   const terminalName = localStorage.getItem("terminal") || "";
   const token = localStorage.getItem("token") || "";
 
@@ -120,7 +142,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
 
   // Variables de estado
   const [mesa, setMesa] = useState("");
-  const [ordenId, setOrdenId] = useState<number | null>(null);
+  const [ordenId, setOrdenId] = useState<string | number | null>(null);
   
   // Estado para el autocompletado de meseros
   const [meseroBusqueda, setMeseroBusqueda] = useState("");
@@ -128,7 +150,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
   const [waitersSuggestions, setWaitersSuggestions] = useState<Waiter[]>([]);
   const [showWaitersList, setShowWaitersList] = useState(false);
 
-  const [numPersonas, setNumPersonas] = useState(1);
+  const [numPersonas, setNumPersonas] = useState<number | string>(1);
   const [vistaMovil, setVistaMovil] = useState<VistaMovil>("productos");
   
   const [busquedaProducto, setBusquedaProducto] = useState("");
@@ -137,21 +159,55 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
   const [cargandoComanda, setCargandoComanda] = useState(false);
   const [carrito, setCarrito] = useState<CartItem[]>([]);
   
-  const infoSuperiorCompleta = mesa.trim() !== "" && mesero !== null;
+  const [cabeceraConfirmada, setCabeceraConfirmada] = useState(false);
+  const infoSuperiorCompleta = cabeceraConfirmada;
   
   // Selectores de cantidad rápida por tarjeta de producto
   const [cantidadesRapidas, setCantidadesRapidas] = useState<Record<number, number>>({});
+  const [obsPredefinidas, setObsPredefinidas] = useState<any[]>([]);
+  const [lineas, setLineas] = useState<{ id: number; descripcion: string }[]>([]);
+  const [lineaSeleccionada, setLineaSeleccionada] = useState<number | null>(null);
+  const [subTabProductos, setSubTabProductos] = useState<"productos" | "categorias">("productos");
 
   // Modales
   const [modalSidesOpen, setModalSidesOpen] = useState(false);
+  const [modalProductQty, setModalProductQty] = useState(1);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [availableSides, setAvailableSides] = useState<SelectionGroup[]>([]);
-  const [selectedSides, setSelectedSides] = useState<Record<number, AccompanimentOption[]>>({}); // Indexado por ID del grupo de selección (SelectionGroup)
+  const [selectedSides, setSelectedSides] = useState<Record<number, SelectedSideItem[]>>({}); // Indexado por ID del grupo de selección (SelectionGroup)
 
 
 
   const [guardando, setGuardando] = useState(false);
   const productSearchTimeout = useRef<number | undefined>(undefined);
+
+  const fetchObservacionesPredefinidas = async () => {
+    try {
+      const resp = await fetch(`${API_BASE_URL}/ordenes/observaciones-predefinidas`, {
+        headers
+      });
+      if (resp.ok) {
+        const resData = await resp.json();
+        setObsPredefinidas(resData.body || []);
+      }
+    } catch (e) {
+      console.error("Error loading observations", e);
+    }
+  };
+
+  const fetchLineas = async () => {
+    try {
+      const resp = await fetch(`${API_BASE_URL}/productos/lineas`, {
+        headers
+      });
+      if (resp.ok) {
+        const resData = await resp.json();
+        setLineas(resData.body || []);
+      }
+    } catch (e) {
+      console.error("Error loading product lines", e);
+    }
+  };
 
   // Establecer el mesero conectado inicialmente
   useEffect(() => {
@@ -168,6 +224,8 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
       setMeseroBusqueda(displayVal);
     }
     fetchWaiters("");
+    fetchObservacionesPredefinidas();
+    fetchLineas();
   }, []);
 
   // Cargar la comanda inicial si se pasa un ID de orden como prop
@@ -208,7 +266,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
                   ApmIdInProducto: ad.ApmIdInProducto,
                   ProStDescripcion: ad.ProStDescripcion,
                   precioVenta: ad.precioVenta,
-                  cantidad: ad.cantidad
+                  cantidad: ad.cantidad || 1
                 }));
 
                 const sidesKey = adicionales
@@ -216,11 +274,15 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
                   .sort()
                   .join(",");
                 const idUnicoCart = `${p.ProIdInProducto}_${sidesKey}`;
+                const descCompleta = p.ProStDescripcion || "";
+                const parts = descCompleta.split(" - ");
+                const nombreOriginal = parts[0];
+                const observacion = parts.slice(1).join(" - ");
 
                 return {
                   idUnicoCart,
                   ProIdInProducto: p.ProIdInProducto,
-                  ProStDescripcion: p.ProStDescripcion,
+                  ProStDescripcion: nombreOriginal,
                   precioVenta: p.valor,
                   cantidad: p.cantidad,
                   ProIdInUnidadVenta: p.MopIdInUnidadVenta || 1,
@@ -230,25 +292,27 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
                   ProStIvaIncluido: p.MopInPorIva > 0 || p.MopInPorcentajeImpoconsumo > 0 ? "1" : "0",
                   MopStImpreso: String(p.MopStImpreso || '0'),
                   ImpNombre1: p.ImpNombre1 || "Comanda General",
-                  adicionales
+                  adicionales,
+                  observacion: observacion || ""
                 };
               });
 
               setCarrito(itemsFormateados);
+              setCabeceraConfirmada(true);
             }
           }
         } catch (e) {
           console.error("Error loading initial comanda by ID", e);
         } finally {
           setCargandoComanda(false);
-          if (onClearInitial) onClearInitial();
+          // NO llamar onClearInitial aquí — eso desmontaría el componente antes de que el usuario edite
         }
       };
       loadComanda();
     }
   }, [initialOrdenId]);
 
-  // Obtener la lista de productos al cambiar el término de búsqueda (con Debounce)
+  // Obtener la lista de productos al cambiar el término de búsqueda o categoría (con Debounce)
   useEffect(() => {
     if (cargandoComanda) return; // Evitar consultas pesadas en paralelo a la base de datos mientras carga la comanda
     if (productSearchTimeout.current) clearTimeout(productSearchTimeout.current);
@@ -257,7 +321,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
     return () => {
       if (productSearchTimeout.current) clearTimeout(productSearchTimeout.current);
     };
-  }, [busquedaProducto, cargandoComanda]);
+  }, [busquedaProducto, lineaSeleccionada, cargandoComanda]);
 
   // Cargar las sugerencias de autocompletado de meseros
   const fetchWaiters = async (term: string) => {
@@ -308,7 +372,10 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
     try {
       setCargandoProductos(true);
       const limit = 50;
-      const url = `${API_BASE_URL}/ordenes/productos?search=${encodeURIComponent(busquedaProducto)}&limit=${limit}`;
+      let url = `${API_BASE_URL}/ordenes/productos?search=${encodeURIComponent(busquedaProducto)}&limit=${limit}`;
+      if (lineaSeleccionada !== null) {
+        url += `&linea=${lineaSeleccionada}`;
+      }
       const resp = await fetch(url, {
         method: "GET",
         headers
@@ -362,7 +429,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
               ApmIdInProducto: ad.ApmIdInProducto,
               ProStDescripcion: ad.ProStDescripcion,
               precioVenta: ad.precioVenta,
-              cantidad: ad.cantidad
+              cantidad: ad.cantidad || 1
             }));
 
             const sidesKey = adicionales
@@ -370,11 +437,15 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
               .sort()
               .join(",");
             const idUnicoCart = `${p.ProIdInProducto}_${sidesKey}`;
+            const descCompleta = p.ProStDescripcion || "";
+            const parts = descCompleta.split(" - ");
+            const nombreOriginal = parts[0];
+            const observacion = parts.slice(1).join(" - ");
 
             return {
               idUnicoCart,
               ProIdInProducto: p.ProIdInProducto,
-              ProStDescripcion: p.ProStDescripcion,
+              ProStDescripcion: nombreOriginal,
               precioVenta: p.valor,
               cantidad: p.cantidad,
               ProIdInUnidadVenta: p.MopIdInUnidadVenta || 1,
@@ -384,11 +455,13 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
               ProStIvaIncluido: p.ProStIvaIncluido !== undefined ? p.ProStIvaIncluido : '1',
               MopStImpreso: String(p.MopStImpreso || '0'),
               ImpNombre1: p.ImpNombre1 || "Comanda General",
-              adicionales
+              adicionales,
+              observacion: observacion || ""
             };
           });
 
           setCarrito(itemsFormateados);
+          setCabeceraConfirmada(true);
 
           Swal.fire({
             icon: "info",
@@ -403,6 +476,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
       } else if (resp.status === 404) {
         // La mesa está libre
         setOrdenId(null);
+        setCabeceraConfirmada(true);
         Swal.fire({
           icon: "success",
           title: "Mesa Libre",
@@ -437,8 +511,9 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
         if (sideGroups.length > 0) {
           setSelectedProduct(p);
           setAvailableSides(sideGroups);
+          setModalProductQty(customQty);
           
-          const initialSelection: Record<number, AccompanimentOption[]> = {};
+          const initialSelection: Record<number, SelectedSideItem[]> = {};
           sideGroups.forEach(g => {
             initialSelection[g.CprIdInAdicionales] = [];
           });
@@ -458,51 +533,99 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
   const toggleSideSelection = (group: SelectionGroup, opt: AccompanimentOption) => {
     const groupId = group.CprIdInAdicionales;
     const currentSelected = selectedSides[groupId] || [];
-    const exists = currentSelected.some(s => s.ApmIdInProducto === opt.ApmIdInProducto);
+    const limit = group.CprInCantidad * modalProductQty;
 
-    let updatedList = [];
-    if (exists) {
-      updatedList = currentSelected.filter(s => s.ApmIdInProducto !== opt.ApmIdInProducto);
+    const existIdx = currentSelected.findIndex(s => s.ApmIdInProducto === opt.ApmIdInProducto);
+
+    if (existIdx !== -1) {
+      // Si ya existe, lo removemos de la selección
+      const updatedList = currentSelected.filter(s => s.ApmIdInProducto !== opt.ApmIdInProducto);
+      setSelectedSides(prev => ({
+        ...prev,
+        [groupId]: updatedList
+      }));
     } else {
-      if (group.CprInCantidad > 0 && currentSelected.length >= group.CprInCantidad) {
-        if (group.CprInCantidad === 1) {
-          updatedList = [opt];
+      const totalSelectedQty = currentSelected.reduce((sum, s) => sum + s.cantidad, 0);
+
+      if (limit > 0 && totalSelectedQty >= limit) {
+        if (limit === 1) {
+          setSelectedSides(prev => ({
+            ...prev,
+            [groupId]: [{
+              ApmIdInProducto: opt.ApmIdInProducto,
+              ProStDescripcion: opt.ProStDescripcion,
+              precioVenta: opt.ApmStIncrementaPrecio === "1" ? opt.ApmInValorFijo : 0,
+              cantidad: 1,
+              ApmStIncrementaPrecio: opt.ApmStIncrementaPrecio,
+              ApmInValorFijo: opt.ApmInValorFijo
+            }]
+          }));
         } else {
           Swal.fire({
             icon: "warning",
             title: "Límite superado",
-            text: `Solo puedes elegir hasta ${group.CprInCantidad} opciones en "${group.AprStDescripcion}"`,
+            text: `Solo puedes elegir hasta ${limit} opciones en "${group.AprStDescripcion}"`,
             timer: 2000,
             showConfirmButton: false,
             toast: true,
             position: "center"
           });
-          return;
         }
       } else {
-        updatedList = [...currentSelected, opt];
+        setSelectedSides(prev => ({
+          ...prev,
+          [groupId]: [...currentSelected, {
+            ApmIdInProducto: opt.ApmIdInProducto,
+            ProStDescripcion: opt.ProStDescripcion,
+            precioVenta: opt.ApmStIncrementaPrecio === "1" ? opt.ApmInValorFijo : 0,
+            cantidad: 1,
+            ApmStIncrementaPrecio: opt.ApmStIncrementaPrecio,
+            ApmInValorFijo: opt.ApmInValorFijo
+          }]
+        }));
       }
     }
+  };
+
+  const adjustSideQty = (groupId: number, sideId: number, delta: number) => {
+    const group = availableSides.find(g => g.CprIdInAdicionales === groupId);
+    if (!group) return;
+
+    const limit = group.CprInCantidad * modalProductQty;
+    const currentSelected = selectedSides[groupId] || [];
+    const totalSelectedQty = currentSelected.reduce((sum, s) => sum + s.cantidad, 0);
+
+    const updated = currentSelected.map(s => {
+      if (s.ApmIdInProducto === sideId) {
+        const nextQty = s.cantidad + delta;
+        if (nextQty <= 0) return null;
+        if (delta > 0 && limit > 0 && totalSelectedQty >= limit) {
+          return s; // No exceder el límite total del grupo
+        }
+        return { ...s, cantidad: nextQty };
+      }
+      return s;
+    }).filter(Boolean) as SelectedSideItem[];
 
     setSelectedSides(prev => ({
       ...prev,
-      [groupId]: updatedList
+      [groupId]: updated
     }));
   };
 
   const confirmSides = () => {
     if (!selectedProduct) return;
-    const customQty = cantidadesRapidas[selectedProduct.ProIdInProducto] || 1;
+    const customQty = modalProductQty;
 
     const sidesList: { ApmIdInProducto: number; ProStDescripcion: string; precioVenta: number; cantidad: number }[] = [];
     
     Object.values(selectedSides).forEach(groupSelected => {
-      groupSelected.forEach(opt => {
+      groupSelected.forEach(item => {
         sidesList.push({
-          ApmIdInProducto: opt.ApmIdInProducto,
-          ProStDescripcion: opt.ProStDescripcion,
-          precioVenta: opt.ApmStIncrementaPrecio === "1" ? opt.ApmInValorFijo : 0,
-          cantidad: 1
+          ApmIdInProducto: item.ApmIdInProducto,
+          ProStDescripcion: item.ProStDescripcion,
+          precioVenta: item.precioVenta,
+          cantidad: item.cantidad
         });
       });
     });
@@ -567,16 +690,176 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
     }));
   };
 
-  const handleUpdateQty = (idUnicoCart: string, delta: number) => {
+  const handleEditObservacion = (idUnicoCart: string) => {
+    const item = carrito.find(x => x.idUnicoCart === idUnicoCart);
+    if (!item) return;
+
+    const obsActual = item.observacion || "";
+
+    const obsBotonesHtml = obsPredefinidas && obsPredefinidas.length > 0
+      ? `<div class="d-flex flex-wrap justify-content-center gap-1 my-3">
+          ${obsPredefinidas.map((o: any) => 
+            `<button type="button" class="btn btn-sm btn-outline-danger btn-obs-rapida mb-1" data-val="${o.descripcion}">${o.descripcion}</button>`
+          ).join("")}
+         </div>`
+      : `<p class="text-muted small">No hay observaciones rápidas cargadas</p>`;
+
+    Swal.fire({
+      title: 'Editar Observación',
+      html: `
+        <div class="text-start mb-2">
+          <strong>Producto:</strong> ${item.ProStDescripcion}
+        </div>
+        <input id="swal-obs-input" class="swal2-input m-0 w-100" placeholder="Escribe una observación..." value="${obsActual}">
+        <div class="mt-3">
+          <small class="text-muted d-block mb-1 fw-bold">Observaciones Rápidas:</small>
+          ${obsBotonesHtml}
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: 'Aceptar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#d33',
+      didOpen: () => {
+        const input = document.getElementById('swal-obs-input') as HTMLInputElement;
+        if (input) {
+          input.focus();
+          const btns = document.querySelectorAll('.btn-obs-rapida');
+          btns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+              const val = (e.currentTarget as HTMLElement).getAttribute('data-val');
+              if (val) {
+                const currentVal = input.value.trim();
+                input.value = currentVal ? `${currentVal}, ${val}` : val;
+                input.focus();
+              }
+            });
+          });
+        }
+      },
+      preConfirm: () => {
+        const input = document.getElementById('swal-obs-input') as HTMLInputElement;
+        return input ? input.value : "";
+      }
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const nuevaObs = (result.value || "").trim().toUpperCase();
+        setCarrito(prev => prev.map(x => {
+          if (x.idUnicoCart === idUnicoCart) {
+            return { ...x, observacion: nuevaObs };
+          }
+          return x;
+        }));
+      }
+    });
+  };
+
+  const solicitarAutorizacionAdmin = async (): Promise<boolean> => {
+    const { value: clave } = await Swal.fire({
+      title: 'Autorización Requerida',
+      input: 'password',
+      inputLabel: 'Ingrese clave de administrador para autorizar la modificación:',
+      inputPlaceholder: 'Contraseña del Administrador',
+      inputAttributes: {
+        autocapitalize: 'off',
+        autocorrect: 'off'
+      },
+      showCancelButton: true,
+      confirmButtonText: 'Validar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#64748b'
+    });
+
+    if (!clave) return false;
+
+    Swal.fire({
+      title: 'Validando...',
+      text: 'Verificando credenciales en la base de datos...',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
+    try {
+      const resp = await fetch(`${API_BASE_URL}/ordenes/validar-admin`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'empresa': infoPuntoVenta?.PveIdStEmpresa || '02'
+        },
+        body: JSON.stringify({ clave })
+      });
+
+      Swal.close();
+
+      if (resp.ok) {
+        const resData = await resp.json();
+        if (resData.body && resData.body.valido === true) {
+          return true;
+        }
+      }
+
+      Swal.fire({
+        icon: 'error',
+        title: 'Acceso Denegado',
+        text: 'La clave ingresada no corresponde a un administrador activo.',
+        confirmButtonColor: '#ef4444'
+      });
+      return false;
+    } catch (e) {
+      Swal.close();
+      Swal.fire({
+        icon: 'error',
+        title: 'Error de Conexión',
+        text: 'Ocurrió un error al contactar al servidor de autorizaciones.',
+        confirmButtonColor: '#ef4444'
+      });
+      return false;
+    }
+  };
+
+  const handleUpdateQty = async (idUnicoCart: string, delta: number) => {
+    const item = carrito.find(x => x.idUnicoCart === idUnicoCart);
+    if (!item) return;
+
+    // Si se está disminuyendo la cantidad
+    if (delta < 0) {
+      const isEliminating = item.cantidad + delta <= 0;
+      const confirmText = isEliminating 
+        ? `¿Desea eliminar el producto "${item.ProStDescripcion}" del carrito?`
+        : `¿Desea reducir la cantidad de "${item.ProStDescripcion}"?`;
+
+      const confirmResult = await Swal.fire({
+        title: 'Confirmación',
+        text: confirmText,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, continuar',
+        cancelButtonText: 'No, cancelar',
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#64748b'
+      });
+
+      if (!confirmResult.isConfirmed) return;
+
+      if (item.MopStImpreso === '1') {
+        const autorizado = await solicitarAutorizacionAdmin();
+        if (!autorizado) return;
+      }
+    }
+
     setCarrito(prev => {
-      const idx = prev.findIndex(item => item.idUnicoCart === idUnicoCart);
+      const idx = prev.findIndex(x => x.idUnicoCart === idUnicoCart);
       if (idx === -1) return prev;
 
       const newCart = [...prev];
       const newQty = newCart[idx].cantidad + delta;
       
       if (newQty <= 0) {
-        return newCart.filter(item => item.idUnicoCart !== idUnicoCart);
+        return newCart.filter(x => x.idUnicoCart !== idUnicoCart);
       } else {
         newCart[idx].cantidad = newQty;
         return newCart;
@@ -584,8 +867,29 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
     });
   };
 
-  const handleRemoveItem = (idUnicoCart: string) => {
-    setCarrito(prev => prev.filter(item => item.idUnicoCart !== idUnicoCart));
+  const handleRemoveItem = async (idUnicoCart: string) => {
+    const item = carrito.find(x => x.idUnicoCart === idUnicoCart);
+    if (!item) return;
+
+    const confirmResult = await Swal.fire({
+      title: 'Confirmación',
+      text: `¿Desea eliminar el producto "${item.ProStDescripcion}" del carrito?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'No, cancelar',
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#64748b'
+    });
+
+    if (!confirmResult.isConfirmed) return;
+
+    if (item.MopStImpreso === '1') {
+      const autorizado = await solicitarAutorizacionAdmin();
+      if (!autorizado) return;
+    }
+
+    setCarrito(prev => prev.filter(x => x.idUnicoCart !== idUnicoCart));
   };
 
   const clearForm = () => {
@@ -595,6 +899,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
     setNumPersonas(1);
     setBusquedaProducto("");
     setVistaMovil("productos");
+    setCabeceraConfirmada(false);
     
     if (loggedVendedor) {
       setMesero({
@@ -694,7 +999,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
       const payload = {
         OpeStMesa: mesa.trim(),
         OpeIdStVendedor: mesero.id,
-        OpeInNumPersonas: numPersonas,
+        OpeInNumPersonas: Number(numPersonas) || 1,
         OpeIdStComprobante: infoPuntoVenta?.PveIdStComprobante || "28",
         nombre_terminal: terminalName,
         productos: carrito.map(item => ({
@@ -703,6 +1008,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
           cantidad: item.cantidad,
           ProIdInUnidadVenta: item.ProIdInUnidadVenta,
           MopStImpreso: item.MopStImpreso || '0',
+          observacion: item.observacion || "",
           adicionales: item.adicionales.map(ad => ({
             ApmIdInProducto: ad.ApmIdInProducto,
             precioVenta: ad.precioVenta
@@ -745,7 +1051,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
         nro_orden: resData.body.nro_orden,
         mesa: mesa.trim(),
         mesero: mesero?.nombre || "VENDEDOR",
-        numPersonas: numPersonas,
+        numPersonas: Number(numPersonas) || 1,
         fecha,
         hora,
         productos: carrito.map(item => ({
@@ -775,13 +1081,13 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
 
       Swal.fire({
         icon: "success",
-        title: ordenId ? "Pedido Actualizado" : "Pedido Registrado",
+        title: ordenId ? "Pedido Enviado e Impreso" : "Pedido Registrado e Impreso",
         text: `Mesa: ${mesa} - Orden: #${resData.body.nro_orden}`,
         showCancelButton: true,
         confirmButtonText: "Compartir Ticket",
-        cancelButtonText: "Nueva Comanda",
+        cancelButtonText: "Aceptar",
         confirmButtonColor: "#22c55e",
-        cancelButtonColor: "#64748b"
+        cancelButtonColor: "#3b82f6"
       }).then(async (result) => {
         if (result.isConfirmed) {
           Swal.fire({
@@ -801,6 +1107,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
           }
         }
         clearForm();
+        if (onClearInitial) onClearInitial();
       });
     } catch (err) {
       Swal.close();
@@ -842,28 +1149,71 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
         {/* Header Strip */}
         <header className="co-header">
           <div className="d-flex align-items-center gap-3">
+            {onClearInitial && (
+              <button
+                type="button"
+                title="Volver a órdenes abiertas"
+                onClick={() => {
+                  if (carrito.length > 0) {
+                    Swal.fire({
+                      icon: "question",
+                      title: "¿Salir sin guardar?",
+                      text: "Tienes productos en el carrito. ¿Deseas salir de todas formas?",
+                      showCancelButton: true,
+                      confirmButtonColor: "#ef4444",
+                      cancelButtonColor: "#64748b",
+                      confirmButtonText: "Sí, salir",
+                      cancelButtonText: "Cancelar"
+                    }).then((result) => {
+                      if (result.isConfirmed) onClearInitial();
+                    });
+                  } else {
+                    onClearInitial();
+                  }
+                }}
+                style={{
+                  border: "1.5px solid rgba(255,255,255,0.15)",
+                  borderRadius: "8px",
+                  background: "rgba(255,255,255,0.08)",
+                  color: "rgba(255,255,255,0.75)",
+                  width: "34px",
+                  height: "34px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  flexShrink: 0,
+                  fontSize: "1rem",
+                  transition: "all 0.15s ease"
+                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(239,68,68,0.9)"; (e.currentTarget as HTMLButtonElement).style.color = "#fff"; (e.currentTarget as HTMLButtonElement).style.borderColor = "#ef4444"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.08)"; (e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.75)"; (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(255,255,255,0.15)"; }}
+              >
+                &#8592;
+              </button>
+            )}
             <div
-              className="premium-icon-box"
               style={{
-                width: "32px",
-                height: "32px",
+                width: "36px",
+                height: "36px",
                 background: "linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)",
                 color: "#fff",
-                borderRadius: "8px",
+                borderRadius: "10px",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                boxShadow: "0 4px 10px rgba(239, 68, 68, 0.15)",
+                flexShrink: 0,
+                boxShadow: "0 3px 10px rgba(239,68,68,0.4)",
               }}
             >
-              <FiLayers size={16} />
+              <FiLayers size={17} />
             </div>
-            <div>
-              <span className="co-header-subtitle">
-                {ordenId ? "EDICIÓN DE PEDIDO" : "Realizar pedidos"}
-              </span>
+            <div style={{ minWidth: 0 }}>
+              <div className="co-header-subtitle">
+                {ordenId ? "Comanda" : "Nuevo pedido"}
+              </div>
               <h1 className="co-header-title">
-                {ordenId ? `Orden #${ordenId}` : "PEDIDOS"}
+                {ordenId ? `#${ordenId}` : "PEDIDOS"}
               </h1>
             </div>
           </div>
@@ -873,57 +1223,85 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
           </div>
         </header>
 
+
         {/* Filters Strip */}
         <div className="co-filters-strip">
           <div className="row g-3 align-items-end">
             {/* Table / Mesa */}
-            <div className="col-12 col-md-4">
+            <div className="col-12 col-md-3">
               <label className="co-form-label">Digite Mesa</label>
-              <div className="co-input-box">
+              <div className="co-input-box" style={{ opacity: cabeceraConfirmada ? 0.75 : 1 }}>
                 <FiGrid size={16} />
                 <input
                   type="text"
                   value={mesa}
                   onChange={(e) => setMesa(e.target.value)}
-                  onBlur={verificarMesa}
-                  onKeyDown={(e) => { if (e.key === "Enter") verificarMesa(); }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      if (!mesa.trim()) {
+                        Swal.fire({
+                          icon: "error",
+                          title: "Mesa Requerida",
+                          text: "Falta ingresar la mesa.",
+                          confirmButtonColor: "#ef4444"
+                        });
+                        return;
+                      }
+                      if (!mesero) {
+                        Swal.fire({
+                          icon: "error",
+                          title: "Mesero Requerido",
+                          text: "Falta seleccionar el mesero responsable.",
+                          confirmButtonColor: "#ef4444"
+                        });
+                        return;
+                      }
+                      verificarMesa();
+                    }
+                  }}
                   placeholder="Mesa o Barra..."
+                  disabled={cabeceraConfirmada}
                 />
               </div>
             </div>
 
             {/* Waiter / Mesero Autocomplete */}
-            <div className="col-12 col-md-5">
+            <div className="col-12 col-md-4">
               <label className="co-form-label">Mesero Responsable</label>
-              <div className="co-input-box">
+              <div className="co-input-box" style={{ opacity: (cabeceraConfirmada || !esAdministrador) ? 0.75 : 1 }}>
                 <FiUser size={16} />
                 <input
                   type="text"
                   value={meseroBusqueda}
                   onChange={(e) => handleMeseroChange(e.target.value)}
-                  onFocus={() => { setShowWaitersList(true); }}
+                  onFocus={() => { if (!cabeceraConfirmada && esAdministrador) setShowWaitersList(true); }}
                   placeholder="Escriba nombre o cédula..."
+                  disabled={cabeceraConfirmada || !esAdministrador}
                 />
-                {mesero ? (
-                  <button className="co-btn-clear" onClick={limpiarMesero} title="Cambiar mesero">
-                    <FiX size={14} />
-                  </button>
-                ) : (
-                  <button 
-                    type="button"
-                    onClick={() => { setShowWaitersList(v => !v); if(!showWaitersList) fetchWaiters(""); }}
-                    style={{ border: 0, background: "transparent", cursor: "pointer", display: "flex", alignItems: "center" }}
-                  >
-                    <FiList size={14} />
-                  </button>
+                {!cabeceraConfirmada && esAdministrador && (
+                  <>
+                    {mesero ? (
+                      <button className="co-btn-clear" onClick={limpiarMesero} title="Cambiar mesero">
+                        <FiX size={14} />
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => { setShowWaitersList(v => !v); if (!showWaitersList) fetchWaiters(""); }}
+                        style={{ border: 0, background: "transparent", cursor: "pointer", display: "flex", alignItems: "center" }}
+                      >
+                        <FiList size={14} />
+                      </button>
+                    )}
+                  </>
                 )}
 
                 {/* Suggestions Flotante */}
-                {showWaitersList && waitersSuggestions.length > 0 && (
+                {showWaitersList && waitersSuggestions.length > 0 && !cabeceraConfirmada && (
                   <div className="co-waiters-dropdown shadow">
                     <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 10px", borderBottom: "1px solid #f1f5f9", background: "#f8fafc" }}>
                       <span style={{ fontSize: "0.65rem", fontWeight: "700", color: "#64748b" }}>Coincidencias</span>
-                      <button 
+                      <button
                         type="button"
                         onClick={() => setShowWaitersList(false)}
                         style={{ border: 0, background: "transparent", color: "#ef4444", fontSize: "0.7rem", fontWeight: "bold" }}
@@ -948,14 +1326,14 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
             </div>
 
             {/* Guest Counter */}
-            <div className="col-12 col-md-3">
+            <div className="col-12 col-md-2">
               <label className="co-form-label">Nro. Personas</label>
-              <div className="co-people-counter-box">
+              <div className="co-people-counter-box" style={{ opacity: cabeceraConfirmada ? 0.75 : 1 }}>
                 <button
                   type="button"
                   className="co-btn-counter-inc"
-                  onClick={() => setNumPersonas(prev => Math.max(1, prev - 1))}
-                  disabled={numPersonas <= 1}
+                  onClick={() => setNumPersonas(prev => Math.max(1, Number(prev) - 1))}
+                  disabled={Number(numPersonas) <= 1 || cabeceraConfirmada}
                 >
                   <FiMinus size={12} />
                 </button>
@@ -964,20 +1342,77 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
                   min="1"
                   value={numPersonas}
                   onChange={(e) => {
-                    const val = Number(e.target.value);
-                    setNumPersonas(val > 0 ? val : 1);
+                    const valStr = e.target.value;
+                    if (valStr === "") {
+                      setNumPersonas("");
+                    } else {
+                      const val = Number(valStr);
+                      setNumPersonas(val >= 0 ? val : 1);
+                    }
                   }}
+                  onBlur={() => {
+                    if (numPersonas === "" || Number(numPersonas) === 0) {
+                      setNumPersonas(1);
+                    }
+                  }}
+                  onFocus={(e) => e.target.select()}
                   className="co-counter-val border-0 p-0"
                   style={{ outline: "none", background: "transparent" }}
+                  disabled={cabeceraConfirmada}
                 />
                 <button
                   type="button"
                   className="co-btn-counter-inc"
-                  onClick={() => setNumPersonas(prev => prev + 1)}
+                  onClick={() => setNumPersonas(prev => Number(prev) + 1)}
+                  disabled={cabeceraConfirmada}
                 >
                   <FiPlus size={12} />
                 </button>
               </div>
+            </div>
+
+            {/* Botón Aceptar Permanente */}
+            <div className="col-12 col-md-3">
+              <button
+                type="button"
+                className="btn btn-danger w-100 fw-bold d-flex align-items-center justify-content-center gap-2"
+                style={{
+                  borderRadius: "10px",
+                  fontFamily: "'Outfit', sans-serif",
+                  height: "44px",
+                  background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+                  boxShadow: "0 4px 12px rgba(239, 68, 68, 0.25)",
+                  border: "none",
+                  color: "#fff",
+                  opacity: cabeceraConfirmada ? 0.6 : 1,
+                  cursor: cabeceraConfirmada ? "not-allowed" : "pointer"
+                }}
+                disabled={cabeceraConfirmada}
+                onClick={async () => {
+                  if (!mesa.trim()) {
+                    Swal.fire({
+                      icon: "error",
+                      title: "Mesa Requerida",
+                      text: "Falta ingresar la mesa.",
+                      confirmButtonColor: "#ef4444"
+                    });
+                    return;
+                  }
+                  if (!mesero) {
+                    Swal.fire({
+                      icon: "error",
+                      title: "Mesero Requerido",
+                      text: "Falta seleccionar el mesero responsable.",
+                      confirmButtonColor: "#ef4444"
+                    });
+                    return;
+                  }
+                  await verificarMesa();
+                }}
+              >
+                <FiCheck size={18} />
+                {cabeceraConfirmada ? "ACEPTADO" : "ACEPTAR"}
+              </button>
             </div>
           </div>
         </div>
@@ -1003,7 +1438,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
             className={`co-tab-item-btn ${vistaMovil === "factura" ? "active" : ""}`}
             onClick={() => setVistaMovil("factura")}
           >
-            FACTURA {formatMoneda(total)}
+            PEDIDO {formatMoneda(total)}
           </button>
         </nav>
 
@@ -1011,25 +1446,130 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
         
         {/* Panel 1: Productos */}
         <section className={`co-panel ${vistaMovil === "productos" ? "active" : ""}`}>
-          <div className="co-panel-header">
-            <h2>AÑADIR PRODUCTOS</h2>
-            <select disabled>
-              <option value="1">BODEGA PRINCIPAL</option>
-            </select>
-          </div>
           
-          <div className="co-search-bar" style={{ opacity: infoSuperiorCompleta ? 1 : 0.6 }}>
-            <FiSearch size={16} />
-            <input
-              type="text"
-              value={busquedaProducto}
-              onChange={(e) => setBusquedaProducto(e.target.value)}
-              placeholder="BUSCAR PRODUCTO O CODIGO"
-              disabled={!infoSuperiorCompleta}
-            />
-          </div>
+          {infoSuperiorCompleta && (
+            <div className="d-flex gap-2 mb-2 mt-3 justify-content-start">
+              <button
+                type="button"
+                className={`btn d-flex align-items-center justify-content-center gap-1 py-1 px-3 fw-bold ${subTabProductos === "productos" ? "btn-danger text-white" : "btn-outline-secondary bg-white"}`}
+                style={{ borderRadius: '6px', fontSize: '0.72rem', minHeight: '30px' }}
+                onClick={() => setSubTabProductos("productos")}
+              >
+                <FiGrid size={13} /> PRODUCTOS
+              </button>
+              <button
+                type="button"
+                className={`btn d-flex align-items-center justify-content-center gap-1 py-1 px-3 fw-bold ${subTabProductos === "categorias" ? "btn-danger text-white" : "btn-outline-secondary bg-white"}`}
+                style={{ borderRadius: '6px', fontSize: '0.72rem', minHeight: '30px' }}
+                onClick={() => setSubTabProductos("categorias")}
+              >
+                <FiLayers size={13} /> CATEGORÍAS
+              </button>
+            </div>
+          )}
 
-          <div className="co-products-scroll">
+          {subTabProductos === "categorias" && infoSuperiorCompleta ? (
+            <div 
+              className="co-categories-grid mb-3" 
+              style={{ 
+                display: 'grid', 
+                gridTemplateColumns: '1fr 1fr', 
+                gap: '10px', 
+                maxHeight: 'calc(100vh - 280px)', 
+                overflowY: 'auto', 
+                paddingRight: '4px' 
+              }}
+            >
+              <button
+                type="button"
+                className={`co-category-btn px-2 text-center text-white ${lineaSeleccionada === null ? 'active' : ''}`}
+                style={{
+                  background: lineaSeleccionada === null ? '#ef4444' : '#1e293b'
+                }}
+                onClick={() => {
+                  setLineaSeleccionada(null);
+                  setSubTabProductos("productos");
+                }}
+              >
+                TODOS LOS PRODUCTOS
+              </button>
+              {lineas.map((linea) => {
+                const estaSeleccionada = lineaSeleccionada === linea.id;
+                return (
+                  <button
+                    key={linea.id}
+                    type="button"
+                    className={`co-category-btn px-2 text-center text-white ${estaSeleccionada ? 'active' : ''}`}
+                    style={{
+                      background: estaSeleccionada ? '#ef4444' : '#1e293b'
+                    }}
+                    onClick={() => {
+                      setLineaSeleccionada(linea.id);
+                      setSubTabProductos("productos");
+                    }}
+                  >
+                    {(linea.descripcion || "").toUpperCase()}
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <>
+              <div className="co-search-bar mb-2" style={{ opacity: infoSuperiorCompleta ? 1 : 0.6 }}>
+                <FiSearch size={16} />
+                <input
+                  type="text"
+                  value={busquedaProducto}
+                  onChange={(e) => setBusquedaProducto(e.target.value)}
+                  placeholder="BUSCAR PRODUCTO O CODIGO"
+                  disabled={!infoSuperiorCompleta}
+                />
+              </div>
+
+              {infoSuperiorCompleta && lineaSeleccionada !== null && (
+                <div 
+                  className="alert alert-info py-2 px-3 mb-2 d-flex align-items-center justify-content-between" 
+                  style={{ 
+                    borderRadius: '8px', 
+                    background: '#eff6ff', 
+                    border: '1px solid #dbeafe', 
+                    color: '#1e40af', 
+                    fontSize: '0.8rem', 
+                    fontWeight: 'bold' 
+                  }}
+                >
+                  <span>CATEGORÍA ACTIVA: {(lineas.find(l => l.id === lineaSeleccionada)?.descripcion || "").toUpperCase()}</span>
+                  <button 
+                    type="button" 
+                    style={{
+                      border: 'none',
+                      background: '#ef4444',
+                      color: '#ffffff',
+                      width: '20px',
+                      height: '20px',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '0.75rem',
+                      fontWeight: '900',
+                      cursor: 'pointer',
+                      boxShadow: '0 2px 5px rgba(239, 68, 68, 0.25)',
+                      transition: 'all 0.15s ease',
+                      padding: 0,
+                      lineHeight: '1'
+                    }}
+                    onClick={() => setLineaSeleccionada(null)}
+                    aria-label="Limpiar filtro de categoría"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+
+          <div className="co-products-scroll" style={{ display: subTabProductos === "categorias" && infoSuperiorCompleta ? "none" : "block" }}>
             {!infoSuperiorCompleta ? (
               <div 
                 className="d-flex flex-column align-items-center justify-content-center text-center py-5 px-3"
@@ -1067,7 +1607,6 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
               <div className="text-center py-5 text-muted">No hay productos para mostrar</div>
             ) : (
               productos.map((p) => {
-                const stock = p.ExiInCantidadFinalBodega || 0;
                 const qty = cantidadesRapidas[p.ProIdInProducto] || 1;
                 return (
                   <article key={p.ProIdInProducto} className="co-product-row">
@@ -1075,9 +1614,6 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
                       <strong className="co-product-name">{p.ProStDescripcion}</strong>
                       <div className="co-product-meta">
                         <span className="co-meta-code">COD. {p.ProIdInProducto}</span>
-                        <span className={`co-meta-stock ${stock > 0 ? "stock-ok" : "stock-low"}`}>
-                          STOCK: {stock} {p.PreStAbreviatura || "UND"}
-                        </span>
                       </div>
                     </div>
                     
@@ -1131,73 +1667,148 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
           
           <div className="co-cart-scroll">
             {carrito.length === 0 ? (
-              <div className="text-center py-5 text-muted">El carrito está vacío</div>
+              <div className="text-center py-5 px-3">
+                <div style={{ fontSize: "2.5rem", marginBottom: "12px" }}>🛒</div>
+                <p className="fw-bold mb-1" style={{ color: "#334155", fontSize: "0.95rem" }}>El carrito está vacío</p>
+                <p className="text-muted mb-4" style={{ fontSize: "0.8rem" }}>Agrega productos desde la pestaña <strong>PRODUCTOS</strong> o crea una nueva orden.</p>
+                <div className="d-flex flex-column gap-2 align-items-center">
+                  <button
+                    type="button"
+                    className="btn btn-danger fw-bold px-4"
+                    style={{ borderRadius: "8px", fontSize: "0.8rem" }}
+                    onClick={() => setVistaMovil("productos")}
+                  >
+                    ＋ Agregar Productos
+                  </button>
+                  {onClearInitial && (
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary fw-bold px-4"
+                      style={{ borderRadius: "8px", fontSize: "0.8rem" }}
+                      onClick={() => {
+                        clearForm();
+                        onClearInitial();
+                      }}
+                    >
+                      ← Volver a Órdenes
+                    </button>
+                  )}
+                </div>
+              </div>
             ) : (
               carrito.map((item) => {
                 const sidesPrice = item.adicionales.reduce((sum, ad) => sum + ad.precioVenta, 0);
                 const itemTotal = (item.precioVenta + sidesPrice) * item.cantidad;
 
-                return (
+                 return (
                   <article 
                     key={item.idUnicoCart} 
                     className="co-cart-item"
                     style={item.MopStImpreso === '1' ? { opacity: 0.55 } : {}}
                   >
-                    <div className="co-cart-info">
-                      {item.MopStImpreso === '1' ? (
-                        <strong>
-                          {item.ProStDescripcion}{" "}
-                          <span className="badge bg-success-subtle text-success border border-success-subtle ms-1" style={{ fontSize: '0.65rem' }}>Impreso</span>
-                          {item.ImpNombre1 && <span className="badge bg-light text-muted border ms-1" style={{ fontSize: '0.65rem' }}>{item.ImpNombre1}</span>}
-                        </strong>
-                      ) : (
-                        <strong style={{ color: "#ef4444", fontWeight: 800 }}>
-                          {item.ProStDescripcion}{" "}
-                          <span className="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle ms-1" style={{ fontSize: '0.65rem' }}>Por Imprimir</span>
-                          {item.ImpNombre1 && <span className="badge bg-danger-subtle text-danger border border-danger-subtle ms-1" style={{ fontSize: '0.65rem' }}>{item.ImpNombre1}</span>}
-                        </strong>
-                      )}
-                      <small style={item.MopStImpreso !== '1' ? { color: "#ef4444", fontWeight: "bold" } : {}}>
-                        x{item.cantidad}
-                      </small>
-                    </div>
-                    
-                    <span className="co-cart-total">{formatMoneda(itemTotal)}</span>
-                    
-                    <div className="d-flex align-items-center gap-2">
+                    {/* Fila Superior: Nombre del producto y Boton eliminar */}
+                    <div className="co-cart-item-row-top">
+                      <div className="d-flex flex-column" style={{ minWidth: 0, flex: 1 }}>
+                        <span
+                          style={{
+                            fontWeight: item.MopStImpreso === '1' ? 'normal' : 'bold',
+                            color: item.MopStImpreso === '1' ? 'inherit' : '#1e293b',
+                            fontSize: '0.8rem',
+                            textTransform: 'uppercase',
+                            lineHeight: '1.2'
+                          }}
+                        >
+                          {item.ProStDescripcion}
+                        </span>
+                      </div>
+                      
                       <button
                         type="button"
-                        className="btn btn-sm btn-outline-secondary p-0 d-flex align-items-center justify-content-center"
-                        style={{ width: '22px', height: '22px', borderRadius: '4px' }}
-                        onClick={() => handleUpdateQty(item.idUnicoCart, -1)}
+                        className="co-btn-delete"
+                        onClick={() => handleRemoveItem(item.idUnicoCart)}
+                        aria-label={`Eliminar ${item.ProStDescripcion}`}
+                        style={{ flexShrink: 0 }}
                       >
-                        <FiMinus size={10} />
-                      </button>
-                      <span className="fw-bold px-1" style={{ fontSize: '0.8rem' }}>{item.cantidad}</span>
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-outline-secondary p-0 d-flex align-items-center justify-content-center"
-                        style={{ width: '22px', height: '22px', borderRadius: '4px' }}
-                        onClick={() => handleUpdateQty(item.idUnicoCart, 1)}
-                      >
-                        <FiPlus size={10} />
+                        <FiTrash2 size={13} />
                       </button>
                     </div>
 
-                    <button
-                      type="button"
-                      className="co-btn-delete"
-                      onClick={() => handleRemoveItem(item.idUnicoCart)}
-                      aria-label={`Eliminar ${item.ProStDescripcion}`}
-                    >
-                      <FiTrash2 size={13} />
-                    </button>
+                    {/* Fila Inferior: Precio e Indicadores de cantidad y notas */}
+                    <div className="co-cart-item-row-bottom">
+                      <span className="co-cart-total" style={{ color: '#16a34a', fontSize: '0.82rem', fontWeight: '800' }}>
+                        {formatMoneda(itemTotal)}
+                      </span>
 
+                      <div className="d-flex align-items-center gap-2">
+                        {/* Botón Notas */}
+                        <button
+                          type="button"
+                          className="btn btn-sm d-flex align-items-center justify-content-center"
+                          style={{
+                            width: '26px',
+                            height: '26px',
+                            borderRadius: '6px',
+                            border: '1.5px solid #06b6d4',
+                            color: '#06b6d4',
+                            background: 'transparent',
+                            padding: 0
+                          }}
+                          onClick={() => handleEditObservacion(item.idUnicoCart)}
+                          title="Editar observaciones"
+                        >
+                          <FiEdit size={12} />
+                        </button>
+
+                        {/* Control de Cantidad Premium */}
+                        <div className="d-flex align-items-center bg-light border rounded px-1" style={{ height: '26px' }}>
+                          <button
+                            type="button"
+                            className="btn p-0 d-flex align-items-center justify-content-center fw-bold"
+                            style={{ width: '18px', height: '18px', fontSize: '0.85rem', color: '#64748b' }}
+                            onClick={() => handleUpdateQty(item.idUnicoCart, -1)}
+                          >
+                            -
+                          </button>
+                          <span className="fw-bold px-2 text-dark" style={{ fontSize: '0.78rem', minWidth: '16px', textAlign: 'center' }}>
+                            {item.cantidad}
+                          </span>
+                          <button
+                            type="button"
+                            className="btn p-0 d-flex align-items-center justify-content-center fw-bold"
+                            style={{ width: '18px', height: '18px', fontSize: '0.85rem', color: '#64748b' }}
+                            onClick={() => handleUpdateQty(item.idUnicoCart, 1)}
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Observaciones (si las tiene) */}
+                    {item.observacion && (
+                      <div 
+                        style={{ 
+                          fontSize: "0.72rem", 
+                          color: "#d97706", 
+                          background: "#fffbeb", 
+                          border: "1px solid #fef3c7", 
+                          borderRadius: "6px",
+                          padding: "4px 8px", 
+                          marginTop: "8px", 
+                          fontWeight: "600",
+                          fontFamily: "'Outfit', sans-serif"
+                        }}
+                      >
+                        Obs: {item.observacion}
+                      </div>
+                    )}
+
+                    {/* Adicionales (si los tiene) */}
                     {item.adicionales.length > 0 && (
-                      <div className="co-cart-sides-box">
+                      <div className="co-cart-sides-box" style={{ gridColumn: 'auto', marginTop: '8px', borderLeft: '2px solid #e2e8f0', paddingLeft: '8px' }}>
                         {item.adicionales.map((ad, sIdx) => (
                           <div key={sIdx} className="co-cart-side-tag">
-                            <span>+ {ad.ProStDescripcion}</span>
+                            <span>+ {ad.ProStDescripcion} {ad.cantidad > 1 ? `x${ad.cantidad}` : ""}</span>
                             {ad.precioVenta > 0 && (
                               <span className="co-cart-side-price">
                                 +{formatMoneda(ad.precioVenta)}
@@ -1214,10 +1825,10 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
           </div>
         </section>
 
-        {/* Panel 3: Factura / Confirmar venta matching Screenshot 3 */}
+        {/* Panel 3: Detalle del Pedido */}
         <section className={`co-panel ${vistaMovil === "factura" ? "active" : ""}`}>
-          <div className="co-panel-header">
-            <h2>FACTURA</h2>
+          <div className="co-panel-header" style={{ background: "#1e293b" }}>
+            <h2 style={{ color: "#ffffff" }}>DETALLE DEL PEDIDO</h2>
           </div>
 
           <div className="co-bill-view">
@@ -1242,24 +1853,24 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
                       <tr key={idx} style={item.MopStImpreso === '1' ? { opacity: 0.55 } : {}}>
                         <td className="qty-col" style={item.MopStImpreso !== '1' ? { color: "#000000", fontWeight: "bold" } : {}}>{item.cantidad}</td>
                         <td>
-                          {item.MopStImpreso === '1' ? (
-                            <span>
-                              {item.ProStDescripcion}{" "}
-                              <span className="badge bg-success-subtle text-success border border-success-subtle ms-2" style={{ fontSize: '0.65rem' }}>Impreso</span>
-                              {item.ImpNombre1 && <span className="badge bg-light text-muted border ms-1" style={{ fontSize: '0.65rem' }}>{item.ImpNombre1}</span>}
-                            </span>
-                          ) : (
-                            <strong style={{ color: "#ef4444", fontWeight: 800 }}>
-                              {item.ProStDescripcion}{" "}
-                              <span className="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle ms-2" style={{ fontSize: '0.65rem' }}>Por Imprimir</span>
-                              {item.ImpNombre1 && <span className="badge bg-danger-subtle text-danger border border-danger-subtle ms-1" style={{ fontSize: '0.65rem' }}>{item.ImpNombre1}</span>}
-                            </strong>
+                           <span
+                            style={{
+                              fontWeight: item.MopStImpreso === '1' ? 'normal' : 'bold',
+                              color: item.MopStImpreso === '1' ? 'inherit' : '#000000'
+                            }}
+                          >
+                            {item.ProStDescripcion}
+                          </span>
+                          {item.observacion && (
+                            <div style={{ fontSize: "0.75rem", color: "#d97706", fontWeight: "bold", marginTop: "2px" }}>
+                              Obs: {item.observacion}
+                            </div>
                           )}
                           {item.adicionales.length > 0 && (
                             <div className="co-bill-sides-list">
                               {item.adicionales.map((ad, sIdx) => (
                                 <span key={sIdx} className="co-bill-side-item">
-                                  + {ad.ProStDescripcion} {ad.precioVenta > 0 ? `(${formatMoneda(ad.precioVenta)})` : ""}
+                                  + {ad.ProStDescripcion} {ad.cantidad > 1 ? `x${ad.cantidad}` : ""} {ad.precioVenta > 0 ? `(${formatMoneda(ad.precioVenta)})` : ""}
                                 </span>
                               ))}
                             </div>
@@ -1306,8 +1917,9 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
                 className="co-btn-footer-primary"
                 onClick={guardarComanda}
                 disabled={guardando || carrito.length === 0}
+                style={{ background: "#ef4444" }}
               >
-                CONFIRMAR VENTA
+                ENVIAR E IMPRIMIR PEDIDO
               </button>
             </div>
           </div>
@@ -1351,7 +1963,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
                 <div className="accompaniment-group-title d-flex justify-content-between">
                   <span>{group.AprStDescripcion}</span>
                   <Badge bg={group.CprInCantidad === 0 ? "secondary" : "danger"} className="rounded-pill">
-                    {group.CprInCantidad === 0 ? "Opcional" : `Elige hasta ${group.CprInCantidad}`}
+                    {group.CprInCantidad === 0 ? "Opcional" : `Elige hasta ${group.CprInCantidad * modalProductQty}`}
                   </Badge>
                 </div>
 
@@ -1367,25 +1979,57 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
                       );
                     }
 
-                    const isSelected = currentSelected.some(s => s.ApmIdInProducto === opt.ApmIdInProducto);
+                    const selectedItem = currentSelected.find(s => s.ApmIdInProducto === opt.ApmIdInProducto);
+                    const isSelected = !!selectedItem;
                     
                     return (
                       <div
                         key={opt.ApmIdInProducto}
                         className={`accompaniment-option-item ${isSelected ? "selected" : ""}`}
                         onClick={() => toggleSideSelection(group, opt)}
+                        style={{ cursor: 'pointer', position: 'relative' }}
                       >
-                        <div className="d-flex align-items-center gap-2">
-                          {isSelected && <FiCheck className="text-danger fw-bold" size={16} />}
-                          <span className="accompaniment-option-text">
-                            {opt.ProStDescripcion}
-                          </span>
+                        <div className="d-flex align-items-center justify-content-between w-100">
+                          <div className="d-flex align-items-center gap-2">
+                            {isSelected && <FiCheck className="text-danger fw-bold" size={16} />}
+                            <span className="accompaniment-option-text">
+                              {opt.ProStDescripcion}
+                            </span>
+                          </div>
+
+                          <div className="d-flex align-items-center gap-2" onClick={e => e.stopPropagation()}>
+                            {isSelected && (group.CprInCantidad * modalProductQty) > 1 && (
+                              <div className="d-flex align-items-center gap-1 bg-white border rounded px-1" style={{ height: '26px' }}>
+                                <button
+                                  type="button"
+                                  className="btn p-0 d-flex align-items-center justify-content-center fw-bold"
+                                  style={{ width: '18px', height: '18px', fontSize: '0.85rem', color: '#64748b' }}
+                                  onClick={() => adjustSideQty(group.CprIdInAdicionales, opt.ApmIdInProducto, -1)}
+                                >
+                                  -
+                                </button>
+                                <span className="fw-bold px-1" style={{ fontSize: '0.8rem', minWidth: '14px', textAlign: 'center', color: '#ef4444' }}>
+                                  {selectedItem.cantidad}
+                                </span>
+                                <button
+                                  type="button"
+                                  className="btn p-0 d-flex align-items-center justify-content-center fw-bold"
+                                  style={{ width: '18px', height: '18px', fontSize: '0.85rem', color: '#64748b' }}
+                                  onClick={() => adjustSideQty(group.CprIdInAdicionales, opt.ApmIdInProducto, 1)}
+                                  disabled={currentSelected.reduce((sum, s) => sum + s.cantidad, 0) >= (group.CprInCantidad * modalProductQty)}
+                                >
+                                  +
+                                </button>
+                              </div>
+                            )}
+                            
+                            {opt.ApmInValorFijo > 0 && (
+                              <span className="accompaniment-option-price">
+                                +{formatMoneda(opt.ApmInValorFijo)}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        {opt.ApmInValorFijo > 0 && (
-                          <span className="accompaniment-option-price">
-                            +{formatMoneda(opt.ApmInValorFijo)}
-                          </span>
-                        )}
                       </div>
                     );
                   })}

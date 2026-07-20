@@ -35,10 +35,11 @@ export interface TicketEmpresa {
 
 function crearTicketHTML(orden: TicketOrden, empresa: TicketEmpresa): string {
   const lineSeparador = "=".repeat(38);
+  const printerTitle = empresa.puntoVenta ? ` - ${empresa.puntoVenta.toUpperCase()}` : "";
   return `
     <div style="font-size:12px;line-height:1.35;font-family:monospace;color:#000;width:100%;box-sizing:border-box;padding:4px;">
       <div style="text-align:center;font-weight:bold;font-size:13px;text-transform:uppercase;">${empresa.nombre || "DIANASIS RESTAURANTE"}</div>
-      <div style="text-align:center;font-size:11px;margin-top:2px;">COMANDA</div>
+      <div style="text-align:center;font-size:11px;margin-top:2px;">COMANDA${printerTitle}</div>
       <br/>
       <div>MESA: ${orden.mesa}</div>
       <div>Mesero: ${orden.mesero}</div>
@@ -60,12 +61,11 @@ function crearTicketHTML(orden: TicketOrden, empresa: TicketEmpresa): string {
         <tbody>
           ${orden.productos.map((p) => {
             const isNuevo = p.MopStImpreso === '0';
-            const labelNuevo = isNuevo ? ' <span style="color:#ef4444;font-weight:bold;font-size:10px;padding:1px 4px;border:1px solid #ef4444;border-radius:3px;">[NUEVO]</span>' : '';
-            const rowStyle = isNuevo ? 'background-color:#fffbeb;font-weight:bold;' : '';
+            const rowStyle = isNuevo ? 'font-weight:bold;' : 'font-weight:normal;';
             return `
               <tr style="${rowStyle}">
                 <td style="vertical-align:top;padding:3px 0;text-transform:uppercase;">
-                  ${p.ProStDescripcion}${labelNuevo}
+                  ${p.ProStDescripcion}
                 </td>
                 <td style="vertical-align:top;text-align:right;padding:3px 0;">${p.cantidad}</td>
               </tr>
@@ -151,7 +151,8 @@ export async function descargarPDF(orden: TicketOrden, empresa: TicketEmpresa): 
     };
     const splitEmpresa: TicketEmpresa = {
       ...empresa,
-      nombre: `${empresa.nombre} - ${printer.toUpperCase()}`
+      nombre: empresa.nombre,
+      puntoVenta: printer
     };
     const pdf = await generarPDF(splitOrden, splitEmpresa);
     const url = URL.createObjectURL(pdf);
@@ -181,7 +182,8 @@ export async function compartirPDF(orden: TicketOrden, empresa: TicketEmpresa): 
     };
     const splitEmpresa: TicketEmpresa = {
       ...empresa,
-      nombre: `${empresa.nombre} - ${printer.toUpperCase()}`
+      nombre: empresa.nombre,
+      puntoVenta: printer
     };
     const pdf = await generarPDF(splitOrden, splitEmpresa);
 

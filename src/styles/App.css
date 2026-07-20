@@ -1285,3 +1285,29 @@ body {
   text-align: center;
   color: var(--muted);
 }
+
+/* ===== NATIVE MOBILE APP LAYOUT ===== */
+@media (max-width: 767px) {
+  body {
+    background: #f8fafc !important;
+  }
+
+  .app-content {
+    padding: 0 !important;
+  }
+
+  .premium-home-panel .container-fluid,
+  .ordenes-page .container-fluid {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  /* Home cards: quitar sombra y bordes en mobile para look nativo */
+  .premium-home-panel .rounded-4,
+  .ordenes-page .rounded-4 {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    border-left: 0 !important;
+    border-right: 0 !important;
+  }
+}

@@ -4,7 +4,7 @@ import { Spinner } from "react-bootstrap";
 import { API_BASE_URL } from "../config/api";
 
 interface ActiveOrder {
-  OpeIdInOrdenPedido: number;
+  OpeIdInOrdenPedido: string | number;
   OpeStMesa: string;
   OpeIdStVendedor: string;
   OpeInNumPersonas: number;
@@ -15,7 +15,7 @@ interface ActiveOrder {
 }
 
 interface OrdenesOpenProps {
-  onEditar: (id: number) => void;
+  onEditar: (id: string | number) => void;
 }
 
 export default function OrdenesOpen({ onEditar }: OrdenesOpenProps) {

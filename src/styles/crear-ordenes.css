@@ -19,47 +19,57 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 18px;
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 8px 16px;
-  margin-bottom: 12px;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.03);
+  gap: 12px;
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border: none;
+  border-radius: 0;
+  padding: 14px 16px;
+  margin-bottom: 0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.18);
+  position: sticky;
+  top: 0;
+  z-index: 50;
 }
 
 .co-header-title {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: #1e293b;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #ffffff;
   margin: 0;
-  line-height: 1.25;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
 }
 
 .co-header-subtitle {
-  font-size: 0.62rem;
+  font-size: 0.6rem;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #94a3b8;
+  letter-spacing: 0.1em;
+  color: rgba(255,255,255,0.45);
   font-weight: 700;
   line-height: 1.1;
 }
 
 .co-total-desktop {
   display: flex;
-  align-items: baseline;
-  gap: 8px;
-  color: #64748b;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+
+.co-total-desktop span {
+  color: rgba(255,255,255,0.5);
   font-weight: 600;
   text-transform: uppercase;
-  font-size: 0.75rem;
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
 }
 
 .co-total-desktop strong {
-  color: #ef4444;
-  font-size: 1.05rem;
-  font-weight: 700;
+  color: #fbbf24;
+  font-size: 1.15rem;
+  font-weight: 800;
   white-space: nowrap;
+  line-height: 1;
 }
 
 /* Filters Strip Card */
@@ -265,24 +275,29 @@
 
 .co-tab-item-btn {
   flex: 1;
-  min-height: 38px;
-  border: 1px solid #e2e8f0;
-  background: #fff;
-  color: #475569;
+  min-height: 44px;
+  border: 1.5px solid #cbd5e1;
+  background: #f8fafc;
+  color: #1e293b;
   border-radius: 8px;
-  font-weight: 700;
+  font-weight: 800;
   font-size: 0.72rem;
   cursor: pointer;
   text-transform: uppercase;
   transition: all 0.2s ease;
   outline: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
 }
 
 .co-tab-item-btn.active {
-  background: #ef4444;
-  color: white;
-  border-color: #ef4444;
-  box-shadow: 0 4px 10px rgba(239, 68, 68, 0.15);
+  background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%) !important;
+  color: #ffffff !important;
+  border-color: #b91c1c !important;
+  box-shadow: 0 5px 15px rgba(239, 68, 68, 0.35);
 }
 
 /* Workspace panel show/hide rules */
@@ -489,12 +504,35 @@
 
 /* Carrito Tab Items */
 .co-cart-item {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto 28px;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  box-shadow: 0 4px 6px rgba(15, 23, 42, 0.015);
+  transition: all 0.2s ease;
+}
+
+.co-cart-item:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 6px 12px rgba(15, 23, 42, 0.03);
+}
+
+.co-cart-item-row-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.co-cart-item-row-bottom {
+  display: flex;
+  justify-content: space-between;
   align-items: center;
   gap: 8px;
-  border-bottom: 1px solid #f1f5f9;
-  padding: 8px 4px;
 }
 
 .co-cart-info {
@@ -847,4 +885,96 @@
 .co-products-grid::-webkit-scrollbar-thumb:hover {
   background: #ef4444;
 }
+
+/* Category Quick Select Strip styling */
+.co-categories-strip {
+  -ms-overflow-style: none;  /* Internet Explorer 10+ */
+  scrollbar-width: none;  /* Firefox */
+}
+.co-categories-strip::-webkit-scrollbar {
+  display: none;  /* Safari and Chrome */
+}
+
+.co-categories-strip button {
+  white-space: nowrap;
+  font-family: 'Outfit', sans-serif;
+  letter-spacing: 0.02em;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+/* Category Grid Button */
+.co-category-btn {
+  background: #1e293b;
+  color: #ffffff;
+  border: none !important;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  min-height: 56px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  transition: all 0.15s ease-in-out;
+}
+
+.co-category-btn:hover {
+  background: #ef4444 !important;
+  color: #ffffff !important;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 12px rgba(239, 68, 68, 0.25);
+}
+
+.co-category-btn:active {
+  transform: translateY(0);
+}
+
+.co-category-btn.active {
+  background: #ef4444 !important;
+  color: #ffffff !important;
+}
+
+/* Native Mobile App view: remove lateral borders & paddings under 768px */
+@media (max-width: 767px) {
+  .crear-ordenes-page {
+    padding: 0 !important;
+    min-height: 100vh !important;
+  }
+  
+  .crear-ordenes-page .container-fluid {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  .co-header, 
+  .co-filters-strip, 
+  .co-panel {
+    border-left: 0 !important;
+    border-right: 0 !important;
+    border-radius: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    width: 100% !important;
+    box-shadow: none !important;
+  }
+  
+  .co-header {
+    border-top: 0 !important;
+    margin-top: 0 !important;
+    border-radius: 0 0 12px 12px !important;
+  }
+
+  .co-tabs-navbar {
+    padding: 0 8px !important;
+  }
+
+  /* Compact spacing for inputs in mobile */
+  .co-filters-strip {
+    padding: 10px 12px !important;
+    margin-bottom: 10px !important;
+  }
+
+  .co-header {
+    padding: 10px 12px !important;
+    margin-bottom: 10px !important;
+  }
+}
+
 

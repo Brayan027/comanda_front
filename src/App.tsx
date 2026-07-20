@@ -8,6 +8,7 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import { FiHome, FiPlus, FiLayers, FiChevronRight, FiCalendar, FiMonitor } from "react-icons/fi";
 import type { MenuKey } from "./components/layout/Sidebar";
+import { API_BASE_URL } from "./config/api";
 
 export default function App() {
   const [logueado, setLogueado] = useState(() => {
@@ -27,14 +28,92 @@ export default function App() {
   });
 
   const [menuActivo, setMenuActivo] = useState<MenuKey>("home");
-  const [ordenIdEdicion, setOrdenIdEdicion] = useState<number | null>(null);
-  const [fechaActual] = useState(() => {
-    const f = new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const [ordenIdEdicion, setOrdenIdEdicion] = useState<string | number | null>(null);
+  const [fechaTrabajoRaw, setFechaTrabajoRaw] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!logueado) {
+      setFechaTrabajoRaw(null);
+      return;
+    }
+
+    const token = localStorage.getItem("token") || "";
+    const headers: Record<string, string> = {
+      "Authorization": `Bearer ${token}`
+    };
+
+    const storedInfo = localStorage.getItem("infoPuntoVenta");
+    if (storedInfo) {
+      try {
+        const info = JSON.parse(storedInfo);
+        if (info) {
+          headers["empresa"] = info.PveIdStEmpresa || "";
+          headers["punto"] = String(info.PveIdInPuntoVenta || "");
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    fetch(`${API_BASE_URL}/ordenes/fecha-trabajo`, { headers })
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.body && data.body.fecha) {
+          setFechaTrabajoRaw(data.body.fecha);
+        }
+      })
+      .catch(err => {
+        console.error("Error al obtener la fecha de trabajo:", err);
+      });
+  }, [logueado]);
+
+  const getFechaActual = (rawDate: string | null) => {
+    let baseDate = new Date();
+    const stored = localStorage.getItem("infoPuntoVenta");
+    
+    if (rawDate) {
+      const parts = rawDate.split("-");
+      baseDate = new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])));
+    } else if (stored) {
+      try {
+        const info = JSON.parse(stored);
+        if (info && info.PveDtFechaTrabajo) {
+          const dateStr = info.PveDtFechaTrabajo.split("T")[0];
+          const parts = dateStr.split("-");
+          baseDate = new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])));
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    const f = baseDate.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
     return f.charAt(0).toUpperCase() + f.slice(1);
-  });
-  const [fechaCorta] = useState(() => {
-    return new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  });
+  };
+
+  const getFechaCorta = (rawDate: string | null) => {
+    let baseDate = new Date();
+    const stored = localStorage.getItem("infoPuntoVenta");
+
+    if (rawDate) {
+      const parts = rawDate.split("-");
+      baseDate = new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])));
+    } else if (stored) {
+      try {
+        const info = JSON.parse(stored);
+        if (info && info.PveDtFechaTrabajo) {
+          const dateStr = info.PveDtFechaTrabajo.split("T")[0];
+          const parts = dateStr.split("-");
+          baseDate = new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])));
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return baseDate.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' });
+  };
+
+  const fechaActual = getFechaActual(fechaTrabajoRaw);
+  const fechaCorta = getFechaCorta(fechaTrabajoRaw);
 
   useEffect(() => {
     if (!logueado) return;
@@ -91,7 +170,10 @@ export default function App() {
     <div className="app-container">
       <Sidebar
         activo={menuActivo}
-        onCambiar={setMenuActivo}
+        onCambiar={(menu) => {
+          setOrdenIdEdicion(null);
+          setMenuActivo(menu);
+        }}
         onSalir={() => {
           localStorage.removeItem("token");
           localStorage.removeItem("last_login");
@@ -103,14 +185,14 @@ export default function App() {
       <section className="app-content">
         {menuActivo === "home" ? (
           <section
-            className="premium-home-panel px-3 pt-0"
+            className="premium-home-panel px-0 px-md-3 pt-0"
             aria-label="Pantalla de inicio"
             style={{ background: "#f8fafc", minHeight: "100vh", paddingBottom: "60px" }}
           >
             <div className="container-fluid">
               {/* Header Premium Simplificado */}
               <header
-                className="bg-white p-3 px-4 mb-4 rounded-4 shadow-premium d-flex justify-content-between align-items-center gap-2 border border-light"
+                className="bg-white p-3 px-4 mb-4 rounded-4 shadow-premium d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 border border-light"
                 style={{ minHeight: "75px" }}
               >
                 {/* Izquierda: Titulo */}
@@ -123,7 +205,7 @@ export default function App() {
                       background: "linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)",
                       color: "#fff",
                       borderRadius: "12px",
-                      display : "flex",
+                      display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       boxShadow: "0 4px 12px rgba(239, 68, 68, 0.18)",
@@ -141,8 +223,8 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Derecha: Meta Información (Siempre en una misma línea alineados) */}
-                <div className="d-flex align-items-center gap-2 ms-auto flex-nowrap">
+                {/* Derecha: Meta Información (Adaptable a móviles sin desbordar) */}
+                <div className="d-flex align-items-center gap-2 ms-md-auto flex-nowrap w-100 w-md-auto justify-content-between justify-content-md-end">
                   {/* Fecha */}
                   <div 
                     className="d-flex align-items-center gap-2 px-3 py-2 rounded-3 border flex-nowrap"
@@ -284,14 +366,26 @@ export default function App() {
             </div>
           </section>
         ) : menuActivo === "comanda" ? (
-          <CrearOrdenes initialOrdenId={ordenIdEdicion} onClearInitial={() => setOrdenIdEdicion(null)} />
+          <CrearOrdenes 
+            initialOrdenId={ordenIdEdicion} 
+            onClearInitial={() => {
+              setOrdenIdEdicion(null);
+              setMenuActivo("home");
+            }} 
+          />
         ) : menuActivo === "ordenes" ? (
           ordenIdEdicion !== null ? (
-            <CrearOrdenes initialOrdenId={ordenIdEdicion} onClearInitial={() => setOrdenIdEdicion(null)} />
+            <CrearOrdenes 
+              initialOrdenId={ordenIdEdicion} 
+              onClearInitial={() => {
+                setOrdenIdEdicion(null);
+                setMenuActivo("ordenes");
+              }} 
+            />
           ) : (
             <OrdenesOpen onEditar={(id) => {
               setOrdenIdEdicion(id);
-              setMenuActivo("comanda");
+              setMenuActivo("ordenes");
             }} />
           )
         ) : null}
