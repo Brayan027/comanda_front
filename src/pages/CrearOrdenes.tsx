@@ -55,6 +55,7 @@ interface SelectionGroup {
   AprStDescripcion: string;
   CprInOrden: number;
   CprInCantidad: number; // Cantidad máxima permitida para seleccionar
+  CprStObligatorio?: string;
   acompanantes: AccompanimentOption[];
 }
 
@@ -523,9 +524,12 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
         } else {
           executeAddToCart(p, [], customQty);
         }
+      } else {
+        executeAddToCart(p, [], customQty);
       }
     } catch (e) {
       console.error("Error al obtener modificadores", e);
+      executeAddToCart(p, [], customQty);
     }
   };
 
@@ -616,6 +620,26 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
   const confirmSides = () => {
     if (!selectedProduct) return;
     const customQty = modalProductQty;
+
+    // Validar grupos obligatorios
+    for (const group of availableSides) {
+      const isObligatorio = group.CprStObligatorio === "1" || group.CprInCantidad > 0;
+      if (isObligatorio) {
+        const groupSelected = selectedSides[group.CprIdInAdicionales] || [];
+        const totalSelected = groupSelected.reduce((sum, item) => sum + item.cantidad, 0);
+
+        if (totalSelected === 0) {
+          Swal.fire({
+            icon: "warning",
+            title: "Selección requerida",
+            text: `Debes elegir una opción para "${group.AprStDescripcion}"`,
+            confirmButtonText: "Entendido",
+            confirmButtonColor: "#ef4444"
+          });
+          return;
+        }
+      }
+    }
 
     const sidesList: { ApmIdInProducto: number; ProStDescripcion: string; precioVenta: number; cantidad: number }[] = [];
     
@@ -969,6 +993,66 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
 
 
 
+  const reintentarImpresionManual = async (nroOrden: string | number) => {
+    Swal.fire({
+      title: "Reintentando impresión...",
+      text: "Conectando con la impresora...",
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
+    try {
+      const resp = await fetch(`${API_BASE_URL}/ordenes/${nroOrden}/imprimir`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ esReimpresion: false })
+      });
+
+      const resData = await resp.json();
+      Swal.close();
+
+      if (resp.ok && resData.body?.success !== false) {
+        Swal.fire({
+          icon: "success",
+          title: "Impresión exitosa",
+          text: `Comanda #${nroOrden} enviada a la impresora.`,
+          timer: 1500,
+          showConfirmButton: false
+        });
+        clearForm();
+        if (onClearInitial) onClearInitial();
+      } else {
+        Swal.fire({
+          icon: "warning",
+          title: "No se pudo imprimir",
+          text: resData.mensaje || resData.body?.error || "La impresora no respondió. Revisa la conexión e intenta de nuevo.",
+          showCancelButton: true,
+          confirmButtonText: "🔄 Reintentar nuevamente",
+          cancelButtonText: "Continuar sin imprimir",
+          confirmButtonColor: "#eab308",
+          cancelButtonColor: "#64748b"
+        }).then((r) => {
+          if (r.isConfirmed) {
+            reintentarImpresionManual(nroOrden);
+          } else {
+            clearForm();
+            if (onClearInitial) onClearInitial();
+          }
+        });
+      }
+    } catch (e) {
+      Swal.close();
+      Swal.fire({
+        icon: "error",
+        title: "Error de Conexión",
+        text: "No se pudo comunicar con el servicio de impresión.",
+        confirmButtonColor: "#ef4444"
+      });
+    }
+  };
+
   // Guardar/Actualizar la orden en la base de datos
   const guardarComanda = async () => {
     if (!mesa.trim()) {
@@ -1037,10 +1121,41 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
       }
 
       if (!resp.ok || resData?.error) {
-        throw new Error(resData?.mensaje || `Error del servidor (${resp.status})`);
+        const errorMsg = resData?.mensaje 
+          || resData?.body?.message 
+          || (typeof resData?.body === 'string' ? resData.body : null)
+          || resData?.message 
+          || `Error del servidor (${resp.status})`;
+        throw new Error(errorMsg);
       }
 
       Swal.close();
+
+      const impStatus = resData?.body?.impresion;
+      const falloImpresion = impStatus && impStatus.success === false;
+
+      if (falloImpresion) {
+        const ordenActualId = resData.body.nro_orden;
+
+        Swal.fire({
+          icon: "warning",
+          title: "Orden Guardada en Sistema",
+          html: `La orden para la <b>Mesa ${mesa}</b> (#${ordenActualId}) <b>se guardó correctamente</b>.<br/><br/><span style="color: #ef4444; font-weight: 700;">⚠️ Advertencia de Impresión:</span><br/>${impStatus.error || "La impresora no respondió."}<br/><br/>¿Deseas reintentar la impresión?`,
+          showCancelButton: true,
+          confirmButtonText: "🔄 Reintentar Impresión",
+          cancelButtonText: "Continuar sin imprimir",
+          confirmButtonColor: "#eab308",
+          cancelButtonColor: "#64748b"
+        }).then((result) => {
+          if (result.isConfirmed) {
+            reintentarImpresionManual(ordenActualId);
+          } else {
+            clearForm();
+            if (onClearInitial) onClearInitial();
+          }
+        });
+        return;
+      }
 
       // Preparar los detalles del pedido para el ticket PDF
       const now = new Date();
@@ -1957,13 +2072,27 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
 
           {availableSides.map((group) => {
             const currentSelected = selectedSides[group.CprIdInAdicionales] || [];
-            
+            const isObligatorio = group.CprStObligatorio === "1" || group.CprInCantidad > 0;
+            const totalSelectedInGroup = currentSelected.reduce((sum, s) => sum + s.cantidad, 0);
+
             return (
               <div key={group.CprIdInAdicionales} className="mb-4">
-                <div className="accompaniment-group-title d-flex justify-content-between">
-                  <span>{group.AprStDescripcion}</span>
-                  <Badge bg={group.CprInCantidad === 0 ? "secondary" : "danger"} className="rounded-pill">
-                    {group.CprInCantidad === 0 ? "Opcional" : `Elige hasta ${group.CprInCantidad * modalProductQty}`}
+                <div className="accompaniment-group-title d-flex justify-content-between align-items-center mb-2">
+                  <div className="d-flex align-items-center gap-2">
+                    <span className="fw-bold">{group.AprStDescripcion}</span>
+                    {isObligatorio && totalSelectedInGroup === 0 && (
+                      <span className="badge bg-warning text-dark px-2 py-1" style={{ fontSize: '0.7rem', fontWeight: '700' }}>
+                        Requerido
+                      </span>
+                    )}
+                  </div>
+                  <Badge bg={!isObligatorio ? "secondary" : (totalSelectedInGroup > 0 ? "success" : "danger")} className="rounded-pill px-3 py-1">
+                    {!isObligatorio
+                      ? "Opcional"
+                      : totalSelectedInGroup > 0
+                        ? `✓ Seleccionado (${totalSelectedInGroup}/${group.CprInCantidad * modalProductQty})`
+                        : `Obligatorio (Elige 1 a ${group.CprInCantidad * modalProductQty})`
+                    }
                   </Badge>
                 </div>
 
