@@ -1022,7 +1022,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
     };
   }, [carrito]);
 
-  const subtotal = resumenTotales.total;
+  const subtotal = resumenTotales.total - resumenTotales.iva - resumenTotales.impoconsumo;
   const total = resumenTotales.total;
 
   const formatMoneda = (val: number) => {
