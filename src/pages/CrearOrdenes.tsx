@@ -1287,10 +1287,10 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
                   }
                 }}
                 style={{
-                  border: "1.5px solid rgba(255,255,255,0.15)",
+                  border: "1.5px solid #cbd5e1",
                   borderRadius: "8px",
-                  background: "rgba(255,255,255,0.08)",
-                  color: "rgba(255,255,255,0.75)",
+                  background: "#f8fafc",
+                  color: "#475569",
                   width: "34px",
                   height: "34px",
                   display: "flex",
@@ -1301,8 +1301,8 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
                   fontSize: "1rem",
                   transition: "all 0.15s ease"
                 }}
-                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(239,68,68,0.9)"; (e.currentTarget as HTMLButtonElement).style.color = "#fff"; (e.currentTarget as HTMLButtonElement).style.borderColor = "#ef4444"; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.08)"; (e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.75)"; (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(255,255,255,0.15)"; }}
+                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "#ef4444"; (e.currentTarget as HTMLButtonElement).style.color = "#fff"; (e.currentTarget as HTMLButtonElement).style.borderColor = "#ef4444"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#f8fafc"; (e.currentTarget as HTMLButtonElement).style.color = "#475569"; (e.currentTarget as HTMLButtonElement).style.borderColor = "#cbd5e1"; }}
               >
                 &#8592;
               </button>

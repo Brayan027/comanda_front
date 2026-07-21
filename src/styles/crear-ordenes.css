@@ -20,12 +20,12 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-  border: none;
-  border-radius: 0;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
   padding: 14px 16px;
-  margin-bottom: 0;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.18);
+  margin-bottom: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
   position: sticky;
   top: 0;
   z-index: 50;
@@ -34,17 +34,17 @@
 .co-header-title {
   font-size: 1rem;
   font-weight: 800;
-  color: #ffffff;
+  color: #1e293b;
   margin: 0;
   line-height: 1.2;
   letter-spacing: -0.01em;
 }
 
 .co-header-subtitle {
-  font-size: 0.6rem;
+  font-size: 0.65rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: rgba(255,255,255,0.45);
+  color: #64748b;
   font-weight: 700;
   line-height: 1.1;
 }
@@ -57,15 +57,15 @@
 }
 
 .co-total-desktop span {
-  color: rgba(255,255,255,0.5);
+  color: #64748b;
   font-weight: 600;
   text-transform: uppercase;
-  font-size: 0.6rem;
+  font-size: 0.65rem;
   letter-spacing: 0.08em;
 }
 
 .co-total-desktop strong {
-  color: #fbbf24;
+  color: #d97706;
   font-size: 1.15rem;
   font-weight: 800;
   white-space: nowrap;

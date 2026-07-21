@@ -72,6 +72,7 @@ export default function Login({ onLogin }: LoginProps) {
 
   // Cargar estado inicial del dispositivo desde localStorage (si existe)
   const [nombreTerminal, setNombreTerminal] = useState(() => localStorage.getItem("terminal") || "");
+  const [tieneTerminalGuardada] = useState(() => Boolean(localStorage.getItem("terminal")?.trim()));
 
   async function manejarSubmit(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
@@ -204,20 +205,22 @@ export default function Login({ onLogin }: LoginProps) {
             </div>
           </div>
 
-          {/* Campo nombre de dispositivo / terminal siempre visible */}
-          <div className="login-form-group">
-            <div className="login-input-wrapper">
-              <FaDesktop className="login-input-icon" />
-              <input
-                type="text"
-                className="login-input"
-                value={nombreTerminal}
-                onChange={(e) => setNombreTerminal(e.target.value)}
-                placeholder="Nombre del dispositivo"
-                required
-              />
+          {/* Campo nombre de dispositivo / terminal (solo si no está guardado en localStorage) */}
+          {!tieneTerminalGuardada && (
+            <div className="login-form-group">
+              <div className="login-input-wrapper">
+                <FaDesktop className="login-input-icon" />
+                <input
+                  type="text"
+                  className="login-input"
+                  value={nombreTerminal}
+                  onChange={(e) => setNombreTerminal(e.target.value)}
+                  placeholder="Nombre del dispositivo"
+                  required
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           {/* <div className="login-options">
             <label className="remember-me">
