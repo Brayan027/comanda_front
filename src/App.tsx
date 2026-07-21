@@ -6,7 +6,7 @@ import CrearOrdenes from "./pages/CrearOrdenes";
 import OrdenesOpen from "./pages/OrdenesOpen";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
-import { FiHome, FiPlus, FiLayers, FiChevronRight, FiCalendar, FiMonitor } from "react-icons/fi";
+import { FiHome, FiPlus, FiLayers, FiChevronRight } from "react-icons/fi";
 import type { MenuKey } from "./components/layout/Sidebar";
 import { API_BASE_URL } from "./config/api";
 
@@ -30,6 +30,15 @@ export default function App() {
   const [menuActivo, setMenuActivo] = useState<MenuKey>("home");
   const [ordenIdEdicion, setOrdenIdEdicion] = useState<string | number | null>(null);
   const [fechaTrabajoRaw, setFechaTrabajoRaw] = useState<string | null>(null);
+
+  const infoPuntoVenta = (() => {
+    try {
+      const stored = localStorage.getItem("infoPuntoVenta");
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  })();
 
   useEffect(() => {
     if (!logueado) {
@@ -90,30 +99,7 @@ export default function App() {
     return f.charAt(0).toUpperCase() + f.slice(1);
   };
 
-  const getFechaCorta = (rawDate: string | null) => {
-    let baseDate = new Date();
-    const stored = localStorage.getItem("infoPuntoVenta");
-
-    if (rawDate) {
-      const parts = rawDate.split("-");
-      baseDate = new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])));
-    } else if (stored) {
-      try {
-        const info = JSON.parse(stored);
-        if (info && info.PveDtFechaTrabajo) {
-          const dateStr = info.PveDtFechaTrabajo.split("T")[0];
-          const parts = dateStr.split("-");
-          baseDate = new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])));
-        }
-      } catch (e) {
-        console.error(e);
-      }
-    }
-    return baseDate.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' });
-  };
-
   const fechaActual = getFechaActual(fechaTrabajoRaw);
-  const fechaCorta = getFechaCorta(fechaTrabajoRaw);
 
   useEffect(() => {
     if (!logueado) return;
@@ -190,85 +176,71 @@ export default function App() {
             style={{ background: "#f8fafc", minHeight: "100vh", paddingBottom: "60px" }}
           >
             <div className="container-fluid">
-              {/* Header Premium Simplificado */}
+              {/* Header Premium Limpio en Texto */}
               <header
-                className="bg-white p-3 px-4 mb-4 rounded-4 shadow-premium d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 border border-light"
-                style={{ minHeight: "75px" }}
+                className="bg-white p-3 p-md-4 mb-4 rounded-4 shadow-sm border d-flex align-items-center justify-content-between flex-wrap gap-3"
+                style={{ borderColor: "#e2e8f0" }}
               >
-                {/* Izquierda: Titulo */}
                 <div className="d-flex align-items-center gap-3">
+                  {/* Icono Red Home */}
                   <div
-                    className="premium-icon-box"
+                    className="premium-icon-box flex-shrink-0"
                     style={{
-                      width: "38px",
-                      height: "38px",
+                      width: "44px",
+                      height: "44px",
                       background: "linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)",
                       color: "#fff",
-                      borderRadius: "12px",
+                      borderRadius: "14px",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      boxShadow: "0 4px 12px rgba(239, 68, 68, 0.18)",
+                      boxShadow: "0 4px 14px rgba(239, 68, 68, 0.2)",
                     }}
                   >
-                    <FiHome size={18} />
+                    <FiHome size={20} />
                   </div>
-                  <div className="d-flex flex-column">
-                    <span className="text-muted fw-bold text-uppercase mb-0" style={{ fontSize: "0.6rem", letterSpacing: "0.12em", color: "#94a3b8" }}>
+
+                  {/* Título e Información en Texto Limpio */}
+                  <div className="d-flex flex-column gap-1">
+                    <span className="text-uppercase fw-bold mb-0" style={{ fontSize: "0.65rem", letterSpacing: "0.1em", color: "#94a3b8" }}>
                       Comanda
                     </span>
-                    <h1 className="m-0 text-uppercase" style={{ fontSize: "1.25rem", color: "#1e293b", fontWeight: 700, letterSpacing: "0.02em" }}>
+                    <h1 className="m-0 text-uppercase fw-bold" style={{ fontSize: "1.35rem", color: "#0f172a", letterSpacing: "-0.01em", lineHeight: 1 }}>
                       Inicio
                     </h1>
-                  </div>
-                </div>
 
-                {/* Derecha: Meta Información (Adaptable a móviles sin desbordar) */}
-                <div className="d-flex align-items-center gap-2 ms-md-auto flex-nowrap w-100 w-md-auto justify-content-between justify-content-md-end">
-                  {/* Fecha */}
-                  <div 
-                    className="d-flex align-items-center gap-2 px-3 py-2 rounded-3 border flex-nowrap"
-                    style={{ 
-                      fontSize: "0.85rem", 
-                      backgroundColor: "#f8fafc", 
-                      borderColor: "#e2e8f0",
-                      color: "#475569",
-                      whiteSpace: "nowrap"
-                    }}
-                  >
-                    <FiCalendar style={{ color: "#ef4444" }} size={16} />
-                    <span className="fw-medium d-none d-md-inline">{fechaActual}</span>
-                    <span className="fw-medium d-inline d-md-none">{fechaCorta}</span>
-                  </div>
+                    {/* Información Organizacional y Sesión en Texto */}
+                    <div className="d-flex flex-column gap-1 mt-1">
+                      {/* Línea 1: Empresa y Punto de Venta */}
+                      <div className="d-flex align-items-center gap-2 flex-wrap" style={{ fontSize: "0.85rem", fontWeight: 700 }}>
+                        {(infoPuntoVenta?.gmpnomb || infoPuntoVenta?.PveStNombreEmpresa) && (
+                          <span style={{ color: "#1e293b" }}>
+                            {infoPuntoVenta.gmpnomb || infoPuntoVenta.PveStNombreEmpresa}
+                          </span>
+                        )}
+                        {(infoPuntoVenta?.gmpnomb || infoPuntoVenta?.PveStNombreEmpresa) && infoPuntoVenta?.PveStNombre && (
+                          <span style={{ color: "#cbd5e1" }}>•</span>
+                        )}
+                        {infoPuntoVenta?.PveStNombre && (
+                          <span style={{ color: "#475569" }}>
+                            {infoPuntoVenta.PveStNombre}
+                          </span>
+                        )}
+                      </div>
 
-                  {/* Terminal */}
-                  <div 
-                    className="d-flex align-items-center gap-2 px-3 py-2 rounded-3 border flex-nowrap"
-                    style={{ 
-                      fontSize: "0.85rem", 
-                      backgroundColor: "#f8fafc", 
-                      borderColor: "#e2e8f0",
-                      color: "#475569",
-                      whiteSpace: "nowrap"
-                    }}
-                  >
-                    <div className="position-relative d-flex align-items-center justify-content-center">
-                      <FiMonitor style={{ color: "#64748b" }} size={16} />
-                      <span 
-                        className="position-absolute rounded-circle border border-white"
-                        style={{ 
-                          top: "-2px", 
-                          right: "-2px", 
-                          width: "8px", 
-                          height: "8px", 
-                          backgroundColor: "#22c55e",
-                          boxShadow: "0 0 4px #22c55e"
-                        }}
-                      ></span>
+                      {/* Línea 2: Fecha y Terminal */}
+                      <div className="d-flex align-items-center gap-2 flex-wrap text-muted" style={{ fontSize: "0.8rem", fontWeight: 500 }}>
+                        <span>{fechaActual}</span>
+                        <span style={{ color: "#cbd5e1" }}>•</span>
+                        <span className="d-inline-flex align-items-center gap-1.5 fw-semibold" style={{ color: "#334155" }}>
+                          <span 
+                            className="rounded-circle d-inline-block"
+                            style={{ width: "6px", height: "6px", backgroundColor: "#22c55e" }}
+                          ></span>
+                          {localStorage.getItem("terminal") || "Terminal Desconocida"}
+                        </span>
+                      </div>
                     </div>
-                    <span className="fw-bold text-uppercase" style={{ letterSpacing: "0.03em" }}>
-                      {localStorage.getItem("terminal") || "Terminal Desconocida"}
-                    </span>
                   </div>
                 </div>
               </header>
