@@ -16,9 +16,10 @@ interface ActiveOrder {
 
 interface OrdenesOpenProps {
   onEditar: (id: string | number) => void;
+  onVolver?: () => void;
 }
 
-export default function OrdenesOpen({ onEditar }: OrdenesOpenProps) {
+export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
   const [ordenes, setOrdenes] = useState<ActiveOrder[]>([]);
   const [cargando, setCargando] = useState(true);
   const [busqueda, setBusqueda] = useState("");
@@ -111,7 +112,43 @@ export default function OrdenesOpen({ onEditar }: OrdenesOpenProps) {
         {/* Header Premium */}
         <header className="bg-white p-2 px-3 px-md-4 mb-3 mb-md-4 rounded-4 shadow-premium d-flex justify-content-between align-items-center flex-wrap gap-2" style={{ minHeight: "70px" }}>
           <div className="d-flex align-items-center gap-3">
-            <div className="premium-icon-box" style={{ width: "34px", height: "34px", background: "linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)", color: "#fff", borderRadius: "10px", display : "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 10px rgba(239, 68, 68, 0.15)" }}>
+            {onVolver && (
+              <button
+                type="button"
+                title="Volver a inicio"
+                onClick={onVolver}
+                style={{
+                  border: "1.5px solid #cbd5e1",
+                  borderRadius: "8px",
+                  background: "#f8fafc",
+                  color: "#475569",
+                  width: "34px",
+                  height: "34px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  flexShrink: 0,
+                  fontSize: "1rem",
+                  transition: "all 0.15s ease"
+                }}
+                onMouseEnter={(e) => {
+                  const btn = e.currentTarget as HTMLButtonElement;
+                  btn.style.background = "#ef4444";
+                  btn.style.color = "#fff";
+                  btn.style.borderColor = "#ef4444";
+                }}
+                onMouseLeave={(e) => {
+                  const btn = e.currentTarget as HTMLButtonElement;
+                  btn.style.background = "#f8fafc";
+                  btn.style.color = "#475569";
+                  btn.style.borderColor = "#cbd5e1";
+                }}
+              >
+                &#8592;
+              </button>
+            )}
+            <div className="premium-icon-box" style={{ width: "34px", height: "34px", background: "linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)", color: "#fff", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 10px rgba(239, 68, 68, 0.15)" }}>
               <FiLayers size={18} />
             </div>
             <div className="d-flex flex-column">

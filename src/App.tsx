@@ -383,10 +383,13 @@ export default function App() {
               }} 
             />
           ) : (
-            <OrdenesOpen onEditar={(id) => {
-              setOrdenIdEdicion(id);
-              setMenuActivo("ordenes");
-            }} />
+            <OrdenesOpen 
+              onEditar={(id) => {
+                setOrdenIdEdicion(id);
+                setMenuActivo("ordenes");
+              }} 
+              onVolver={() => setMenuActivo("home")}
+            />
           )
         ) : null}
       </section>

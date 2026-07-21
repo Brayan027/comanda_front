@@ -1140,15 +1140,68 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
         Swal.fire({
           icon: "warning",
           title: "Orden Guardada en Sistema",
-          html: `La orden para la <b>Mesa ${mesa}</b> (#${ordenActualId}) <b>se guardó correctamente</b>.<br/><br/><span style="color: #ef4444; font-weight: 700;">⚠️ Advertencia de Impresión:</span><br/>${impStatus.error || "La impresora no respondió."}<br/><br/>¿Deseas reintentar la impresión?`,
+          html: `La orden para la <b>Mesa ${mesa}</b> (#${ordenActualId}) <b>se guardó correctamente</b>.<br/><br/><span style="color: #ef4444; font-weight: 700;">⚠️ Advertencia de Impresión:</span><br/>${impStatus.error || "La impresora no respondió."}<br/><br/>¿Qué deseas hacer con la comanda?`,
           showCancelButton: true,
+          showDenyButton: true,
           confirmButtonText: "🔄 Reintentar Impresión",
+          denyButtonText: "📲 Compartir (Guardar impreso)",
           cancelButtonText: "Continuar sin imprimir",
           confirmButtonColor: "#eab308",
+          denyButtonColor: "#2563eb",
           cancelButtonColor: "#64748b"
-        }).then((result) => {
+        }).then(async (result) => {
           if (result.isConfirmed) {
             reintentarImpresionManual(ordenActualId);
+          } else if (result.isDenied) {
+            try {
+              await fetch(`${API_BASE_URL}/ordenes/${ordenActualId}/marcar-impreso`, {
+                method: "POST",
+                headers
+              });
+            } catch (e) {
+              console.error("Error al marcar comanda como impresa", e);
+            }
+
+            const now = new Date();
+            const fecha = now.toISOString().split('T')[0];
+            const hora = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const ticketOrden = {
+              nro_orden: ordenActualId,
+              mesa: mesa.trim(),
+              mesero: mesero?.nombre || "VENDEDOR",
+              numPersonas: Number(numPersonas) || 1,
+              fecha,
+              hora,
+              productos: carrito.map(item => ({
+                cantidad: item.cantidad,
+                ProStDescripcion: item.ProStDescripcion,
+                precioVenta: item.precioVenta,
+                total: (item.precioVenta + item.adicionales.reduce((acc, ad) => acc + ad.precioVenta, 0)) * item.cantidad,
+                adicionales: item.adicionales.map(ad => ({
+                  ProStDescripcion: ad.ProStDescripcion
+                })),
+                MopStImpreso: '1',
+                ImpNombre1: item.ImpNombre1 || "Comanda General"
+              })),
+              totales: {
+                subtotal: resumenTotales.total - resumenTotales.iva - resumenTotales.impoconsumo,
+                iva: resumenTotales.iva,
+                impoconsumo: resumenTotales.impoconsumo,
+                total: resumenTotales.total
+              }
+            };
+            const ticketEmpresa = {
+              nombre: infoPuntoVenta?.gmpnomb || "DIANASIS RESTAURANTE",
+              puntoVenta: infoPuntoVenta?.PveStNombre || "COMANDERA",
+              empresaId: infoPuntoVenta?.PveIdStEmpresa || "02"
+            };
+
+            const exitoShare = await compartirPDF(ticketOrden, ticketEmpresa);
+            if (!exitoShare) {
+              await descargarPDF(ticketOrden, ticketEmpresa);
+            }
+            clearForm();
+            if (onClearInitial) onClearInitial();
           } else {
             clearForm();
             if (onClearInitial) onClearInitial();
