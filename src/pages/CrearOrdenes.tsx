@@ -927,6 +927,15 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
   };
 
   const clearForm = () => {
+    if (ordenId) {
+      Swal.fire({
+        icon: "warning",
+        title: "Acción no permitida",
+        text: "No se puede vaciar el carrito de una orden que ya está abierta en mesa.",
+        confirmButtonColor: "#ef4444"
+      });
+      return;
+    }
     setMesa("");
     setOrdenId(null);
     setCarrito([]);
@@ -2092,6 +2101,9 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
                 type="button"
                 className="co-btn-footer-secondary"
                 onClick={clearForm}
+                disabled={!!ordenId}
+                style={ordenId ? { opacity: 0.4, cursor: "not-allowed", pointerEvents: "auto" } : {}}
+                title={ordenId ? "No puedes vaciar el carrito de una orden ya abierta" : "Vaciar carrito"}
               >
                 VACIAR CARRITO
               </button>
