@@ -73,6 +73,7 @@ interface CartItem {
   MopStImpreso?: string;
   ImpNombre1?: string;
   observacion?: string;
+  esEliminado?: boolean;
   adicionales: {
     ApmIdInProducto: number;
     ProStDescripcion: string;
@@ -859,7 +860,13 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
     const item = carrito.find(x => x.idUnicoCart === idUnicoCart);
     if (!item) return;
 
-    // Si se está disminuyendo la cantidad
+    if (item.esEliminado) {
+      if (delta > 0) {
+        setCarrito(prev => prev.map(x => x.idUnicoCart === idUnicoCart ? { ...x, esEliminado: false } : x));
+      }
+      return;
+    }
+
     if (delta < 0) {
       const isEliminating = item.cantidad + delta <= 0;
       const confirmText = isEliminating 
@@ -893,7 +900,12 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
       const newQty = newCart[idx].cantidad + delta;
       
       if (newQty <= 0) {
-        return newCart.filter(x => x.idUnicoCart !== idUnicoCart);
+        if (newCart[idx].MopStImpreso === '1') {
+          newCart[idx].esEliminado = true;
+          return newCart;
+        } else {
+          return newCart.filter(x => x.idUnicoCart !== idUnicoCart);
+        }
       } else {
         newCart[idx].cantidad = newQty;
         return newCart;
@@ -904,6 +916,11 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
   const handleRemoveItem = async (idUnicoCart: string) => {
     const item = carrito.find(x => x.idUnicoCart === idUnicoCart);
     if (!item) return;
+
+    if (item.esEliminado) {
+      setCarrito(prev => prev.map(x => x.idUnicoCart === idUnicoCart ? { ...x, esEliminado: false } : x));
+      return;
+    }
 
     const confirmResult = await Swal.fire({
       title: 'Confirmación',
@@ -921,13 +938,15 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
     if (item.MopStImpreso === '1') {
       const autorizado = await solicitarAutorizacionAdmin();
       if (!autorizado) return;
-    }
 
-    setCarrito(prev => prev.filter(x => x.idUnicoCart !== idUnicoCart));
+      setCarrito(prev => prev.map(x => x.idUnicoCart === idUnicoCart ? { ...x, esEliminado: true } : x));
+    } else {
+      setCarrito(prev => prev.filter(x => x.idUnicoCart !== idUnicoCart));
+    }
   };
 
-  const clearForm = () => {
-    if (ordenId) {
+  const clearForm = (force = false) => {
+    if (ordenId && !force) {
       Swal.fire({
         icon: "warning",
         title: "Acción no permitida",
@@ -964,7 +983,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
     let ivaAcumulado = 0;
     let incAcumulado = 0;
 
-    carrito.forEach(item => {
+    carrito.filter(item => !item.esEliminado).forEach(item => {
       const parentPrice = item.precioVenta;
       const sidesPrice = item.adicionales.reduce((sum, ad) => sum + ad.precioVenta, 0);
       const precioItemTotal = parentPrice + sidesPrice;
@@ -1040,7 +1059,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
           timer: 1500,
           showConfirmButton: false
         });
-        clearForm();
+        clearForm(true);
         if (onClearInitial) onClearInitial();
       } else {
         Swal.fire({
@@ -1056,7 +1075,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
           if (r.isConfirmed) {
             reintentarImpresionManual(nroOrden);
           } else {
-            clearForm();
+            clearForm(true);
             if (onClearInitial) onClearInitial();
           }
         });
@@ -1087,6 +1106,12 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
       return;
     }
 
+    const productosActivos = carrito.filter(item => !item.esEliminado);
+    if (!ordenId && productosActivos.length === 0) {
+      Swal.fire({ icon: "error", title: "Pedido vacío", text: "Por favor agregue productos activos al pedido" });
+      return;
+    }
+
     Swal.fire({
       title: ordenId ? "Actualizando Pedido" : "Procesando Pedido",
       text: "Por favor espera un momento...",
@@ -1105,7 +1130,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
         OpeInNumPersonas: Number(numPersonas) || 1,
         OpeIdStComprobante: infoPuntoVenta?.PveIdStComprobante || "28",
         nombre_terminal: terminalName,
-        productos: carrito.map(item => ({
+        productos: carrito.filter(item => !item.esEliminado).map(item => ({
           ProIdInProducto: item.ProIdInProducto,
           precioVenta: item.precioVenta,
           cantidad: item.cantidad,
@@ -1219,10 +1244,10 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
             if (!exitoShare) {
               await descargarPDF(ticketOrden, ticketEmpresa);
             }
-            clearForm();
+            clearForm(true);
             if (onClearInitial) onClearInitial();
           } else {
-            clearForm();
+            clearForm(true);
             if (onClearInitial) onClearInitial();
           }
         });
@@ -1293,7 +1318,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
             await descargarPDF(ticketOrden, ticketEmpresa);
           }
         }
-        clearForm();
+        clearForm(true);
         if (onClearInitial) onClearInitial();
       });
     } catch (err) {
@@ -1891,89 +1916,116 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
               carrito.map((item) => {
                 const sidesPrice = item.adicionales.reduce((sum, ad) => sum + ad.precioVenta, 0);
                 const itemTotal = (item.precioVenta + sidesPrice) * item.cantidad;
+                const estaEliminado = Boolean(item.esEliminado);
 
                  return (
                   <article 
                     key={item.idUnicoCart} 
                     className="co-cart-item"
-                    style={item.MopStImpreso === '1' ? { opacity: 0.55 } : {}}
+                    style={
+                      estaEliminado 
+                        ? { background: "#fef2f2", border: "1px dashed #ef4444", opacity: 0.9 } 
+                        : item.MopStImpreso === '1' 
+                          ? { opacity: 0.75 } 
+                          : {}
+                    }
                   >
-                    {/* Fila Superior: Nombre del producto y Boton eliminar */}
+                    {/* Fila Superior: Nombre del producto y Boton eliminar/restaurar */}
                     <div className="co-cart-item-row-top">
-                      <div className="d-flex flex-column" style={{ minWidth: 0, flex: 1 }}>
+                      <div className="d-flex align-items-center gap-2" style={{ minWidth: 0, flex: 1 }}>
                         <span
                           style={{
-                            fontWeight: item.MopStImpreso === '1' ? 'normal' : 'bold',
-                            color: item.MopStImpreso === '1' ? 'inherit' : '#1e293b',
+                            fontWeight: estaEliminado ? "bold" : item.MopStImpreso === '1' ? 'normal' : 'bold',
+                            color: estaEliminado ? "#dc2626" : item.MopStImpreso === '1' ? 'inherit' : '#1e293b',
                             fontSize: '0.8rem',
                             textTransform: 'uppercase',
-                            lineHeight: '1.2'
+                            lineHeight: '1.2',
+                            textDecoration: estaEliminado ? "line-through" : "none"
                           }}
                         >
                           {item.ProStDescripcion}
                         </span>
+                        {estaEliminado && (
+                          <Badge bg="danger" style={{ fontSize: "0.65rem", padding: "3px 6px" }}>
+                            ELIMINADO
+                          </Badge>
+                        )}
                       </div>
                       
-                      <button
-                        type="button"
-                        className="co-btn-delete"
-                        onClick={() => handleRemoveItem(item.idUnicoCart)}
-                        aria-label={`Eliminar ${item.ProStDescripcion}`}
-                        style={{ flexShrink: 0 }}
-                      >
-                        <FiTrash2 size={13} />
-                      </button>
+                      {estaEliminado ? (
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline-success fw-bold py-0 px-2"
+                          style={{ fontSize: "0.72rem", borderRadius: "6px" }}
+                          onClick={() => handleRemoveItem(item.idUnicoCart)}
+                          title="Restaurar este producto"
+                        >
+                          ↩ Restaurar
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="co-btn-delete"
+                          onClick={() => handleRemoveItem(item.idUnicoCart)}
+                          aria-label={`Eliminar ${item.ProStDescripcion}`}
+                          style={{ flexShrink: 0 }}
+                        >
+                          <FiTrash2 size={13} />
+                        </button>
+                      )}
                     </div>
 
                     {/* Fila Inferior: Precio e Indicadores de cantidad y notas */}
                     <div className="co-cart-item-row-bottom">
-                      <span className="co-cart-total" style={{ color: '#16a34a', fontSize: '0.82rem', fontWeight: '800' }}>
-                        {formatMoneda(itemTotal)}
+                      <span className="co-cart-total" style={{ color: estaEliminado ? '#94a3b8' : '#16a34a', fontSize: '0.82rem', fontWeight: '800', textDecoration: estaEliminado ? 'line-through' : 'none' }}>
+                        {estaEliminado ? "$0" : formatMoneda(itemTotal)}
                       </span>
 
-                      <div className="d-flex align-items-center gap-2">
-                        {/* Botón Notas */}
-                        <button
-                          type="button"
-                          className="btn btn-sm d-flex align-items-center justify-content-center"
-                          style={{
-                            width: '26px',
-                            height: '26px',
-                            borderRadius: '6px',
-                            border: '1.5px solid #06b6d4',
-                            color: '#06b6d4',
-                            background: 'transparent',
-                            padding: 0
-                          }}
-                          onClick={() => handleEditObservacion(item.idUnicoCart)}
-                          title="Editar observaciones"
-                        >
-                          <FiEdit size={12} />
-                        </button>
+                      {!estaEliminado && (
+                        <div className="d-flex align-items-center gap-2">
+                          {/* Botón Notas */}
+                          <button
+                            type="button"
+                            className="btn btn-sm d-flex align-items-center justify-content-center"
+                            style={{
+                              width: '26px',
+                              height: '26px',
+                              borderRadius: '6px',
+                              border: '1.5px solid #06b6d4',
+                              color: '#06b6d4',
+                              background: 'transparent',
+                              padding: 0
+                            }}
+                            onClick={() => handleEditObservacion(item.idUnicoCart)}
+                            title="Editar observaciones"
+                          >
+                            <FiEdit size={12} />
+                          </button>
 
-                        {/* Control de Cantidad Premium */}
-                        <div className="d-flex align-items-center bg-light border rounded px-1" style={{ height: '26px' }}>
-                          <button
-                            type="button"
-                            className="btn p-0 d-flex align-items-center justify-content-center fw-bold"
-                            style={{ width: '18px', height: '18px', fontSize: '0.85rem', color: '#64748b' }}
-                            onClick={() => handleUpdateQty(item.idUnicoCart, -1)}
-                          >
-                            -
-                          </button>
-                          <span className="fw-bold px-2 text-dark" style={{ fontSize: '0.78rem', minWidth: '16px', textAlign: 'center' }}>
-                            {item.cantidad}
-                          </span>
-                          <button
-                            type="button"
-                            className="btn p-0 d-flex align-items-center justify-content-center fw-bold"
-                            style={{ width: '18px', height: '18px', fontSize: '0.85rem', color: '#64748b' }}
-                            onClick={() => handleUpdateQty(item.idUnicoCart, 1)}
-                          >
-                            +
-                          </button>
+                          {/* Control de Cantidad Premium */}
+                          <div className="d-flex align-items-center bg-light border rounded px-1" style={{ height: '26px' }}>
+                            <button
+                              type="button"
+                              className="btn p-0 d-flex align-items-center justify-content-center fw-bold"
+                              style={{ width: '18px', height: '18px', fontSize: '0.85rem', color: '#64748b' }}
+                              onClick={() => handleUpdateQty(item.idUnicoCart, -1)}
+                            >
+                              -
+                            </button>
+                            <span className="fw-bold px-2 text-dark" style={{ fontSize: '0.78rem', minWidth: '16px', textAlign: 'center' }}>
+                              {item.cantidad}
+                            </span>
+                            <button
+                              type="button"
+                              className="btn p-0 d-flex align-items-center justify-content-center fw-bold"
+                              style={{ width: '18px', height: '18px', fontSize: '0.85rem', color: '#64748b' }}
+                              onClick={() => handleUpdateQty(item.idUnicoCart, 1)}
+                            >
+                              +
+                            </button>
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
 
                     {/* Observaciones (si las tiene) */}
@@ -2040,19 +2092,35 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
                   {carrito.map((item, idx) => {
                     const itemSidesPrice = item.adicionales.reduce((sum, ad) => sum + ad.precioVenta, 0);
                     const itemTotal = (item.precioVenta + itemSidesPrice) * item.cantidad;
+                    const estaEliminado = Boolean(item.esEliminado);
 
                     return (
-                      <tr key={idx} style={item.MopStImpreso === '1' ? { opacity: 0.55 } : {}}>
-                        <td className="qty-col" style={item.MopStImpreso !== '1' ? { color: "#000000", fontWeight: "bold" } : {}}>{item.cantidad}</td>
+                      <tr 
+                        key={idx} 
+                        style={
+                          estaEliminado 
+                            ? { background: "#fef2f2" } 
+                            : item.MopStImpreso === '1' 
+                              ? { opacity: 0.65 } 
+                              : {}
+                        }
+                      >
+                        <td className="qty-col" style={{ color: estaEliminado ? "#dc2626" : item.MopStImpreso !== '1' ? "#000000" : "inherit", fontWeight: "bold", textDecoration: estaEliminado ? "line-through" : "none" }}>{item.cantidad}</td>
                         <td>
                            <span
                             style={{
-                              fontWeight: item.MopStImpreso === '1' ? 'normal' : 'bold',
-                              color: item.MopStImpreso === '1' ? 'inherit' : '#000000'
+                              fontWeight: estaEliminado ? "bold" : item.MopStImpreso === '1' ? 'normal' : 'bold',
+                              color: estaEliminado ? "#dc2626" : item.MopStImpreso === '1' ? 'inherit' : '#000000',
+                              textDecoration: estaEliminado ? "line-through" : "none"
                             }}
                           >
                             {item.ProStDescripcion}
                           </span>
+                          {estaEliminado && (
+                            <Badge bg="danger" className="ms-2" style={{ fontSize: "0.65rem" }}>
+                              ELIMINADO
+                            </Badge>
+                          )}
                           {item.observacion && (
                             <div style={{ fontSize: "0.75rem", color: "#d97706", fontWeight: "bold", marginTop: "2px" }}>
                               Obs: {item.observacion}
@@ -2068,8 +2136,10 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
                             </div>
                           )}
                         </td>
-                        <td className="price-col">{formatMoneda(item.precioVenta)}</td>
-                        <td className="total-col">{formatMoneda(itemTotal)}</td>
+                        <td className="price-col" style={{ textDecoration: estaEliminado ? "line-through" : "none" }}>{formatMoneda(item.precioVenta)}</td>
+                        <td className="total-col" style={{ textDecoration: estaEliminado ? "line-through" : "none", color: estaEliminado ? "#94a3b8" : "inherit" }}>
+                          {estaEliminado ? "$0" : formatMoneda(itemTotal)}
+                        </td>
                       </tr>
                     );
                   })}
@@ -2100,7 +2170,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
               <button
                 type="button"
                 className="co-btn-footer-secondary"
-                onClick={clearForm}
+                onClick={() => clearForm()}
                 disabled={!!ordenId}
                 style={ordenId ? { opacity: 0.4, cursor: "not-allowed", pointerEvents: "auto" } : {}}
                 title={ordenId ? "No puedes vaciar el carrito de una orden ya abierta" : "Vaciar carrito"}
