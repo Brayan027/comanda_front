@@ -386,30 +386,34 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   border: 1px solid #e2e8f0;
   background: #fff;
-  border-radius: 6px;
-  padding: 4px 10px;
-  margin-bottom: 4px;
+  border-radius: 8px;
+  padding: 8px 14px 8px 18px;
+  margin-bottom: 6px;
+  min-height: 52px;
+  cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .co-product-row:hover {
-  border-color: #cbd5e1;
-  background: #f8fafc;
+  border-color: #fca5a5;
+  background: #fff5f5;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .co-product-info {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
   min-width: 0;
   flex: 1;
+  padding-left: 4px;
 }
 
 .co-product-name {
-  font-size: 0.72rem;
+  font-size: 0.82rem;
   font-weight: 700;
   color: #1e293b;
   text-transform: uppercase;
@@ -424,12 +428,12 @@
 
 .co-meta-code,
 .co-meta-stock {
-  font-size: 0.58rem;
+  font-size: 0.62rem;
   font-weight: 600;
   color: #64748b;
   background: #f1f5f9;
-  padding: 1px 5px;
-  border-radius: 3px;
+  padding: 2px 6px;
+  border-radius: 4px;
 }
 
 .co-meta-stock.stock-ok {
@@ -445,8 +449,8 @@
 .co-price {
   white-space: nowrap;
   color: #334155;
-  font-size: 0.75rem;
-  font-weight: 700;
+  font-size: 0.82rem;
+  font-weight: 800;
 }
 
 /* Compact quantity selector in product row */
@@ -454,13 +458,14 @@
   display: flex;
   align-items: center;
   background: #f8fafc;
-  border-radius: 5px;
-  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  border: 1.5px solid #cbd5e1;
+  height: 38px;
 }
 
 .co-qty-compact button {
-  width: 18px;
-  height: 20px;
+  width: 32px;
+  height: 36px;
   border: 0;
   background: transparent;
   color: #ef4444;
@@ -469,37 +474,46 @@
   justify-content: center;
   cursor: pointer;
   padding: 0;
+  font-weight: 800;
+  transition: background-color 0.15s ease;
+}
+
+.co-qty-compact button:hover {
+  background: #fee2e2;
+  border-radius: 6px;
 }
 
 .co-qty-compact input {
-  width: 24px;
-  height: 20px;
+  width: 30px;
+  height: 36px;
   border: 0;
   text-align: center;
-  font-weight: 700;
-  font-size: 0.8rem;
-  color: #334155;
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: #1e293b;
   outline: none;
   background: transparent;
   padding: 0;
 }
 
 .co-btn-add {
-  width: 22px;
-  height: 22px;
+  width: 38px;
+  height: 38px;
   border: 0;
-  border-radius: 5px;
+  border-radius: 8px;
   background: #ef4444;
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background-color 0.15s ease;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
+  transition: all 0.15s ease;
 }
 
 .co-btn-add:hover {
   background: #dc2626;
+  transform: scale(1.05);
 }
 
 /* Carrito Tab Items */

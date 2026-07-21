@@ -176,6 +176,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [availableSides, setAvailableSides] = useState<SelectionGroup[]>([]);
   const [selectedSides, setSelectedSides] = useState<Record<number, SelectedSideItem[]>>({}); // Indexado por ID del grupo de selección (SelectionGroup)
+  const [currentSideGroupIndex, setCurrentSideGroupIndex] = useState(0);
 
 
 
@@ -520,6 +521,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
           });
           setSelectedSides(initialSelection);
           
+          setCurrentSideGroupIndex(0);
           setModalSidesOpen(true);
         } else {
           executeAddToCart(p, [], customQty);
@@ -622,17 +624,24 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
     const customQty = modalProductQty;
 
     // Validar grupos obligatorios
-    for (const group of availableSides) {
-      const isObligatorio = group.CprStObligatorio === "1" || group.CprInCantidad > 0;
+    for (let i = 0; i < availableSides.length; i++) {
+      const group = availableSides[i];
+      const targetQty = group.CprInCantidad * customQty;
+      const isObligatorio = group.CprStObligatorio === "1" || targetQty > 0;
       if (isObligatorio) {
         const groupSelected = selectedSides[group.CprIdInAdicionales] || [];
         const totalSelected = groupSelected.reduce((sum, item) => sum + item.cantidad, 0);
+        const minRequired = targetQty > 0 ? targetQty : 1;
 
-        if (totalSelected === 0) {
+        if (totalSelected < minRequired) {
+          setCurrentSideGroupIndex(i);
+          const faltantes = minRequired - totalSelected;
           Swal.fire({
             icon: "warning",
-            title: "Selección requerida",
-            text: `Debes elegir una opción para "${group.AprStDescripcion}"`,
+            title: "Selección incompleta",
+            text: targetQty > 0
+              ? `Debes seleccionar ${minRequired} opciones en "${group.AprStDescripcion}" (${totalSelected}/${minRequired}). Faltan ${faltantes}.`
+              : `Debes elegir una opción para "${group.AprStDescripcion}".`,
             confirmButtonText: "Entendido",
             confirmButtonColor: "#ef4444"
           });
@@ -693,13 +702,14 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
       }
     });
 
-    // Restablecer el contador de cantidad rápida
+    // Restablecer el contador de cantidad rápida y limpiar el buscador
     setCantidadesRapidas(prev => ({ ...prev, [p.ProIdInProducto]: 1 }));
+    setBusquedaProducto("");
 
     Swal.fire({
       icon: "success",
       title: "Agregado",
-      text: `${p.ProStDescripcion} agregado al pedido`,
+      text: `${p.ProStDescripcion} (x${customQty}) agregado al pedido`,
       timer: 1000,
       showConfirmButton: false,
       toast: true,
@@ -1777,7 +1787,11 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
               productos.map((p) => {
                 const qty = cantidadesRapidas[p.ProIdInProducto] || 1;
                 return (
-                  <article key={p.ProIdInProducto} className="co-product-row">
+                  <article 
+                    key={p.ProIdInProducto} 
+                    className="co-product-row"
+                    onClick={() => addProductToCart(p)}
+                  >
                     <div className="co-product-info">
                       <strong className="co-product-name">{p.ProStDescripcion}</strong>
                       <div className="co-product-meta">
@@ -1785,39 +1799,40 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
                       </div>
                     </div>
                     
-                    <div className="d-flex align-items-center gap-3">
+                    <div className="d-flex align-items-center gap-2 gap-sm-3" onClick={(e) => e.stopPropagation()}>
                       <span className="co-price">{formatMoneda(p.precioVenta)}</span>
                       
                       <div className="co-qty-compact">
                         <button
                           type="button"
-                          onClick={() => cambiarCantidadRapida(p.ProIdInProducto, qty - 1)}
+                          onClick={(e) => { e.stopPropagation(); cambiarCantidadRapida(p.ProIdInProducto, qty - 1); }}
                           aria-label="Disminuir"
                         >
-                          <FiMinus size={10} />
+                          <FiMinus size={14} />
                         </button>
                         <input
                           type="text"
                           value={qty}
                           onChange={(e) => cambiarCantidadRapida(p.ProIdInProducto, Number(e.target.value) || 1)}
+                          onClick={(e) => e.stopPropagation()}
                           onFocus={(e) => e.target.select()}
                         />
                         <button
                           type="button"
-                          onClick={() => cambiarCantidadRapida(p.ProIdInProducto, qty + 1)}
+                          onClick={(e) => { e.stopPropagation(); cambiarCantidadRapida(p.ProIdInProducto, qty + 1)} }
                           aria-label="Aumentar"
                         >
-                          <FiPlus size={10} />
+                          <FiPlus size={14} />
                         </button>
                       </div>
 
                       <button
                         type="button"
                         className="co-btn-add"
-                        onClick={() => addProductToCart(p)}
+                        onClick={(e) => { e.stopPropagation(); addProductToCart(p); }}
                         aria-label={`Añadir ${p.ProStDescripcion}`}
                       >
-                        <FiPlus size={14} />
+                        <FiPlus size={18} />
                       </button>
                     </div>
                   </article>
@@ -2094,7 +2109,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
         </section>
       </div>
 
-      {/* MODAL: Product Accompaniments modifier selection */}
+      {/* MODAL: Product Accompaniments modifier selection (Wizard paso a paso) */}
       <Modal
         show={modalSidesOpen}
         onHide={() => { setModalSidesOpen(false); setSelectedProduct(null); }}
@@ -2102,7 +2117,11 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
         backdrop="static"
       >
         <div className="modal-header-premium d-flex justify-content-between align-items-center">
-          <h5 className="modal-title-premium">Acompañamientos</h5>
+          <h5 className="modal-title-premium">
+            {availableSides.length > 1 
+              ? `Paso ${currentSideGroupIndex + 1} de ${availableSides.length}: ${(availableSides[currentSideGroupIndex]?.AprStDescripcion || "Acompañamientos").toUpperCase()}`
+              : "Acompañamientos"}
+          </h5>
           <button 
             type="button" 
             className="btn-close" 
@@ -2111,11 +2130,11 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
         </div>
         
         <div className="modal-body-premium">
-          <div className="text-center mb-4">
+          <div className="text-center mb-3">
             <span className="text-muted d-block text-uppercase fw-bold" style={{ fontSize: '0.7rem' }}>
               Producto Seleccionado
             </span>
-            <h4 className="fw-bold text-danger text-uppercase mb-1" style={{ fontSize: '1.25rem' }}>
+            <h4 className="fw-bold text-danger text-uppercase mb-1" style={{ fontSize: '1.2rem' }}>
               {selectedProduct?.ProStDescripcion}
             </h4>
             <span className="fw-semibold text-muted" style={{ fontSize: '0.85rem' }}>
@@ -2123,28 +2142,93 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
             </span>
           </div>
 
-          {availableSides.map((group) => {
+          {/* Pestañas de Pasos si hay más de 1 grupo */}
+          {availableSides.length > 1 && (
+            <div className="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom overflow-auto">
+              {availableSides.map((g, idx) => {
+                const isCurrent = idx === currentSideGroupIndex;
+                const targetQty = g.CprInCantidad * modalProductQty;
+                const isOblig = g.CprStObligatorio === "1" || targetQty > 0;
+                const minReq = targetQty > 0 ? targetQty : 1;
+                const groupSelected = selectedSides[g.CprIdInAdicionales] || [];
+                const totalInGroup = groupSelected.reduce((sum, s) => sum + s.cantidad, 0);
+                const isDone = !isOblig ? totalInGroup > 0 : totalInGroup >= minReq;
+                
+                return (
+                  <button
+                    key={g.CprIdInAdicionales}
+                    type="button"
+                    onClick={() => {
+                      if (idx > currentSideGroupIndex) {
+                        for (let i = currentSideGroupIndex; i < idx; i++) {
+                          const groupReq = availableSides[i];
+                          const reqTarget = groupReq.CprInCantidad * modalProductQty;
+                          const reqIsOblig = groupReq.CprStObligatorio === "1" || reqTarget > 0;
+                          const reqMin = reqTarget > 0 ? reqTarget : 1;
+                          const selInGroup = (selectedSides[groupReq.CprIdInAdicionales] || []).reduce((sum, s) => sum + s.cantidad, 0);
+
+                          if (reqIsOblig && selInGroup < reqMin) {
+                            const faltantes = reqMin - selInGroup;
+                            Swal.fire({
+                              icon: "warning",
+                              title: "Selección incompleta",
+                              text: reqTarget > 0
+                                ? `Debes seleccionar ${reqMin} opciones en "${groupReq.AprStDescripcion}" (${selInGroup}/${reqMin}). Faltan ${faltantes}.`
+                                : `Debes elegir una opción para "${groupReq.AprStDescripcion}".`,
+                              timer: 2500,
+                              showConfirmButton: false,
+                              toast: true,
+                              position: "center"
+                            });
+                            setCurrentSideGroupIndex(i);
+                            return;
+                          }
+                        }
+                      }
+                      setCurrentSideGroupIndex(idx);
+                    }}
+                    className={`btn btn-sm ${isCurrent ? "btn-danger" : isDone ? "btn-success" : "btn-outline-secondary"} rounded-pill fw-bold text-nowrap px-3`}
+                    style={{ fontSize: "0.78rem" }}
+                  >
+                    {idx + 1}. {g.AprStDescripcion} {isDone ? "✓" : ""}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Renderizado exclusivo del grupo actual (Paso Activo) */}
+          {(() => {
+            const group = availableSides[currentSideGroupIndex] || availableSides[0];
+            if (!group) return null;
+
+            const targetQty = group.CprInCantidad * modalProductQty;
+            const isObligatorio = group.CprStObligatorio === "1" || targetQty > 0;
+            const minRequired = targetQty > 0 ? targetQty : 1;
+
             const currentSelected = selectedSides[group.CprIdInAdicionales] || [];
-            const isObligatorio = group.CprStObligatorio === "1" || group.CprInCantidad > 0;
             const totalSelectedInGroup = currentSelected.reduce((sum, s) => sum + s.cantidad, 0);
+            const isGroupDone = !isObligatorio ? totalSelectedInGroup > 0 : totalSelectedInGroup >= minRequired;
 
             return (
-              <div key={group.CprIdInAdicionales} className="mb-4">
+              <div key={group.CprIdInAdicionales} className="mb-3">
                 <div className="accompaniment-group-title d-flex justify-content-between align-items-center mb-2">
                   <div className="d-flex align-items-center gap-2">
-                    <span className="fw-bold">{group.AprStDescripcion}</span>
-                    {isObligatorio && totalSelectedInGroup === 0 && (
+                    <span className="fw-bold text-uppercase">{group.AprStDescripcion}</span>
+                    {isObligatorio && !isGroupDone && (
                       <span className="badge bg-warning text-dark px-2 py-1" style={{ fontSize: '0.7rem', fontWeight: '700' }}>
-                        Requerido
+                        Requerido ({totalSelectedInGroup}/{minRequired})
                       </span>
                     )}
                   </div>
-                  <Badge bg={!isObligatorio ? "secondary" : (totalSelectedInGroup > 0 ? "success" : "danger")} className="rounded-pill px-3 py-1">
+                  <Badge bg={!isObligatorio ? "secondary" : isGroupDone ? "success" : "danger"} className="rounded-pill px-3 py-1">
                     {!isObligatorio
                       ? "Opcional"
-                      : totalSelectedInGroup > 0
-                        ? `✓ Seleccionado (${totalSelectedInGroup}/${group.CprInCantidad * modalProductQty})`
-                        : `Obligatorio (Elige 1 a ${group.CprInCantidad * modalProductQty})`
+                      : isGroupDone
+                        ? `✓ Seleccionado (${totalSelectedInGroup}/${targetQty || 1})`
+                        : targetQty > 0
+                          ? `Obligatorio (Elige ${targetQty}: ${totalSelectedInGroup}/${targetQty})`
+                          : `Obligatorio (Elige al menos 1)`
                     }
                   </Badge>
                 </div>
@@ -2180,7 +2264,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
                           </div>
 
                           <div className="d-flex align-items-center gap-2" onClick={e => e.stopPropagation()}>
-                            {isSelected && (group.CprInCantidad * modalProductQty) > 1 && (
+                            {isSelected && targetQty > 1 && (
                               <div className="d-flex align-items-center gap-1 bg-white border rounded px-1" style={{ height: '26px' }}>
                                 <button
                                   type="button"
@@ -2198,7 +2282,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
                                   className="btn p-0 d-flex align-items-center justify-content-center fw-bold"
                                   style={{ width: '18px', height: '18px', fontSize: '0.85rem', color: '#64748b' }}
                                   onClick={() => adjustSideQty(group.CprIdInAdicionales, opt.ApmIdInProducto, 1)}
-                                  disabled={currentSelected.reduce((sum, s) => sum + s.cantidad, 0) >= (group.CprInCantidad * modalProductQty)}
+                                  disabled={currentSelected.reduce((sum, s) => sum + s.cantidad, 0) >= targetQty}
                                 >
                                   +
                                 </button>
@@ -2218,24 +2302,72 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
                 </div>
               </div>
             );
-          })}
+          })()}
         </div>
 
-        <div className="modal-footer-premium d-flex gap-3">
-          <Button 
-            variant="outline-secondary" 
-            className="w-100 rounded-3 py-2" 
-            onClick={() => { setModalSidesOpen(false); setSelectedProduct(null); }}
-          >
-            Cancelar
-          </Button>
-          <Button 
-            variant="danger" 
-            className="w-100 rounded-3 py-2" 
-            onClick={confirmSides}
-          >
-            Confirmar Acompañamiento
-          </Button>
+        {/* Footer con Navegación Anterior / Siguiente / Confirmar */}
+        <div className="modal-footer-premium d-flex gap-2">
+          {currentSideGroupIndex > 0 ? (
+            <Button 
+              variant="outline-secondary" 
+              className="w-100 rounded-3 py-2 fw-bold" 
+              onClick={() => setCurrentSideGroupIndex(prev => Math.max(0, prev - 1))}
+            >
+              ← Anterior
+            </Button>
+          ) : (
+            <Button 
+              variant="outline-secondary" 
+              className="w-100 rounded-3 py-2 fw-bold" 
+              onClick={() => { setModalSidesOpen(false); setSelectedProduct(null); }}
+            >
+              Cancelar
+            </Button>
+          )}
+
+          {currentSideGroupIndex < availableSides.length - 1 ? (
+            <Button 
+              variant="danger" 
+              className="w-100 rounded-3 py-2 fw-bold" 
+              onClick={() => {
+                const currentGroup = availableSides[currentSideGroupIndex];
+                if (currentGroup) {
+                  const targetQty = currentGroup.CprInCantidad * modalProductQty;
+                  const isObligatorio = currentGroup.CprStObligatorio === "1" || targetQty > 0;
+                  const groupSelected = selectedSides[currentGroup.CprIdInAdicionales] || [];
+                  const totalSelected = groupSelected.reduce((sum, item) => sum + item.cantidad, 0);
+                  const minRequired = targetQty > 0 ? targetQty : 1;
+
+                  if (isObligatorio && totalSelected < minRequired) {
+                    const faltantes = minRequired - totalSelected;
+                    Swal.fire({
+                      icon: "warning",
+                      title: "Selección incompleta",
+                      text: targetQty > 0
+                        ? `Debes seleccionar ${minRequired} opciones en "${currentGroup.AprStDescripcion}" (${totalSelected}/${minRequired}). Faltan ${faltantes}.`
+                        : `Debes elegir una opción para "${currentGroup.AprStDescripcion}".`,
+                      timer: 2500,
+                      showConfirmButton: false,
+                      toast: true,
+                      position: "center"
+                    });
+                    return;
+                  }
+                }
+                setCurrentSideGroupIndex(prev => Math.min(availableSides.length - 1, prev + 1));
+              }}
+            >
+              Siguiente →
+            </Button>
+          ) : (
+            <Button 
+              variant="danger" 
+              className="w-100 rounded-3 py-2 fw-bold" 
+              onClick={confirmSides}
+            >
+              Confirmar Acompañamiento
+            </Button>
+          )}
         </div>
       </Modal>
 
