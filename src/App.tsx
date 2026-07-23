@@ -67,8 +67,15 @@ export default function App() {
     fetch(`${API_BASE_URL}/ordenes/fecha-trabajo`, { headers })
       .then(res => res.json())
       .then(data => {
-        if (data && data.body && data.body.fecha) {
-          setFechaTrabajoRaw(data.body.fecha);
+        if (data && data.body) {
+          if (data.body.fecha) {
+            setFechaTrabajoRaw(data.body.fecha);
+          }
+          if (data.body.bloqueada !== undefined) {
+            localStorage.setItem("comanderaBloqueada", String(data.body.bloqueada));
+          } else {
+            localStorage.removeItem("comanderaBloqueada");
+          }
         }
       })
       .catch(err => {
@@ -181,6 +188,7 @@ export default function App() {
                 className="bg-white p-3 p-md-4 mb-4 rounded-4 shadow-sm border d-flex align-items-center justify-content-between flex-wrap gap-3"
                 style={{ borderColor: "#e2e8f0" }}
               >
+                {/* Lado izquierdo: Icono y Título alineados */}
                 <div className="d-flex align-items-center gap-3">
                   {/* Icono Red Home */}
                   <div
@@ -200,53 +208,53 @@ export default function App() {
                     <FiHome size={20} />
                   </div>
 
-                  {/* Título e Información en Texto Limpio */}
-                  <div className="d-flex flex-column gap-1">
+                  {/* Título de la sección */}
+                  <div className="d-flex flex-column">
                     <span className="text-uppercase fw-bold mb-0" style={{ fontSize: "0.65rem", letterSpacing: "0.1em", color: "#94a3b8" }}>
                       Comanda
                     </span>
-                    <h1 className="m-0 text-uppercase fw-bold" style={{ fontSize: "1.35rem", color: "#0f172a", letterSpacing: "-0.01em", lineHeight: 1 }}>
+                    <h1 className="m-0 text-uppercase fw-bold" style={{ fontSize: "1.35rem", color: "#0f172a", letterSpacing: "-0.01em", lineHeight: 1.1 }}>
                       Inicio
                     </h1>
+                  </div>
+                </div>
 
-                    {/* Información Organizacional y Sesión en Texto */}
-                    <div className="d-flex flex-column gap-1 mt-1">
-                      {/* Línea 1: Empresa y Punto de Venta */}
-                      <div className="d-flex align-items-center gap-2 flex-wrap" style={{ fontSize: "0.85rem", fontWeight: 700 }}>
-                        {(infoPuntoVenta?.gmpnomb || infoPuntoVenta?.PveStNombreEmpresa) && (
-                          <span style={{ color: "#1e293b" }}>
-                            {infoPuntoVenta.gmpnomb || infoPuntoVenta.PveStNombreEmpresa}
-                          </span>
-                        )}
-                        {(infoPuntoVenta?.gmpnomb || infoPuntoVenta?.PveStNombreEmpresa) && infoPuntoVenta?.PveStNombre && (
-                          <span style={{ color: "#cbd5e1" }}>•</span>
-                        )}
-                        {infoPuntoVenta?.PveStNombre && (
-                          <span style={{ color: "#475569" }}>
-                            {infoPuntoVenta.PveStNombre}
-                          </span>
-                        )}
-                      </div>
+                {/* Lado derecho: Información organizativa de sesión */}
+                <div className="d-flex flex-column align-items-end text-end gap-1 mt-1 mt-md-0">
+                  {/* Empresa y Punto de Venta */}
+                  <div className="d-flex align-items-center justify-content-end gap-2 flex-wrap" style={{ fontSize: "0.85rem", fontWeight: 700 }}>
+                    {(infoPuntoVenta?.gmpnomb || infoPuntoVenta?.PveStNombreEmpresa) && (
+                      <span style={{ color: "#1e293b" }}>
+                        {(infoPuntoVenta.gmpnomb || infoPuntoVenta.PveStNombreEmpresa).toUpperCase()}
+                      </span>
+                    )}
+                    {(infoPuntoVenta?.gmpnomb || infoPuntoVenta?.PveStNombreEmpresa) && infoPuntoVenta?.PveStNombre && (
+                      <span style={{ color: "#cbd5e1" }}>•</span>
+                    )}
+                    {infoPuntoVenta?.PveStNombre && (
+                      <span style={{ color: "#475569" }}>
+                        {infoPuntoVenta.PveStNombre.toUpperCase()}
+                      </span>
+                    )}
+                  </div>
 
-                      {/* Línea 2: Fecha y Terminal */}
-                      <div className="d-flex align-items-center gap-2 flex-wrap text-muted" style={{ fontSize: "0.8rem", fontWeight: 500 }}>
-                        <span>{fechaActual}</span>
-                        <span style={{ color: "#cbd5e1" }}>•</span>
-                        <span className="d-inline-flex align-items-center gap-1.5 fw-semibold" style={{ color: "#334155" }}>
-                          <span 
-                            className="rounded-circle d-inline-block"
-                            style={{ width: "6px", height: "6px", backgroundColor: "#22c55e" }}
-                          ></span>
-                          {localStorage.getItem("terminal") || "Terminal Desconocida"}
-                        </span>
-                      </div>
-                    </div>
+                  {/* Fecha y Terminal */}
+                  <div className="d-flex align-items-center justify-content-end gap-2 flex-wrap text-muted" style={{ fontSize: "0.8rem", fontWeight: 500 }}>
+                    <span>{fechaActual}</span>
+                    <span style={{ color: "#cbd5e1" }}>•</span>
+                    <span className="d-inline-flex align-items-center gap-1.5 fw-semibold" style={{ color: "#334155" }}>
+                      <span 
+                        className="rounded-circle d-inline-block"
+                        style={{ width: "6px", height: "6px", backgroundColor: "#22c55e" }}
+                      ></span>
+                      {(localStorage.getItem("terminal") || "Terminal Desconocida").toUpperCase()}
+                    </span>
                   </div>
                 </div>
               </header>
 
               {/* Accesos Rápidos de Inicio matching Screenshot */}
-              <main className="container-fluid pt-2 px-1 px-md-3">
+              <main className="pt-2 px-0">
                 <div className="row g-4 mt-1">
                   {/* Tarjeta Nuevo Pedido */}
                   <div className="col-12 col-md-6">

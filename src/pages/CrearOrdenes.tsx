@@ -133,6 +133,10 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
 
   const terminalName = localStorage.getItem("terminal") || "";
   const token = localStorage.getItem("token") || "";
+  
+  const comanderaBloqueada = useMemo(() => {
+    return localStorage.getItem("comanderaBloqueada") === "true";
+  }, []);
 
   const headers = useMemo(() => ({
     "Content-Type": "application/json",
@@ -465,6 +469,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
 
           setCarrito(itemsFormateados);
           setCabeceraConfirmada(true);
+          setVistaMovil("productos");
 
           Swal.fire({
             icon: "info",
@@ -480,6 +485,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
         // La mesa está libre
         setOrdenId(null);
         setCabeceraConfirmada(true);
+        setVistaMovil("productos");
         Swal.fire({
           icon: "success",
           title: "Mesa Libre",
@@ -1093,6 +1099,14 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
 
   // Guardar/Actualizar la orden en la base de datos
   const guardarComanda = async () => {
+    if (comanderaBloqueada) {
+      Swal.fire({
+        icon: "error",
+        title: "Comandera Bloqueada",
+        text: "La comandera se encuentra bloqueada por el sistema. No se pueden registrar o modificar pedidos."
+      });
+      return;
+    }
     if (!mesa.trim()) {
       Swal.fire({ icon: "error", title: "Datos incompletos", text: "Por favor digite el número de mesa" });
       return;
@@ -1358,6 +1372,15 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
         </div>
       )}
       <div className="container-fluid pt-2 px-1 px-md-2">
+        {comanderaBloqueada && (
+          <div 
+            className="alert alert-danger d-flex align-items-center gap-2 mb-3 rounded-4 border-0 shadow-sm" 
+            style={{ background: "#fee2e2", color: "#991b1b", fontFamily: "'Outfit', sans-serif" }}
+          >
+            <span style={{ fontSize: "1.25rem" }}>⚠️</span>
+            <div className="fw-bold">La comandera se encuentra bloqueada por el sistema. No se pueden registrar ni modificar pedidos.</div>
+          </div>
+        )}
         {/* Header Strip */}
         <header className="co-header">
           <div className="d-flex align-items-center gap-3">
@@ -1436,198 +1459,225 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
         </header>
 
 
-        {/* Filters Strip */}
-        <div className="co-filters-strip">
-          <div className="row g-3 align-items-end">
-            {/* Table / Mesa */}
-            <div className="col-12 col-md-3">
-              <label className="co-form-label">Digite Mesa</label>
-              <div className="co-input-box" style={{ opacity: cabeceraConfirmada ? 0.75 : 1 }}>
-                <FiGrid size={16} />
-                <input
-                  type="text"
-                  value={mesa}
-                  onChange={(e) => setMesa(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      if (!mesa.trim()) {
-                        Swal.fire({
-                          icon: "error",
-                          title: "Mesa Requerida",
-                          text: "Falta ingresar la mesa.",
-                          confirmButtonColor: "#ef4444"
-                        });
-                        return;
-                      }
-                      if (!mesero) {
-                        Swal.fire({
-                          icon: "error",
-                          title: "Mesero Requerido",
-                          text: "Falta seleccionar el mesero responsable.",
-                          confirmButtonColor: "#ef4444"
-                        });
-                        return;
-                      }
-                      verificarMesa();
-                    }
-                  }}
-                  placeholder="Mesa o Barra..."
-                  disabled={cabeceraConfirmada}
-                />
-              </div>
-            </div>
-
-            {/* Waiter / Mesero Autocomplete */}
-            <div className="col-12 col-md-4">
-              <label className="co-form-label">Mesero Responsable</label>
-              <div className="co-input-box" style={{ opacity: (cabeceraConfirmada || !esAdministrador) ? 0.75 : 1 }}>
-                <FiUser size={16} />
-                <input
-                  type="text"
-                  value={meseroBusqueda}
-                  onChange={(e) => handleMeseroChange(e.target.value)}
-                  onFocus={() => { if (!cabeceraConfirmada && esAdministrador) setShowWaitersList(true); }}
-                  placeholder="Escriba nombre o cédula..."
-                  disabled={cabeceraConfirmada || !esAdministrador}
-                />
-                {!cabeceraConfirmada && esAdministrador && (
-                  <>
-                    {mesero ? (
-                      <button className="co-btn-clear" onClick={limpiarMesero} title="Cambiar mesero">
-                        <FiX size={14} />
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => { setShowWaitersList(v => !v); if (!showWaitersList) fetchWaiters(""); }}
-                        style={{ border: 0, background: "transparent", cursor: "pointer", display: "flex", alignItems: "center" }}
-                      >
-                        <FiList size={14} />
-                      </button>
-                    )}
-                  </>
-                )}
-
-                {/* Suggestions Flotante */}
-                {showWaitersList && waitersSuggestions.length > 0 && !cabeceraConfirmada && (
-                  <div className="co-waiters-dropdown shadow">
-                    <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 10px", borderBottom: "1px solid #f1f5f9", background: "#f8fafc" }}>
-                      <span style={{ fontSize: "0.65rem", fontWeight: "700", color: "#64748b" }}>Coincidencias</span>
-                      <button
-                        type="button"
-                        onClick={() => setShowWaitersList(false)}
-                        style={{ border: 0, background: "transparent", color: "#ef4444", fontSize: "0.7rem", fontWeight: "bold" }}
-                      >
-                        Cerrar
-                      </button>
-                    </div>
-                    {waitersSuggestions.map((w) => (
-                      <button
-                        key={w.id}
-                        type="button"
-                        className="co-waiter-option-btn"
-                        onClick={() => selectMesero(w)}
-                      >
-                        <strong>{w.nombre}</strong>
-                        <span>{w.codigo ? `Código: ${w.codigo} | ` : ""}Cédula: {w.id}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Guest Counter */}
-            <div className="col-12 col-md-2">
-              <label className="co-form-label">Nro. Personas</label>
-              <div className="co-people-counter-box" style={{ opacity: cabeceraConfirmada ? 0.75 : 1 }}>
-                <button
-                  type="button"
-                  className="co-btn-counter-inc"
-                  onClick={() => setNumPersonas(prev => Math.max(1, Number(prev) - 1))}
-                  disabled={Number(numPersonas) <= 1 || cabeceraConfirmada}
-                >
-                  <FiMinus size={12} />
-                </button>
-                <input
-                  type="number"
-                  min="1"
-                  value={numPersonas}
-                  onChange={(e) => {
-                    const valStr = e.target.value;
-                    if (valStr === "") {
-                      setNumPersonas("");
-                    } else {
-                      const val = Number(valStr);
-                      setNumPersonas(val >= 0 ? val : 1);
-                    }
-                  }}
-                  onBlur={() => {
-                    if (numPersonas === "" || Number(numPersonas) === 0) {
-                      setNumPersonas(1);
-                    }
-                  }}
-                  onFocus={(e) => e.target.select()}
-                  className="co-counter-val border-0 p-0"
-                  style={{ outline: "none", background: "transparent" }}
-                  disabled={cabeceraConfirmada}
-                />
-                <button
-                  type="button"
-                  className="co-btn-counter-inc"
-                  onClick={() => setNumPersonas(prev => Number(prev) + 1)}
-                  disabled={cabeceraConfirmada}
-                >
-                  <FiPlus size={12} />
-                </button>
-              </div>
-            </div>
-
-            {/* Botón Aceptar Permanente */}
-            <div className="col-12 col-md-3">
-              <button
-                type="button"
-                className="btn btn-danger w-100 fw-bold d-flex align-items-center justify-content-center gap-2"
-                style={{
-                  borderRadius: "10px",
-                  fontFamily: "'Outfit', sans-serif",
-                  height: "44px",
-                  background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
-                  boxShadow: "0 4px 12px rgba(239, 68, 68, 0.25)",
-                  border: "none",
-                  color: "#fff",
-                  opacity: cabeceraConfirmada ? 0.6 : 1,
-                  cursor: cabeceraConfirmada ? "not-allowed" : "pointer"
-                }}
-                disabled={cabeceraConfirmada}
-                onClick={async () => {
-                  if (!mesa.trim()) {
-                    Swal.fire({
-                      icon: "error",
-                      title: "Mesa Requerida",
-                      text: "Falta ingresar la mesa.",
-                      confirmButtonColor: "#ef4444"
-                    });
-                    return;
-                  }
-                  if (!mesero) {
-                    Swal.fire({
-                      icon: "error",
-                      title: "Mesero Requerido",
-                      text: "Falta seleccionar el mesero responsable.",
-                      confirmButtonColor: "#ef4444"
-                    });
-                    return;
-                  }
-                  await verificarMesa();
-                }}
+        {/* Filters Strip / Compact Header Switcher */}
+        {cabeceraConfirmada ? (
+          <div 
+            className="d-flex align-items-center flex-wrap gap-2 mb-3 p-3 rounded-4 shadow-sm border bg-white"
+            style={{ 
+              borderColor: "#e2e8f0", 
+              fontFamily: "'Outfit', sans-serif"
+            }}
+          >
+            <div className="d-flex align-items-center flex-wrap gap-2 gap-sm-3" style={{ fontSize: "0.85rem", fontWeight: "600", color: "#334155" }}>
+              <span 
+                className="badge bg-danger text-white px-3 py-2 text-uppercase d-inline-flex align-items-center gap-1" 
+                style={{ fontSize: "0.75rem", borderRadius: "8px", fontWeight: "700", letterSpacing: "0.02em" }}
               >
-                <FiCheck size={18} />
-                {cabeceraConfirmada ? "ACEPTADO" : "ACEPTAR"}
-              </button>
+                <FiGrid size={12} /> Mesa: {mesa}
+              </span>
+              <span className="text-muted d-none d-sm-inline">•</span>
+              <span className="text-uppercase d-flex align-items-center gap-1" style={{ color: "#475569" }}>
+                <strong>Mesero:</strong> {mesero?.nombre || "VENDEDOR"}
+              </span>
+              <span className="text-muted d-none d-sm-inline">•</span>
+              <span className="d-flex align-items-center gap-1">
+                <strong>Personas:</strong> {numPersonas}
+              </span>
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="co-filters-strip">
+            <div className="row g-3 align-items-end">
+              {/* Table / Mesa */}
+              <div className="col-12 col-md-3">
+                <label className="co-form-label">Digite Mesa</label>
+                <div className="co-input-box" style={{ opacity: cabeceraConfirmada ? 0.75 : 1 }}>
+                  <FiGrid size={16} />
+                  <input
+                    type="text"
+                    value={mesa}
+                    onChange={(e) => setMesa(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        if (!mesa.trim()) {
+                          Swal.fire({
+                            icon: "error",
+                            title: "Mesa Requerida",
+                            text: "Falta ingresar la mesa.",
+                            confirmButtonColor: "#ef4444"
+                          });
+                          return;
+                        }
+                        if (!mesero) {
+                          Swal.fire({
+                            icon: "error",
+                            title: "Mesero Requerido",
+                            text: "Falta seleccionar el mesero responsable.",
+                            confirmButtonColor: "#ef4444"
+                          });
+                          return;
+                        }
+                        verificarMesa();
+                      }
+                    }}
+                    placeholder="Mesa o Barra..."
+                    disabled={cabeceraConfirmada}
+                  />
+                </div>
+              </div>
+
+              {/* Waiter / Mesero Autocomplete */}
+              <div className="col-12 col-md-4">
+                <label className="co-form-label">Mesero Responsable</label>
+                <div className="co-input-box" style={{ opacity: (cabeceraConfirmada || !esAdministrador) ? 0.75 : 1 }}>
+                  <FiUser size={16} />
+                  <input
+                    type="text"
+                    value={meseroBusqueda}
+                    onChange={(e) => handleMeseroChange(e.target.value)}
+                    onFocus={() => { if (!cabeceraConfirmada && esAdministrador) setShowWaitersList(true); }}
+                    placeholder="Escriba nombre o cédula..."
+                    disabled={cabeceraConfirmada || !esAdministrador}
+                  />
+                  {!cabeceraConfirmada && esAdministrador && (
+                    <>
+                      {mesero ? (
+                        <button className="co-btn-clear" onClick={limpiarMesero} title="Cambiar mesero">
+                          <FiX size={14} />
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => { setShowWaitersList(v => !v); if (!showWaitersList) fetchWaiters(""); }}
+                          style={{ border: 0, background: "transparent", cursor: "pointer", display: "flex", alignItems: "center" }}
+                        >
+                          <FiList size={14} />
+                        </button>
+                      )}
+                    </>
+                  )}
+
+                  {/* Suggestions Flotante */}
+                  {showWaitersList && waitersSuggestions.length > 0 && !cabeceraConfirmada && (
+                    <div className="co-waiters-dropdown shadow">
+                      <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 10px", borderBottom: "1px solid #f1f5f9", background: "#f8fafc" }}>
+                        <span style={{ fontSize: "0.65rem", fontWeight: "700", color: "#64748b" }}>Coincidencias</span>
+                        <button
+                          type="button"
+                          onClick={() => setShowWaitersList(false)}
+                          style={{ border: 0, background: "transparent", color: "#ef4444", fontSize: "0.7rem", fontWeight: "bold" }}
+                        >
+                          Cerrar
+                        </button>
+                      </div>
+                      {waitersSuggestions.map((w) => (
+                        <button
+                          key={w.id}
+                          type="button"
+                          className="co-waiter-option-btn"
+                          onClick={() => selectMesero(w)}
+                        >
+                          <strong>{w.nombre}</strong>
+                          <span>{w.codigo ? `Código: ${w.codigo} | ` : ""}Cédula: {w.id}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Guest Counter */}
+              <div className="col-12 col-md-2">
+                <label className="co-form-label">Nro. Personas</label>
+                <div className="co-people-counter-box" style={{ opacity: cabeceraConfirmada ? 0.75 : 1 }}>
+                  <button
+                    type="button"
+                    className="co-btn-counter-inc"
+                    onClick={() => setNumPersonas(prev => Math.max(1, Number(prev) - 1))}
+                    disabled={Number(numPersonas) <= 1 || cabeceraConfirmada}
+                  >
+                    <FiMinus size={12} />
+                  </button>
+                  <input
+                    type="number"
+                    min="1"
+                    value={numPersonas}
+                    onChange={(e) => {
+                      const valStr = e.target.value;
+                      if (valStr === "") {
+                        setNumPersonas("");
+                      } else {
+                        const val = Number(valStr);
+                        setNumPersonas(val >= 0 ? val : 1);
+                      }
+                    }}
+                    onBlur={() => {
+                      if (numPersonas === "" || Number(numPersonas) === 0) {
+                        setNumPersonas(1);
+                      }
+                    }}
+                    onFocus={(e) => e.target.select()}
+                    className="co-counter-val border-0 p-0"
+                    style={{ outline: "none", background: "transparent" }}
+                    disabled={cabeceraConfirmada}
+                  />
+                  <button
+                    type="button"
+                    className="co-btn-counter-inc"
+                    onClick={() => setNumPersonas(prev => Number(prev) + 1)}
+                    disabled={cabeceraConfirmada}
+                  >
+                    <FiPlus size={12} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Botón Aceptar Permanente */}
+              <div className="col-12 col-md-3">
+                <button
+                  type="button"
+                  className="btn btn-danger w-100 fw-bold d-flex align-items-center justify-content-center gap-2"
+                  style={{
+                    borderRadius: "10px",
+                    fontFamily: "'Outfit', sans-serif",
+                    height: "44px",
+                    background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+                    boxShadow: "0 4px 12px rgba(239, 68, 68, 0.25)",
+                    border: "none",
+                    color: "#fff",
+                    opacity: cabeceraConfirmada ? 0.6 : 1,
+                    cursor: cabeceraConfirmada ? "not-allowed" : "pointer"
+                  }}
+                  disabled={cabeceraConfirmada}
+                  onClick={async () => {
+                    if (!mesa.trim()) {
+                      Swal.fire({
+                        icon: "error",
+                        title: "Mesa Requerida",
+                        text: "Falta ingresar la mesa.",
+                        confirmButtonColor: "#ef4444"
+                      });
+                      return;
+                    }
+                    if (!mesero) {
+                      Swal.fire({
+                        icon: "error",
+                        title: "Mesero Requerido",
+                        text: "Falta seleccionar el mesero responsable.",
+                        confirmButtonColor: "#ef4444"
+                      });
+                      return;
+                    }
+                    await verificarMesa();
+                  }}
+                >
+                  <FiCheck size={18} />
+                  {cabeceraConfirmada ? "ACEPTADO" : "ACEPTAR"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Tab Navbar Switcher matching screenshots 2 & 3 */}
         <nav className="co-tabs-navbar">
@@ -1660,7 +1710,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
         <section className={`co-panel ${vistaMovil === "productos" ? "active" : ""}`}>
           
           {infoSuperiorCompleta && (
-            <div className="d-flex gap-2 mb-2 mt-3 justify-content-start">
+            <div className="d-flex gap-2 mb-2 mt-3 justify-content-start" style={{ margin: '0 12px' }}>
               <button
                 type="button"
                 className={`btn d-flex align-items-center justify-content-center gap-1 py-1 px-3 fw-bold ${subTabProductos === "productos" ? "btn-danger text-white" : "btn-outline-secondary bg-white"}`}
@@ -1689,7 +1739,8 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
                 gap: '10px', 
                 maxHeight: 'calc(100vh - 280px)', 
                 overflowY: 'auto', 
-                paddingRight: '4px' 
+                paddingRight: '4px',
+                margin: '0 12px'
               }}
             >
               <button
@@ -1747,7 +1798,8 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
                     border: '1px solid #dbeafe', 
                     color: '#1e40af', 
                     fontSize: '0.8rem', 
-                    fontWeight: 'bold' 
+                    fontWeight: 'bold',
+                    margin: '0 12px 10px'
                   }}
                 >
                   <span>CATEGORÍA ACTIVA: {(lineas.find(l => l.id === lineaSeleccionada)?.descripcion || "").toUpperCase()}</span>
@@ -2181,10 +2233,13 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
                 type="button"
                 className="co-btn-footer-primary"
                 onClick={guardarComanda}
-                disabled={guardando || carrito.length === 0}
-                style={{ background: "#ef4444" }}
+                disabled={guardando || carrito.length === 0 || comanderaBloqueada}
+                style={{
+                  background: comanderaBloqueada ? "#94a3b8" : "#ef4444",
+                  cursor: comanderaBloqueada ? "not-allowed" : "pointer"
+                }}
               >
-                ENVIAR E IMPRIMIR PEDIDO
+                {comanderaBloqueada ? "COMANDERA BLOQUEADA" : "ENVIAR E IMPRIMIR PEDIDO"}
               </button>
             </div>
           </div>
