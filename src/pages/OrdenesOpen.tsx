@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { FiLayers, FiSearch, FiEdit3, FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { Spinner } from "react-bootstrap";
 import { API_BASE_URL } from "../config/api";
+import "../styles/crear-ordenes.css";
 
 interface ActiveOrder {
   OpeIdInOrdenPedido: string | number;
@@ -109,9 +110,9 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
     <section className="ordenes-page px-1 px-md-3 pt-0" style={{ background: "#f8fafc", minHeight: "100vh", paddingBottom: "60px" }}>
       <div className="container-fluid pt-2 px-1 px-md-2">
         
-        {/* Header Premium */}
-        <header className="bg-white p-2 px-3 px-md-4 mb-3 mb-md-4 rounded-4 shadow-premium d-flex justify-content-between align-items-center flex-wrap gap-2" style={{ minHeight: "70px" }}>
-          <div className="d-flex align-items-center gap-3">
+        {/* Header Premium Estandarizado */}
+        <header className="co-header">
+          <div className="d-flex align-items-center gap-2">
             {onVolver && (
               <button
                 type="button"
@@ -148,14 +149,27 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
                 &#8592;
               </button>
             )}
-            <div className="premium-icon-box" style={{ width: "34px", height: "34px", background: "linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)", color: "#fff", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 10px rgba(239, 68, 68, 0.15)" }}>
-              <FiLayers size={18} />
+            <div
+              style={{
+                width: "36px",
+                height: "36px",
+                background: "linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)",
+                color: "#fff",
+                borderRadius: "10px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+                boxShadow: "0 3px 10px rgba(239,68,68,0.4)",
+              }}
+            >
+              <FiLayers size={17} />
             </div>
-            <div className="d-flex flex-column">
-              <span className="text-muted fw-bold text-uppercase mb-0" style={{ fontSize: "0.65rem", letterSpacing: "0.1em" }}>
+            <div style={{ minWidth: 0 }}>
+              <div className="co-header-subtitle">
                 Comandas Activas
-              </span>
-              <h1 className="m-0 text-uppercase" style={{ fontSize: "1.35rem", color: "#334155", fontWeight: 600, letterSpacing: "0.02em" }}>
+              </div>
+              <h1 className="co-header-title">
                 Órdenes Abiertas
               </h1>
             </div>

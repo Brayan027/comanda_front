@@ -984,10 +984,27 @@
     padding: 10px 12px !important;
     margin-bottom: 10px !important;
   }
+}
 
+@media (max-width: 991px) {
   .co-header {
+    position: sticky !important;
+    top: 60px !important;
+    z-index: 50 !important;
     padding: 10px 12px !important;
     margin-bottom: 10px !important;
+  }
+
+  .co-header-title {
+    font-size: 0.9rem !important;
+  }
+
+  .co-header-subtitle {
+    font-size: 0.6rem !important;
+  }
+
+  .co-total-desktop strong {
+    font-size: 1rem !important;
   }
 }
 

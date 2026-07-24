@@ -29,7 +29,14 @@ export default function App() {
 
   const [menuActivo, setMenuActivo] = useState<MenuKey>("home");
   const [ordenIdEdicion, setOrdenIdEdicion] = useState<string | number | null>(null);
+  const [comandaResetKey, setComandaResetKey] = useState(0);
   const [fechaTrabajoRaw, setFechaTrabajoRaw] = useState<string | null>(null);
+
+  const handleNavCrearOrdenes = () => {
+    setOrdenIdEdicion(null);
+    setMenuActivo("comanda");
+    setComandaResetKey(prev => prev + 1);
+  };
 
   const infoPuntoVenta = (() => {
     try {
@@ -164,8 +171,12 @@ export default function App() {
       <Sidebar
         activo={menuActivo}
         onCambiar={(menu) => {
-          setOrdenIdEdicion(null);
-          setMenuActivo(menu);
+          if (menu === "comanda") {
+            handleNavCrearOrdenes();
+          } else {
+            setOrdenIdEdicion(null);
+            setMenuActivo(menu);
+          }
         }}
         onSalir={() => {
           localStorage.removeItem("token");
@@ -173,6 +184,10 @@ export default function App() {
           setMenuActivo("home");
           setLogueado(false);
         }}
+        empresaNombre={infoPuntoVenta?.gmpnomb || infoPuntoVenta?.PveStNombreEmpresa}
+        puntoNombre={infoPuntoVenta?.PveStNombre}
+        fechaActual={fechaActual}
+        terminal={localStorage.getItem("terminal") || "Terminal Desconocida"}
       />
 
       <section className="app-content">
@@ -185,42 +200,42 @@ export default function App() {
             <div className="container-fluid">
               {/* Header Premium Limpio en Texto */}
               <header
-                className="bg-white p-3 p-md-4 mb-4 rounded-4 shadow-sm border d-flex align-items-center justify-content-between flex-wrap gap-3"
-                style={{ borderColor: "#e2e8f0" }}
+                className="bg-white px-3 py-2 mb-2 rounded-4 shadow-sm border d-flex align-items-center justify-content-between flex-wrap gap-3"
+                style={{ borderColor: "#e2e8f0", minHeight: "56px" }}
               >
                 {/* Lado izquierdo: Icono y Título alineados */}
-                <div className="d-flex align-items-center gap-3">
+                <div className="d-flex align-items-center gap-2">
                   {/* Icono Red Home */}
                   <div
                     className="premium-icon-box flex-shrink-0"
                     style={{
-                      width: "44px",
-                      height: "44px",
+                      width: "34px",
+                      height: "34px",
                       background: "linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)",
                       color: "#fff",
-                      borderRadius: "14px",
+                      borderRadius: "10px",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      boxShadow: "0 4px 14px rgba(239, 68, 68, 0.2)",
+                      boxShadow: "0 2px 8px rgba(239, 68, 68, 0.15)",
                     }}
                   >
-                    <FiHome size={20} />
+                    <FiHome size={16} />
                   </div>
 
                   {/* Título de la sección */}
                   <div className="d-flex flex-column">
-                    <span className="text-uppercase fw-bold mb-0" style={{ fontSize: "0.65rem", letterSpacing: "0.1em", color: "#94a3b8" }}>
+                    <span className="text-uppercase fw-bold mb-0" style={{ fontSize: "0.6rem", letterSpacing: "0.08em", color: "#94a3b8" }}>
                       Comanda
                     </span>
-                    <h1 className="m-0 text-uppercase fw-bold" style={{ fontSize: "1.35rem", color: "#0f172a", letterSpacing: "-0.01em", lineHeight: 1.1 }}>
+                    <h1 className="m-0 text-uppercase fw-bold" style={{ fontSize: "1.1rem", color: "#0f172a", letterSpacing: "-0.01em", lineHeight: 1.1 }}>
                       Inicio
                     </h1>
                   </div>
                 </div>
 
-                {/* Lado derecho: Información organizativa de sesión */}
-                <div className="d-flex flex-column align-items-end text-end gap-1 mt-1 mt-md-0">
+                {/* Lado derecho: Información organizativa de sesión (Oculto en móvil) */}
+                <div className="d-none d-md-flex flex-column align-items-end text-end gap-1 mt-1 mt-md-0">
                   {/* Empresa y Punto de Venta */}
                   <div className="d-flex align-items-center justify-content-end gap-2 flex-wrap" style={{ fontSize: "0.85rem", fontWeight: 700 }}>
                     {(infoPuntoVenta?.gmpnomb || infoPuntoVenta?.PveStNombreEmpresa) && (
@@ -250,18 +265,18 @@ export default function App() {
                       {(localStorage.getItem("terminal") || "Terminal Desconocida").toUpperCase()}
                     </span>
                   </div>
+
                 </div>
               </header>
 
-              {/* Accesos Rápidos de Inicio matching Screenshot */}
-              <main className="pt-2 px-0">
-                <div className="row g-4 mt-1">
+              <main className="pt-0 px-0">
+                <div className="row g-4 mt-0">
                   {/* Tarjeta Nuevo Pedido */}
                   <div className="col-12 col-md-6">
                     <div
                       className="bg-white p-3 rounded-4 shadow-premium border-0 d-flex align-items-center justify-content-between cursor-pointer"
                       style={{ cursor: "pointer", transition: "transform 0.2s ease, box-shadow 0.2s ease" }}
-                      onClick={() => setMenuActivo("comanda")}
+                      onClick={handleNavCrearOrdenes}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.transform = "translateY(-2px)";
                         e.currentTarget.style.boxShadow = "0 8px 25px rgba(0,0,0,0.08)";
@@ -347,6 +362,7 @@ export default function App() {
           </section>
         ) : menuActivo === "comanda" ? (
           <CrearOrdenes 
+            key={`comanda-reset-${comandaResetKey}-${ordenIdEdicion || 'new'}`}
             initialOrdenId={ordenIdEdicion} 
             onClearInitial={() => {
               setOrdenIdEdicion(null);
@@ -356,6 +372,7 @@ export default function App() {
         ) : menuActivo === "ordenes" ? (
           ordenIdEdicion !== null ? (
             <CrearOrdenes 
+              key={`ordenes-edit-${ordenIdEdicion}`}
               initialOrdenId={ordenIdEdicion} 
               onClearInitial={() => {
                 setOrdenIdEdicion(null);

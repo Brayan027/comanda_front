@@ -133,65 +133,121 @@ export async function generarPDF(orden: TicketOrden, empresa: TicketEmpresa): Pr
 }
 
 export async function descargarPDF(orden: TicketOrden, empresa: TicketEmpresa): Promise<void> {
-  // Agrupar productos por impresora
+  // Agrupar productos por impresora y por tanda de impresión (Ticket 1 anterior vs Ticket 2 adicional)
+  const tieneYaImpresos = orden.productos.some(p => p.MopStImpreso === '1');
+  const tieneNuevos = orden.productos.some(p => p.MopStImpreso === '0');
+  const esMultiplesImpresiones = tieneYaImpresos && tieneNuevos;
+
   const groups = new Map<string, typeof orden.productos>();
+
   orden.productos.forEach(p => {
     const printer = p.ImpNombre1 || "Comanda General";
-    if (!groups.has(printer)) {
-      groups.set(printer, []);
+    const tanda = esMultiplesImpresiones 
+      ? (p.MopStImpreso === '1' ? "Ticket_1" : "Ticket_2_Adicional")
+      : "General";
+    
+    const key = `${printer}___${tanda}`;
+    if (!groups.has(key)) {
+      groups.set(key, []);
     }
-    groups.get(printer)!.push(p);
+    groups.get(key)!.push(p);
   });
 
-  // Generar un PDF descargable por cada impresora
-  for (const [printer, products] of groups.entries()) {
+  // Generar un PDF descargable por cada ticket/impresora/tanda
+  for (const [key, products] of groups.entries()) {
+    const [printer, tanda] = key.split("___");
+    const subtotalGrupo = products.reduce((acc, p) => acc + (p.total || (p.precioVenta * p.cantidad)), 0);
+
     const splitOrden: TicketOrden = {
       ...orden,
-      productos: products
+      productos: products,
+      totales: {
+        subtotal: subtotalGrupo,
+        iva: 0,
+        impoconsumo: 0,
+        total: subtotalGrupo
+      }
     };
+
+    const nombrePuntoVenta = esMultiplesImpresiones 
+      ? `${printer} - ${tanda.replace('_', ' ').toUpperCase()}`
+      : printer;
+
     const splitEmpresa: TicketEmpresa = {
       ...empresa,
       nombre: empresa.nombre,
-      puntoVenta: printer
+      puntoVenta: nombrePuntoVenta
     };
+
     const pdf = await generarPDF(splitOrden, splitEmpresa);
     const url = URL.createObjectURL(pdf);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${printer.toLowerCase().replace(/\s+/g, '_')}_${pdf.name}`;
+
+    const sufijoTanda = esMultiplesImpresiones ? `_${tanda.toLowerCase()}` : "";
+    a.download = `factura_${printer.toLowerCase().replace(/\s+/g, '_')}${sufijoTanda}_mesa_${orden.mesa}_orden_${orden.nro_orden}.pdf`;
+    
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    await new Promise((resolve) => setTimeout(resolve, 500));
   }
 }
 
 export async function compartirPDF(orden: TicketOrden, empresa: TicketEmpresa): Promise<boolean> {
+  const tieneYaImpresos = orden.productos.some(p => p.MopStImpreso === '1');
+  const tieneNuevos = orden.productos.some(p => p.MopStImpreso === '0');
+  const esMultiplesImpresiones = tieneYaImpresos && tieneNuevos;
+
   const groups = new Map<string, typeof orden.productos>();
+
   orden.productos.forEach(p => {
     const printer = p.ImpNombre1 || "Comanda General";
-    if (!groups.has(printer)) {
-      groups.set(printer, []);
+    const tanda = esMultiplesImpresiones 
+      ? (p.MopStImpreso === '1' ? "Ticket 1" : "Ticket 2 Adicional")
+      : "General";
+    
+    const key = `${printer}___${tanda}`;
+    if (!groups.has(key)) {
+      groups.set(key, []);
     }
-    groups.get(printer)!.push(p);
+    groups.get(key)!.push(p);
   });
 
   let allSuccess = true;
-  for (const [printer, products] of groups.entries()) {
+  for (const [key, products] of groups.entries()) {
+    const [printer, tanda] = key.split("___");
+    const subtotalGrupo = products.reduce((acc, p) => acc + (p.total || (p.precioVenta * p.cantidad)), 0);
+
     const splitOrden: TicketOrden = {
       ...orden,
-      productos: products
+      productos: products,
+      totales: {
+        subtotal: subtotalGrupo,
+        iva: 0,
+        impoconsumo: 0,
+        total: subtotalGrupo
+      }
     };
+
+    const nombrePuntoVenta = esMultiplesImpresiones 
+      ? `${printer} - ${tanda.toUpperCase()}`
+      : printer;
+
     const splitEmpresa: TicketEmpresa = {
       ...empresa,
       nombre: empresa.nombre,
-      puntoVenta: printer
+      puntoVenta: nombrePuntoVenta
     };
+
     const pdf = await generarPDF(splitOrden, splitEmpresa);
 
     if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [pdf] }))) {
       try {
         await navigator.share({
           files: [pdf],
-          title: `${printer.toUpperCase()} - Comanda Mesa ${orden.mesa}`,
+          title: `${printer.toUpperCase()} (${tanda}) - Mesa ${orden.mesa}`,
         });
       } catch (err: unknown) {
         if (err && typeof err === "object" && "name" in err && (err as Error).name === "AbortError") {

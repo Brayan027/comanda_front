@@ -169,7 +169,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
   const infoSuperiorCompleta = cabeceraConfirmada;
   
   // Selectores de cantidad rápida por tarjeta de producto
-  const [cantidadesRapidas, setCantidadesRapidas] = useState<Record<number, number>>({});
+  const [cantidadesRapidas, setCantidadesRapidas] = useState<Record<number, number | string>>({});
   const [obsPredefinidas, setObsPredefinidas] = useState<any[]>([]);
   const [lineas, setLineas] = useState<{ id: number; descripcion: string }[]>([]);
   const [lineaSeleccionada, setLineaSeleccionada] = useState<number | null>(null);
@@ -280,7 +280,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
                   .map((ad: any) => ad.ApmIdInProducto)
                   .sort()
                   .join(",");
-                const idUnicoCart = `${p.ProIdInProducto}_${sidesKey}`;
+                const idUnicoCart = `${p.ProIdInProducto}_${sidesKey}_imp_${p.MopInItem || Math.random()}`;
                 const descCompleta = p.ProStDescripcion || "";
                 const parts = descCompleta.split(" - ");
                 const nombreOriginal = parts[0];
@@ -414,6 +414,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
         const comanda = resData.body;
         
         if (comanda) {
+          setMesa(comanda.OpeStMesa || mesa.trim());
           setOrdenId(comanda.OpeIdInOrdenPedido);
           setNumPersonas(comanda.OpeInNumPersonas || 1);
           
@@ -431,7 +432,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
           }
 
           // Poblar los elementos del carrito
-          const itemsFormateados = comanda.productos.map((p: any) => {
+          const itemsFormateados = (comanda.productos || []).map((p: any) => {
             const adicionales = (p.adicionales || []).map((ad: any) => ({
               ApmIdInProducto: ad.ApmIdInProducto,
               ProStDescripcion: ad.ProStDescripcion,
@@ -443,7 +444,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
               .map((ad: any) => ad.ApmIdInProducto)
               .sort()
               .join(",");
-            const idUnicoCart = `${p.ProIdInProducto}_${sidesKey}`;
+            const idUnicoCart = `${p.ProIdInProducto}_${sidesKey}_imp_${p.MopInItem || Math.random()}`;
             const descCompleta = p.ProStDescripcion || "";
             const parts = descCompleta.split(" - ");
             const nombreOriginal = parts[0];
@@ -474,7 +475,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
           Swal.fire({
             icon: "info",
             title: "Orden Cargada",
-            text: `Se recuperó el pedido abierto #${comanda.OpeIdStDocumento} para la Mesa ${mesa}`,
+            text: `Se recuperó el pedido abierto #${comanda.OpeIdStDocumento} para la Mesa ${comanda.OpeStMesa || mesa}`,
             timer: 2000,
             showConfirmButton: false,
             toast: true,
@@ -489,7 +490,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
         Swal.fire({
           icon: "success",
           title: "Mesa Libre",
-          text: `Iniciando nueva orden para la Mesa ${mesa}`,
+          text: `Iniciando nueva orden para la Mesa ${mesa.trim()}`,
           timer: 2000,
           showConfirmButton: false,
           toast: true,
@@ -505,7 +506,8 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
 
   // Agregar un producto (verifica los modificadores primero)
   const addProductToCart = async (p: Product) => {
-    const customQty = cantidadesRapidas[p.ProIdInProducto] || 1;
+    const rawQty = cantidadesRapidas[p.ProIdInProducto];
+    const customQty = (rawQty === "" || rawQty === undefined) ? 1 : Math.max(1, Number(rawQty) || 1);
 
     try {
       const resp = await fetch(`${API_BASE_URL}/ordenes/productos/${p.ProIdInProducto}/adicionales`, {
@@ -678,20 +680,26 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
   // Realizar la inserción en el carrito
   const executeAddToCart = (p: Product, sides: CartItem["adicionales"], customQty: number) => {
     const sidesKey = sides.map(s => s.ApmIdInProducto).sort().join(",");
-    const idUnicoCart = `${p.ProIdInProducto}_${sidesKey}`;
 
     setCarrito(prev => {
-      const existIdx = prev.findIndex(item => item.idUnicoCart === idUnicoCart);
+      // Buscar si ya existe una línea NO IMPRESA (MopStImpreso !== '1') para este producto y adicionales
+      const unprintedIdx = prev.findIndex(item => 
+        !item.esEliminado && 
+        item.MopStImpreso !== '1' && 
+        item.ProIdInProducto === p.ProIdInProducto && 
+        (item.adicionales || []).map(s => s.ApmIdInProducto).sort().join(",") === sidesKey
+      );
       
-      if (existIdx !== -1) {
+      if (unprintedIdx !== -1) {
         const newCart = [...prev];
-        newCart[existIdx].cantidad += customQty;
+        newCart[unprintedIdx].cantidad += customQty;
         return newCart;
       } else {
+        const newUnprintedId = `${p.ProIdInProducto}_${sidesKey}_new_${Date.now()}_${Math.random()}`;
         return [
           ...prev,
           {
-            idUnicoCart,
+            idUnicoCart: newUnprintedId,
             ProIdInProducto: p.ProIdInProducto,
             ProStDescripcion: p.ProStDescripcion,
             precioVenta: p.precioVenta,
@@ -724,10 +732,10 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
     });
   };
 
-  const cambiarCantidadRapida = (id: number, val: number) => {
+  const cambiarCantidadRapida = (id: number, val: number | string) => {
     setCantidadesRapidas(prev => ({
       ...prev,
-      [id]: Math.max(1, val)
+      [id]: val === "" ? "" : Math.max(1, Number(val) || 1)
     }));
   };
 
@@ -898,6 +906,48 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
       }
     }
 
+    if (delta > 0 && item.MopStImpreso === '1') {
+      const sidesKey = (item.adicionales || []).map(s => s.ApmIdInProducto).sort().join(",");
+      const baseCartId = `${item.ProIdInProducto}_${sidesKey}`;
+
+      setCarrito(prev => {
+        const unprintedIdx = prev.findIndex(x => 
+          !x.esEliminado && 
+          x.MopStImpreso !== '1' && 
+          x.ProIdInProducto === item.ProIdInProducto && 
+          (x.adicionales || []).map(s => s.ApmIdInProducto).sort().join(",") === sidesKey
+        );
+
+        if (unprintedIdx !== -1) {
+          const newCart = [...prev];
+          newCart[unprintedIdx].cantidad += delta;
+          return newCart;
+        } else {
+          const newUnprintedId = `${baseCartId}_new_${Date.now()}_${Math.random()}`;
+          return [
+            ...prev,
+            {
+              idUnicoCart: newUnprintedId,
+              ProIdInProducto: item.ProIdInProducto,
+              ProStDescripcion: item.ProStDescripcion,
+              precioVenta: item.precioVenta,
+              cantidad: delta,
+              ProIdInUnidadVenta: item.ProIdInUnidadVenta || 1,
+              ProInCosto: item.ProInCosto || 0,
+              ProInIvaVenta: item.ProInIvaVenta || 0,
+              ProInPorcentajeImpoconsumo: item.ProInPorcentajeImpoconsumo || 0,
+              ProStIvaIncluido: item.ProStIvaIncluido,
+              MopStImpreso: '0',
+              ImpNombre1: item.ImpNombre1 || "Comanda General",
+              adicionales: item.adicionales || [],
+              observacion: item.observacion || ""
+            }
+          ];
+        }
+      });
+      return;
+    }
+
     setCarrito(prev => {
       const idx = prev.findIndex(x => x.idUnicoCart === idUnicoCart);
       if (idx === -1) return prev;
@@ -1037,6 +1087,108 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
 
 
 
+  const descargarFacturasPDF = async (nroOrden: string | number, customTicketOrden?: any, customTicketEmpresa?: any) => {
+    try {
+      Swal.fire({
+        title: "Generando PDF de facturas...",
+        text: "Por favor espera un momento...",
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
+      try {
+        await fetch(`${API_BASE_URL}/ordenes/${nroOrden}/marcar-impreso`, {
+          method: "POST",
+          headers
+        });
+      } catch (e) {
+        console.error("Error al marcar comanda como impresa", e);
+      }
+
+      let tOrden = customTicketOrden;
+      let tEmpresa = customTicketEmpresa;
+
+      if (!tOrden) {
+        const resp = await fetch(`${API_BASE_URL}/ordenes/${nroOrden}`, { method: "GET", headers });
+        if (resp.ok) {
+          const resData = await resp.json();
+          const comanda = resData.body;
+          if (comanda) {
+            const now = new Date();
+            const fecha = now.toISOString().split('T')[0];
+            const hora = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+            tOrden = {
+              nro_orden: comanda.OpeIdInOrdenPedido,
+              mesa: comanda.OpeStMesa || "",
+              mesero: comanda.NombreVendedor || "VENDEDOR",
+              numPersonas: comanda.OpeInNumPersonas || 1,
+              fecha,
+              hora,
+              productos: (comanda.productos || []).map((p: any) => ({
+                cantidad: p.cantidad,
+                ProStDescripcion: p.ProStDescripcion || "",
+                precioVenta: p.valor || 0,
+                total: (p.valor || 0) * p.cantidad,
+                adicionales: (p.adicionales || []).map((ad: any) => ({
+                  ProStDescripcion: ad.ProStDescripcion || ""
+                })),
+                MopStImpreso: '1',
+                ImpNombre1: p.ImpNombre1 || "Comanda General"
+              })),
+              totales: {
+                subtotal: comanda.OpeInValor || 0,
+                iva: 0,
+                impoconsumo: 0,
+                total: comanda.OpeInValor || 0
+              }
+            };
+
+            tEmpresa = {
+              nombre: infoPuntoVenta?.gmpnomb || "DIANASIS RESTAURANTE",
+              puntoVenta: infoPuntoVenta?.PveStNombre || "COMANDERA",
+              empresaId: infoPuntoVenta?.PveIdStEmpresa || "02"
+            };
+          }
+        }
+      }
+
+      if (tOrden && tEmpresa) {
+        await descargarPDF(tOrden, tEmpresa);
+        Swal.close();
+        Swal.fire({
+          icon: "success",
+          title: "Facturas PDF Guardadas",
+          text: "Se han guardado las facturas correspondientes a cada impresora.",
+          timer: 2000,
+          showConfirmButton: false
+        });
+      } else {
+        Swal.close();
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "No se pudieron obtener los datos de la orden para generar el PDF.",
+          confirmButtonColor: "#ef4444"
+        });
+      }
+    } catch (err) {
+      Swal.close();
+      console.error("Error al generar facturas PDF", err);
+      Swal.fire({
+        icon: "error",
+        title: "Error al generar PDF",
+        text: "Ocurrió un error al procesar las facturas en PDF.",
+        confirmButtonColor: "#ef4444"
+      });
+    } finally {
+      clearForm(true);
+      if (onClearInitial) onClearInitial();
+    }
+  };
+
   const reintentarImpresionManual = async (nroOrden: string | number) => {
     Swal.fire({
       title: "Reintentando impresión...",
@@ -1073,13 +1225,18 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
           title: "No se pudo imprimir",
           text: resData.mensaje || resData.body?.error || "La impresora no respondió. Revisa la conexión e intenta de nuevo.",
           showCancelButton: true,
+          showDenyButton: true,
           confirmButtonText: "🔄 Reintentar nuevamente",
+          denyButtonText: "📄 Guardar cada factura en PDF",
           cancelButtonText: "Continuar sin imprimir",
           confirmButtonColor: "#eab308",
+          denyButtonColor: "#2563eb",
           cancelButtonColor: "#64748b"
         }).then((r) => {
           if (r.isConfirmed) {
             reintentarImpresionManual(nroOrden);
+          } else if (r.isDenied) {
+            descargarFacturasPDF(nroOrden);
           } else {
             clearForm(true);
             if (onClearInitial) onClearInitial();
@@ -1092,7 +1249,20 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
         icon: "error",
         title: "Error de Conexión",
         text: "No se pudo comunicar con el servicio de impresión.",
-        confirmButtonColor: "#ef4444"
+        showCancelButton: true,
+        showDenyButton: true,
+        confirmButtonText: "🔄 Reintentar",
+        denyButtonText: "📄 Guardar cada factura en PDF",
+        cancelButtonText: "Cancelar",
+        confirmButtonColor: "#eab308",
+        denyButtonColor: "#2563eb",
+        cancelButtonColor: "#64748b"
+      }).then((r) => {
+        if (r.isConfirmed) {
+          reintentarImpresionManual(nroOrden);
+        } else if (r.isDenied) {
+          descargarFacturasPDF(nroOrden);
+        }
       });
     }
   };
@@ -1195,6 +1365,40 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
       if (falloImpresion) {
         const ordenActualId = resData.body.nro_orden;
 
+        const now = new Date();
+        const fecha = now.toISOString().split('T')[0];
+        const hora = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const ticketOrden = {
+          nro_orden: ordenActualId,
+          mesa: mesa.trim(),
+          mesero: mesero?.nombre || "VENDEDOR",
+          numPersonas: Number(numPersonas) || 1,
+          fecha,
+          hora,
+          productos: carrito.map(item => ({
+            cantidad: item.cantidad,
+            ProStDescripcion: item.ProStDescripcion,
+            precioVenta: item.precioVenta,
+            total: (item.precioVenta + item.adicionales.reduce((acc, ad) => acc + ad.precioVenta, 0)) * item.cantidad,
+            adicionales: item.adicionales.map(ad => ({
+              ProStDescripcion: ad.ProStDescripcion
+            })),
+            MopStImpreso: '1',
+            ImpNombre1: item.ImpNombre1 || "Comanda General"
+          })),
+          totales: {
+            subtotal: resumenTotales.total - resumenTotales.iva - resumenTotales.impoconsumo,
+            iva: resumenTotales.iva,
+            impoconsumo: resumenTotales.impoconsumo,
+            total: resumenTotales.total
+          }
+        };
+        const ticketEmpresa = {
+          nombre: infoPuntoVenta?.gmpnomb || "DIANASIS RESTAURANTE",
+          puntoVenta: infoPuntoVenta?.PveStNombre || "COMANDERA",
+          empresaId: infoPuntoVenta?.PveIdStEmpresa || "02"
+        };
+
         Swal.fire({
           icon: "warning",
           title: "Orden Guardada en Sistema",
@@ -1202,7 +1406,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
           showCancelButton: true,
           showDenyButton: true,
           confirmButtonText: "🔄 Reintentar Impresión",
-          denyButtonText: "📲 Compartir (Guardar impreso)",
+          denyButtonText: "📄 Guardar cada factura en PDF",
           cancelButtonText: "Continuar sin imprimir",
           confirmButtonColor: "#eab308",
           denyButtonColor: "#2563eb",
@@ -1211,55 +1415,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
           if (result.isConfirmed) {
             reintentarImpresionManual(ordenActualId);
           } else if (result.isDenied) {
-            try {
-              await fetch(`${API_BASE_URL}/ordenes/${ordenActualId}/marcar-impreso`, {
-                method: "POST",
-                headers
-              });
-            } catch (e) {
-              console.error("Error al marcar comanda como impresa", e);
-            }
-
-            const now = new Date();
-            const fecha = now.toISOString().split('T')[0];
-            const hora = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-            const ticketOrden = {
-              nro_orden: ordenActualId,
-              mesa: mesa.trim(),
-              mesero: mesero?.nombre || "VENDEDOR",
-              numPersonas: Number(numPersonas) || 1,
-              fecha,
-              hora,
-              productos: carrito.map(item => ({
-                cantidad: item.cantidad,
-                ProStDescripcion: item.ProStDescripcion,
-                precioVenta: item.precioVenta,
-                total: (item.precioVenta + item.adicionales.reduce((acc, ad) => acc + ad.precioVenta, 0)) * item.cantidad,
-                adicionales: item.adicionales.map(ad => ({
-                  ProStDescripcion: ad.ProStDescripcion
-                })),
-                MopStImpreso: '1',
-                ImpNombre1: item.ImpNombre1 || "Comanda General"
-              })),
-              totales: {
-                subtotal: resumenTotales.total - resumenTotales.iva - resumenTotales.impoconsumo,
-                iva: resumenTotales.iva,
-                impoconsumo: resumenTotales.impoconsumo,
-                total: resumenTotales.total
-              }
-            };
-            const ticketEmpresa = {
-              nombre: infoPuntoVenta?.gmpnomb || "DIANASIS RESTAURANTE",
-              puntoVenta: infoPuntoVenta?.PveStNombre || "COMANDERA",
-              empresaId: infoPuntoVenta?.PveIdStEmpresa || "02"
-            };
-
-            const exitoShare = await compartirPDF(ticketOrden, ticketEmpresa);
-            if (!exitoShare) {
-              await descargarPDF(ticketOrden, ticketEmpresa);
-            }
-            clearForm(true);
-            if (onClearInitial) onClearInitial();
+            await descargarFacturasPDF(ordenActualId, ticketOrden, ticketEmpresa);
           } else {
             clearForm(true);
             if (onClearInitial) onClearInitial();
@@ -1445,10 +1601,10 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
             </div>
             <div style={{ minWidth: 0 }}>
               <div className="co-header-subtitle">
-                {ordenId ? "Comanda" : "Nuevo pedido"}
+                {ordenId ? `Comanda #${ordenId}` : "Nuevo pedido"}
               </div>
               <h1 className="co-header-title">
-                {ordenId ? `#${ordenId}` : "PEDIDOS"}
+                {ordenId ? "ORDEN ABIERTA" : "PEDIDOS"}
               </h1>
             </div>
           </div>
@@ -1468,21 +1624,27 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
               fontFamily: "'Outfit', sans-serif"
             }}
           >
-            <div className="d-flex align-items-center flex-wrap gap-2 gap-sm-3" style={{ fontSize: "0.85rem", fontWeight: "600", color: "#334155" }}>
-              <span 
-                className="badge bg-danger text-white px-3 py-2 text-uppercase d-inline-flex align-items-center gap-1" 
-                style={{ fontSize: "0.75rem", borderRadius: "8px", fontWeight: "700", letterSpacing: "0.02em" }}
-              >
-                <FiGrid size={12} /> Mesa: {mesa}
-              </span>
-              <span className="text-muted d-none d-sm-inline">•</span>
-              <span className="text-uppercase d-flex align-items-center gap-1" style={{ color: "#475569" }}>
-                <strong>Mesero:</strong> {mesero?.nombre || "VENDEDOR"}
-              </span>
-              <span className="text-muted d-none d-sm-inline">•</span>
-              <span className="d-flex align-items-center gap-1">
-                <strong>Personas:</strong> {numPersonas}
-              </span>
+            <div className="d-flex flex-column w-100" style={{ fontSize: "0.85rem", fontWeight: "600", color: "#334155", gap: "6px" }}>
+              {/* Fila 1: Mesa y Personas juntas */}
+              <div className="d-flex align-items-center gap-2">
+                <span 
+                  className="badge bg-danger text-white px-3 py-2 text-uppercase d-inline-flex align-items-center gap-1" 
+                  style={{ fontSize: "0.75rem", borderRadius: "8px", fontWeight: "700", letterSpacing: "0.02em" }}
+                >
+                  <FiGrid size={12} /> Mesa: {mesa}
+                </span>
+                <span 
+                  className="badge text-white px-3 py-2 text-uppercase d-inline-flex align-items-center gap-1" 
+                  style={{ fontSize: "0.75rem", borderRadius: "8px", fontWeight: "700", letterSpacing: "0.02em", backgroundColor: "#64748b" }}
+                >
+                  Personas: {numPersonas}
+                </span>
+              </div>
+              
+              {/* Fila 2: Mesero */}
+              <div className="text-uppercase d-flex align-items-center gap-1 mt-1" style={{ color: "#475569", fontSize: "0.78rem" }}>
+                <strong style={{ color: "#334155" }}>Mesero:</strong> {mesero?.nombre || "VENDEDOR"}
+              </div>
             </div>
           </div>
         ) : (
@@ -1715,7 +1877,10 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
                 type="button"
                 className={`btn d-flex align-items-center justify-content-center gap-1 py-1 px-3 fw-bold ${subTabProductos === "productos" ? "btn-danger text-white" : "btn-outline-secondary bg-white"}`}
                 style={{ borderRadius: '6px', fontSize: '0.72rem', minHeight: '30px' }}
-                onClick={() => setSubTabProductos("productos")}
+                onClick={() => {
+                  setSubTabProductos("productos");
+                  setLineaSeleccionada(null);
+                }}
               >
                 <FiGrid size={13} /> PRODUCTOS
               </button>
@@ -1723,14 +1888,17 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
                 type="button"
                 className={`btn d-flex align-items-center justify-content-center gap-1 py-1 px-3 fw-bold ${subTabProductos === "categorias" ? "btn-danger text-white" : "btn-outline-secondary bg-white"}`}
                 style={{ borderRadius: '6px', fontSize: '0.72rem', minHeight: '30px' }}
-                onClick={() => setSubTabProductos("categorias")}
+                onClick={() => {
+                  setSubTabProductos("categorias");
+                  setLineaSeleccionada(null);
+                }}
               >
                 <FiLayers size={13} /> CATEGORÍAS
               </button>
             </div>
           )}
 
-          {subTabProductos === "categorias" && infoSuperiorCompleta ? (
+          {subTabProductos === "categorias" && lineaSeleccionada === null && infoSuperiorCompleta ? (
             <div 
               className="co-categories-grid mb-3" 
               style={{ 
@@ -1768,7 +1936,6 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
                     }}
                     onClick={() => {
                       setLineaSeleccionada(linea.id);
-                      setSubTabProductos("productos");
                     }}
                   >
                     {(linea.descripcion || "").toUpperCase()}
@@ -1833,7 +2000,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
             </>
           )}
 
-          <div className="co-products-scroll" style={{ display: subTabProductos === "categorias" && infoSuperiorCompleta ? "none" : "block" }}>
+          <div className="co-products-scroll" style={{ display: (subTabProductos === "categorias" && lineaSeleccionada === null && infoSuperiorCompleta) ? "none" : "block" }}>
             {!infoSuperiorCompleta ? (
               <div 
                 className="d-flex flex-column align-items-center justify-content-center text-center py-5 px-3"
@@ -1871,7 +2038,8 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
               <div className="text-center py-5 text-muted">No hay productos para mostrar</div>
             ) : (
               productos.map((p) => {
-                const qty = cantidadesRapidas[p.ProIdInProducto] || 1;
+                const qtyVal = cantidadesRapidas[p.ProIdInProducto] as string | number | undefined;
+                const qty = qtyVal !== undefined ? qtyVal : 1;
                 return (
                   <article 
                     key={p.ProIdInProducto} 
@@ -1891,21 +2059,51 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
                       <div className="co-qty-compact">
                         <button
                           type="button"
-                          onClick={(e) => { e.stopPropagation(); cambiarCantidadRapida(p.ProIdInProducto, qty - 1); }}
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            const currentQty = (qtyVal === "" || qtyVal === undefined) ? 1 : Number(qtyVal);
+                            cambiarCantidadRapida(p.ProIdInProducto, currentQty - 1); 
+                          }}
                           aria-label="Disminuir"
                         >
                           <FiMinus size={14} />
                         </button>
                         <input
                           type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
                           value={qty}
-                          onChange={(e) => cambiarCantidadRapida(p.ProIdInProducto, Number(e.target.value) || 1)}
-                          onClick={(e) => e.stopPropagation()}
-                          onFocus={(e) => e.target.select()}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === "" || /^[0-9]+$/.test(val)) {
+                              cambiarCantidadRapida(p.ProIdInProducto, val);
+                            }
+                          }}
+                          onBlur={() => {
+                            if (qty === "" || Number(qty) === 0) {
+                              cambiarCantidadRapida(p.ProIdInProducto, 1);
+                            }
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.currentTarget.select();
+                          }}
+                          onFocus={(e) => {
+                            const target = e.currentTarget;
+                            setTimeout(() => {
+                              try {
+                                target.select();
+                              } catch (err) {}
+                            }, 50);
+                          }}
                         />
                         <button
                           type="button"
-                          onClick={(e) => { e.stopPropagation(); cambiarCantidadRapida(p.ProIdInProducto, qty + 1)} }
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            const currentQty = (qtyVal === "" || qtyVal === undefined) ? 1 : Number(qtyVal);
+                            cambiarCantidadRapida(p.ProIdInProducto, currentQty + 1); 
+                          }}
                           aria-label="Aumentar"
                         >
                           <FiPlus size={14} />
