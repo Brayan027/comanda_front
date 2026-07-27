@@ -628,6 +628,24 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
     }));
   };
 
+  const esGrupoObligatorio = (group: SelectionGroup, customQty: number = modalProductQty): boolean => {
+    if (group.CprStObligatorio === "0") return false;
+
+    const titulo = (group.AprStDescripcion || "").trim().toUpperCase();
+    if (titulo.includes("MODIFICACIO")) return false;
+
+    if (group.acompanantes && group.acompanantes.length > 0) {
+      const todasSonSin = group.acompanantes.every(opt => {
+        const desc = (opt.ProStDescripcion || "").trim().toUpperCase();
+        return desc.startsWith("SIN ") || desc.startsWith("NO ") || desc.startsWith("SIN/NO");
+      });
+      if (todasSonSin) return false;
+    }
+
+    const targetQty = group.CprInCantidad * customQty;
+    return group.CprStObligatorio === "1" || targetQty > 0;
+  };
+
   const confirmSides = () => {
     if (!selectedProduct) return;
     const customQty = modalProductQty;
@@ -636,7 +654,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
     for (let i = 0; i < availableSides.length; i++) {
       const group = availableSides[i];
       const targetQty = group.CprInCantidad * customQty;
-      const isObligatorio = group.CprStObligatorio === "1" || targetQty > 0;
+      const isObligatorio = esGrupoObligatorio(group, customQty);
       if (isObligatorio) {
         const groupSelected = selectedSides[group.CprIdInAdicionales] || [];
         const totalSelected = groupSelected.reduce((sum, item) => sum + item.cantidad, 0);
@@ -661,7 +679,9 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
 
     const sidesList: { ApmIdInProducto: number; ProStDescripcion: string; precioVenta: number; cantidad: number }[] = [];
     
-    Object.values(selectedSides).forEach(groupSelected => {
+    // Recorrer availableSides en el orden exacto definido en el grupo (Acompañamientos primero, Términos después)
+    availableSides.forEach(group => {
+      const groupSelected = selectedSides[group.CprIdInAdicionales] || [];
       groupSelected.forEach(item => {
         sidesList.push({
           ApmIdInProducto: item.ApmIdInProducto,
@@ -1334,7 +1354,8 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
           observacion: item.observacion || "",
           adicionales: item.adicionales.map(ad => ({
             ApmIdInProducto: ad.ApmIdInProducto,
-            precioVenta: ad.precioVenta
+            precioVenta: ad.precioVenta,
+            cantidad: ad.cantidad || 1
           }))
         }))
       };
@@ -2342,7 +2363,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
                       <div className="co-cart-sides-box" style={{ gridColumn: 'auto', marginTop: '8px', borderLeft: '2px solid #e2e8f0', paddingLeft: '8px' }}>
                         {item.adicionales.map((ad, sIdx) => (
                           <div key={sIdx} className="co-cart-side-tag">
-                            <span>{ad.cantidad > 1 ? `${Number(ad.cantidad).toFixed(1)} ` : ""}{ad.ProStDescripcion}</span>
+                            <span>{Number(ad.cantidad || 1).toFixed(1)} {ad.ProStDescripcion}</span>
                             {ad.precioVenta > 0 && (
                               <span className="co-cart-side-price">
                                 +{formatMoneda(ad.precioVenta)}
@@ -2420,7 +2441,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
                             <div className="co-bill-sides-list">
                               {item.adicionales.map((ad, sIdx) => (
                                 <span key={sIdx} className="co-bill-side-item">
-                                  {ad.cantidad > 1 ? `${Number(ad.cantidad).toFixed(1)} ` : ""}{ad.ProStDescripcion} {ad.precioVenta > 0 ? `(${formatMoneda(ad.precioVenta)})` : ""}
+                                  {Number(ad.cantidad || 1).toFixed(1)} {ad.ProStDescripcion} {ad.precioVenta > 0 ? `(${formatMoneda(ad.precioVenta)})` : ""}
                                 </span>
                               ))}
                             </div>
@@ -2523,7 +2544,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
               {availableSides.map((g, idx) => {
                 const isCurrent = idx === currentSideGroupIndex;
                 const targetQty = g.CprInCantidad * modalProductQty;
-                const isOblig = g.CprStObligatorio === "1" || targetQty > 0;
+                const isOblig = esGrupoObligatorio(g);
                 const minReq = targetQty > 0 ? targetQty : 1;
                 const groupSelected = selectedSides[g.CprIdInAdicionales] || [];
                 const totalInGroup = groupSelected.reduce((sum, s) => sum + s.cantidad, 0);
@@ -2538,7 +2559,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
                         for (let i = currentSideGroupIndex; i < idx; i++) {
                           const groupReq = availableSides[i];
                           const reqTarget = groupReq.CprInCantidad * modalProductQty;
-                          const reqIsOblig = groupReq.CprStObligatorio === "1" || reqTarget > 0;
+                          const reqIsOblig = esGrupoObligatorio(groupReq);
                           const reqMin = reqTarget > 0 ? reqTarget : 1;
                           const selInGroup = (selectedSides[groupReq.CprIdInAdicionales] || []).reduce((sum, s) => sum + s.cantidad, 0);
 
@@ -2578,7 +2599,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
             if (!group) return null;
 
             const targetQty = group.CprInCantidad * modalProductQty;
-            const isObligatorio = group.CprStObligatorio === "1" || targetQty > 0;
+            const isObligatorio = esGrupoObligatorio(group);
             const minRequired = targetQty > 0 ? targetQty : 1;
 
             const currentSelected = selectedSides[group.CprIdInAdicionales] || [];
@@ -2708,7 +2729,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
                 const currentGroup = availableSides[currentSideGroupIndex];
                 if (currentGroup) {
                   const targetQty = currentGroup.CprInCantidad * modalProductQty;
-                  const isObligatorio = currentGroup.CprStObligatorio === "1" || targetQty > 0;
+                  const isObligatorio = esGrupoObligatorio(currentGroup);
                   const groupSelected = selectedSides[currentGroup.CprIdInAdicionales] || [];
                   const totalSelected = groupSelected.reduce((sum, item) => sum + item.cantidad, 0);
                   const minRequired = targetQty > 0 ? targetQty : 1;
