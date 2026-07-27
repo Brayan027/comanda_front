@@ -682,39 +682,25 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
     const sidesKey = sides.map(s => s.ApmIdInProducto).sort().join(",");
 
     setCarrito(prev => {
-      // Buscar si ya existe una línea NO IMPRESA (MopStImpreso !== '1') para este producto y adicionales
-      const unprintedIdx = prev.findIndex(item => 
-        !item.esEliminado && 
-        item.MopStImpreso !== '1' && 
-        item.ProIdInProducto === p.ProIdInProducto && 
-        (item.adicionales || []).map(s => s.ApmIdInProducto).sort().join(",") === sidesKey
-      );
-      
-      if (unprintedIdx !== -1) {
-        const newCart = [...prev];
-        newCart[unprintedIdx].cantidad += customQty;
-        return newCart;
-      } else {
-        const newUnprintedId = `${p.ProIdInProducto}_${sidesKey}_new_${Date.now()}_${Math.random()}`;
-        return [
-          ...prev,
-          {
-            idUnicoCart: newUnprintedId,
-            ProIdInProducto: p.ProIdInProducto,
-            ProStDescripcion: p.ProStDescripcion,
-            precioVenta: p.precioVenta,
-            cantidad: customQty,
-            ProIdInUnidadVenta: p.ProIdInPresentacion || 1,
-            ProInCosto: Number(p.ProInCosto) || 0,
-            ProInIvaVenta: Number(p.ProInIva) || 0,
-            ProInPorcentajeImpoconsumo: Number(p.ProInPorcentajeImpoconsumo) || 0,
-            ProStIvaIncluido: p.ProStIvaIncluido !== undefined ? p.ProStIvaIncluido : '1',
-            MopStImpreso: '0',
-            ImpNombre1: p.ImpNombre1 || "Comanda General",
-            adicionales: sides
-          }
-        ];
-      }
+      const newUnprintedId = `${p.ProIdInProducto}_${sidesKey}_new_${Date.now()}_${Math.random()}`;
+      return [
+        ...prev,
+        {
+          idUnicoCart: newUnprintedId,
+          ProIdInProducto: p.ProIdInProducto,
+          ProStDescripcion: p.ProStDescripcion,
+          precioVenta: p.precioVenta,
+          cantidad: customQty,
+          ProIdInUnidadVenta: p.ProIdInPresentacion || 1,
+          ProInCosto: Number(p.ProInCosto) || 0,
+          ProInIvaVenta: Number(p.ProInIva) || 0,
+          ProInPorcentajeImpoconsumo: Number(p.ProInPorcentajeImpoconsumo) || 0,
+          ProStIvaIncluido: p.ProStIvaIncluido !== undefined ? p.ProStIvaIncluido : '1',
+          MopStImpreso: '0',
+          ImpNombre1: p.ImpNombre1 || "Comanda General",
+          adicionales: sides
+        }
+      ];
     });
 
     // Restablecer el contador de cantidad rápida y limpiar el buscador
@@ -2356,7 +2342,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
                       <div className="co-cart-sides-box" style={{ gridColumn: 'auto', marginTop: '8px', borderLeft: '2px solid #e2e8f0', paddingLeft: '8px' }}>
                         {item.adicionales.map((ad, sIdx) => (
                           <div key={sIdx} className="co-cart-side-tag">
-                            <span>+ {ad.cantidad > 1 ? `${ad.cantidad} ` : ""}{ad.ProStDescripcion}</span>
+                            <span>{ad.cantidad > 1 ? `${Number(ad.cantidad).toFixed(1)} ` : ""}{ad.ProStDescripcion}</span>
                             {ad.precioVenta > 0 && (
                               <span className="co-cart-side-price">
                                 +{formatMoneda(ad.precioVenta)}
@@ -2409,7 +2395,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
                               : {}
                         }
                       >
-                        <td className="qty-col" style={{ color: estaEliminado ? "#dc2626" : item.MopStImpreso !== '1' ? "#000000" : "inherit", fontWeight: "bold", textDecoration: estaEliminado ? "line-through" : "none" }}>{item.cantidad}</td>
+                        <td className="qty-col" style={{ color: estaEliminado ? "#dc2626" : item.MopStImpreso !== '1' ? "#000000" : "inherit", fontWeight: "bold", textDecoration: estaEliminado ? "line-through" : "none" }}>{Number(item.cantidad).toFixed(1)}</td>
                         <td>
                            <span
                             style={{
@@ -2434,7 +2420,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
                             <div className="co-bill-sides-list">
                               {item.adicionales.map((ad, sIdx) => (
                                 <span key={sIdx} className="co-bill-side-item">
-                                  + {ad.cantidad > 1 ? `${ad.cantidad} ` : ""}{ad.ProStDescripcion} {ad.precioVenta > 0 ? `(${formatMoneda(ad.precioVenta)})` : ""}
+                                  {ad.cantidad > 1 ? `${Number(ad.cantidad).toFixed(1)} ` : ""}{ad.ProStDescripcion} {ad.precioVenta > 0 ? `(${formatMoneda(ad.precioVenta)})` : ""}
                                 </span>
                               ))}
                             </div>
