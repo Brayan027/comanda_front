@@ -126,6 +126,33 @@ export default function App() {
       .catch(err => {
         console.error("Error al obtener la fecha de trabajo:", err);
       });
+
+    const handleSendBeaconGlobal = () => {
+      const term = localStorage.getItem("terminal") || "TERMINAL 1";
+      let info: any = {};
+      try {
+        info = JSON.parse(localStorage.getItem("infoPuntoVenta") || "{}");
+      } catch (e) {}
+
+      const payload = JSON.stringify({
+        terminal: term,
+        empresa: info?.PveIdStEmpresa || "02",
+        punto: String(info?.PveIdInPuntoVenta || "5")
+      });
+
+      if (navigator.sendBeacon) {
+        const blob = new Blob([payload], { type: "application/json" });
+        navigator.sendBeacon(`${API_BASE_URL}/ordenes/mesa/cerrar-beacon`, blob);
+      }
+    };
+
+    window.addEventListener("pagehide", handleSendBeaconGlobal);
+    window.addEventListener("beforeunload", handleSendBeaconGlobal);
+
+    return () => {
+      window.removeEventListener("pagehide", handleSendBeaconGlobal);
+      window.removeEventListener("beforeunload", handleSendBeaconGlobal);
+    };
   }, [logueado]);
 
   const getFechaActual = (rawDate: string | null) => {

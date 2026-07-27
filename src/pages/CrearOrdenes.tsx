@@ -246,7 +246,33 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
   }, [mesa, ordenId]);
 
   useEffect(() => {
+    const handleSendBeacon = () => {
+      const target = mesaRef.current || ordenIdRef.current;
+      const term = localStorage.getItem("terminal") || "TERMINAL 1";
+      let info: any = {};
+      try {
+        info = JSON.parse(localStorage.getItem("infoPuntoVenta") || "{}");
+      } catch (e) {}
+
+      const payload = JSON.stringify({
+        mesa: target ? String(target) : "",
+        terminal: term,
+        empresa: info?.PveIdStEmpresa || "02",
+        punto: String(info?.PveIdInPuntoVenta || "5")
+      });
+
+      if (navigator.sendBeacon) {
+        const blob = new Blob([payload], { type: "application/json" });
+        navigator.sendBeacon(`${API_BASE_URL}/ordenes/mesa/cerrar-beacon`, blob);
+      }
+    };
+
+    window.addEventListener("pagehide", handleSendBeacon);
+    window.addEventListener("beforeunload", handleSendBeacon);
+
     return () => {
+      window.removeEventListener("pagehide", handleSendBeacon);
+      window.removeEventListener("beforeunload", handleSendBeacon);
       const target = mesaRef.current || ordenIdRef.current;
       if (target) {
         liberarMesaActual(String(target));
