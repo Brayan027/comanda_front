@@ -11,7 +11,8 @@ import {
   FiList,
   FiCheck,
   FiInfo,
-  FiEdit
+  FiEdit,
+  FiArrowLeft
 } from "react-icons/fi";
 import { Modal, Button, Badge } from "react-bootstrap";
 import Swal from "sweetalert2";
@@ -1878,22 +1879,21 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
                 style={{
                   border: "1.5px solid #cbd5e1",
                   borderRadius: "8px",
-                  background: "#f8fafc",
-                  color: "#475569",
-                  width: "34px",
-                  height: "34px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
+                  background: "#ffffff",
+                  color: "#334155",
+                  padding: "5px 12px",
+                  height: "36px",
                   cursor: "pointer",
                   flexShrink: 0,
-                  fontSize: "1rem",
+                  fontSize: "0.82rem",
+                  boxShadow: "0 2px 5px rgba(0, 0, 0, 0.04)",
                   transition: "all 0.15s ease"
                 }}
                 onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "#ef4444"; (e.currentTarget as HTMLButtonElement).style.color = "#fff"; (e.currentTarget as HTMLButtonElement).style.borderColor = "#ef4444"; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#f8fafc"; (e.currentTarget as HTMLButtonElement).style.color = "#475569"; (e.currentTarget as HTMLButtonElement).style.borderColor = "#cbd5e1"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#ffffff"; (e.currentTarget as HTMLButtonElement).style.color = "#334155"; (e.currentTarget as HTMLButtonElement).style.borderColor = "#cbd5e1"; }}
               >
-                &#8592;
+                <FiArrowLeft size={16} />
+                <span>Volver</span>
               </button>
             )}
             <div
@@ -2216,12 +2216,14 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
               className="co-categories-grid mb-3" 
               style={{ 
                 display: 'grid', 
-                gridTemplateColumns: 'repeat(3, 1fr)', 
-                gap: '10px', 
+                gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', 
+                gap: '6px', 
                 maxHeight: 'calc(100vh - 280px)', 
                 overflowY: 'auto', 
-                paddingRight: '4px',
-                margin: '0 12px'
+                padding: '0 4px',
+                margin: '0 4px',
+                width: 'calc(100% - 8px)',
+                boxSizing: 'border-box'
               }}
             >
               <button

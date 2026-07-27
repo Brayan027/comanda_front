@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { FiLayers, FiSearch, FiEdit3, FiChevronLeft, FiChevronRight, FiLock } from "react-icons/fi";
+import { FiLayers, FiSearch, FiEdit3, FiChevronLeft, FiChevronRight, FiLock, FiArrowLeft } from "react-icons/fi";
 import { Spinner, Badge } from "react-bootstrap";
 import Swal from "sweetalert2";
 import { API_BASE_URL } from "../config/api";
@@ -160,35 +160,35 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
                 type="button"
                 title="Volver a inicio"
                 onClick={onVolver}
+                className="btn btn-sm d-flex align-items-center gap-1.5 fw-bold"
                 style={{
                   border: "1.5px solid #cbd5e1",
                   borderRadius: "8px",
-                  background: "#f8fafc",
-                  color: "#475569",
-                  width: "34px",
-                  height: "34px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
+                  background: "#ffffff",
+                  color: "#334155",
+                  padding: "5px 12px",
+                  height: "36px",
                   cursor: "pointer",
                   flexShrink: 0,
-                  fontSize: "1rem",
+                  fontSize: "0.82rem",
+                  boxShadow: "0 2px 5px rgba(0, 0, 0, 0.04)",
                   transition: "all 0.15s ease"
                 }}
                 onMouseEnter={(e) => {
                   const btn = e.currentTarget as HTMLButtonElement;
                   btn.style.background = "#ef4444";
-                  btn.style.color = "#fff";
+                  btn.style.color = "#ffffff";
                   btn.style.borderColor = "#ef4444";
                 }}
                 onMouseLeave={(e) => {
                   const btn = e.currentTarget as HTMLButtonElement;
-                  btn.style.background = "#f8fafc";
-                  btn.style.color = "#475569";
+                  btn.style.background = "#ffffff";
+                  btn.style.color = "#334155";
                   btn.style.borderColor = "#cbd5e1";
                 }}
               >
-                &#8592;
+                <FiArrowLeft size={16} />
+                <span>Volver</span>
               </button>
             )}
             <div
@@ -266,63 +266,129 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
               No hay pedidos abiertos en este momento.
             </div>
           ) : (
-            <div className="table-responsive">
-              <table className="table table-hover align-middle" style={{ borderCollapse: "separate", borderSpacing: "0 8px" }}>
-                <thead>
-                  <tr className="text-muted" style={{ fontSize: "0.75rem", textTransform: "uppercase", fontWeight: "bold", borderBottom: "2px solid #f1f5f9" }}>
-                    <th style={{ padding: "12px 16px", width: "15%" }}>Mesa</th>
-                    <th style={{ padding: "12px 16px", width: "50%" }}>Nombre del mesero</th>
-                    <th style={{ padding: "12px 16px", width: "25%", textAlign: "right" }}>Vr. cuenta</th>
-                    <th style={{ padding: "12px 16px", width: "10%", textAlign: "center" }}>Acción</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {ordenesPaginadas.map((o) => {
-                    const estaAbiertaEnOtraTerminal = String(o.OpeStMesaAbierta) === '1' && 
-                      o.OpeStTerminal && 
-                      o.OpeStTerminal.trim().toUpperCase() !== terminalActual.trim().toUpperCase();
+            <>
+              {/* Vista Móvil: Tarjetas ultra compactas (1 solo bloque horizontal por mesa, sin scroll lateral) */}
+              <div className="d-block d-md-none">
+                {ordenesPaginadas.map((o) => {
+                  const estaAbiertaEnOtraTerminal = String(o.OpeStMesaAbierta) === '1' && 
+                    o.OpeStTerminal && 
+                    o.OpeStTerminal.trim().toUpperCase() !== terminalActual.trim().toUpperCase();
 
-                    return (
-                      <tr 
-                        key={o.OpeIdInOrdenPedido}
-                        onClick={() => handleIntentarEditar(o)}
-                        style={{ cursor: "pointer", background: "#f8fafc", borderRadius: "10px" }}
-                        className="table-row-premium"
-                      >
-                        <td style={{ padding: "14px 16px", fontWeight: "bold", color: "#1e293b", border: "none", borderTopLeftRadius: "10px", borderBottomLeftRadius: "10px" }}>
-                          <div className="d-flex align-items-center gap-2">
-                            <span>{o.OpeStMesa}</span>
-                            {estaAbiertaEnOtraTerminal && (
-                              <Badge bg="warning" className="text-dark d-inline-flex align-items-center gap-1" style={{ fontSize: "0.7rem", fontWeight: "bold" }}>
-                                <FiLock size={10} />
-                                En edición ({o.OpeStTerminal})
-                              </Badge>
-                            )}
-                          </div>
-                        </td>
-                        <td style={{ padding: "14px 16px", color: "#475569", border: "none" }}>
-                          {o.NombreVendedor ? o.NombreVendedor.toUpperCase() : "MESERO"}
-                          {o.CodigoVendedor && <span className="badge bg-light text-secondary ms-2" style={{ fontSize: "0.65rem" }}>Cód: {o.CodigoVendedor}</span>}
-                        </td>
-                        <td style={{ padding: "14px 16px", textAlign: "right", fontWeight: "bold", color: "#dc2626", border: "none" }}>
-                          {formatMoneda(o.OpeInValor)}
-                        </td>
-                        <td style={{ padding: "14px 16px", textAlign: "center", border: "none", borderTopRightRadius: "10px", borderBottomRightRadius: "10px" }}>
+                  return (
+                    <div
+                      key={o.OpeIdInOrdenPedido}
+                      onClick={() => handleIntentarEditar(o)}
+                      className="card mb-2 p-2 shadow-sm"
+                      style={{
+                        borderRadius: "8px",
+                        background: "#ffffff",
+                        border: "1.5px solid #e2e8f0",
+                        cursor: "pointer",
+                        transition: "all 0.15s ease"
+                      }}
+                    >
+                      <div className="d-flex align-items-center justify-content-between gap-1.5">
+                        {/* Columna Izquierda: Mesa + Mesero o Estado */}
+                        <div className="d-flex align-items-center gap-1.5" style={{ minWidth: 0, flex: 1 }}>
+                          <span style={{ fontWeight: "800", fontSize: "0.85rem", color: "#1e293b", flexShrink: 0 }}>
+                            {o.OpeStMesa}
+                          </span>
+
+                          {estaAbiertaEnOtraTerminal ? (
+                            <Badge bg="warning" className="text-dark d-inline-flex align-items-center gap-1" style={{ fontSize: "0.62rem", flexShrink: 0 }}>
+                              <FiLock size={9} />
+                              {o.OpeStTerminal}
+                            </Badge>
+                          ) : (
+                            <span 
+                              style={{ fontSize: "0.68rem", color: "#64748b", fontWeight: "600" }} 
+                              className="text-truncate"
+                              title={o.NombreVendedor || "MESERO"}
+                            >
+                              • {o.NombreVendedor || "MESERO"}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Columna Derecha: Valor de la cuenta + Botón Editar */}
+                        <div className="d-flex align-items-center gap-2 flex-shrink-0">
+                          <span style={{ fontWeight: "800", fontSize: "0.85rem", color: "#dc2626" }}>
+                            {formatMoneda(o.OpeInValor)}
+                          </span>
                           <button 
-                            className={`btn btn-sm ${estaAbiertaEnOtraTerminal ? "btn-outline-warning text-dark" : "btn-outline-danger"} p-1 px-2 d-inline-flex align-items-center gap-1`}
+                            className={`btn btn-sm ${estaAbiertaEnOtraTerminal ? "btn-outline-warning text-dark" : "btn-outline-danger"} py-1 px-2 d-inline-flex align-items-center gap-1`}
                             onClick={(e) => { e.stopPropagation(); handleIntentarEditar(o); }}
-                            style={{ borderRadius: "6px", fontSize: "0.8rem" }}
+                            style={{ borderRadius: "6px", fontSize: "0.75rem", height: "28px" }}
                           >
-                            {estaAbiertaEnOtraTerminal ? <FiLock size={12} /> : <FiEdit3 size={12} />}
+                            {estaAbiertaEnOtraTerminal ? <FiLock size={10} /> : <FiEdit3 size={10} />}
                             <span>Editar</span>
                           </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Vista Escritorio / Tablet: Tabla completa */}
+              <div className="table-responsive d-none d-md-block">
+                <table className="table table-hover align-middle" style={{ borderCollapse: "separate", borderSpacing: "0 8px" }}>
+                  <thead>
+                    <tr className="text-muted" style={{ fontSize: "0.75rem", textTransform: "uppercase", fontWeight: "bold", borderBottom: "2px solid #f1f5f9" }}>
+                      <th style={{ padding: "12px 16px", width: "15%" }}>Mesa</th>
+                      <th style={{ padding: "12px 16px", width: "50%" }}>Nombre del mesero</th>
+                      <th style={{ padding: "12px 16px", width: "25%", textAlign: "right" }}>Vr. cuenta</th>
+                      <th style={{ padding: "12px 16px", width: "10%", textAlign: "center" }}>Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ordenesPaginadas.map((o) => {
+                      const estaAbiertaEnOtraTerminal = String(o.OpeStMesaAbierta) === '1' && 
+                        o.OpeStTerminal && 
+                        o.OpeStTerminal.trim().toUpperCase() !== terminalActual.trim().toUpperCase();
+
+                      return (
+                        <tr 
+                          key={o.OpeIdInOrdenPedido}
+                          onClick={() => handleIntentarEditar(o)}
+                          style={{ cursor: "pointer", background: "#f8fafc", borderRadius: "10px" }}
+                          className="table-row-premium"
+                        >
+                          <td style={{ padding: "14px 16px", fontWeight: "bold", color: "#1e293b", border: "none", borderTopLeftRadius: "10px", borderBottomLeftRadius: "10px" }}>
+                            <div className="d-flex align-items-center gap-2">
+                              <span>{o.OpeStMesa}</span>
+                              {estaAbiertaEnOtraTerminal && (
+                                <Badge bg="warning" className="text-dark d-inline-flex align-items-center gap-1" style={{ fontSize: "0.7rem", fontWeight: "bold" }}>
+                                  <FiLock size={10} />
+                                  En edición ({o.OpeStTerminal})
+                                </Badge>
+                              )}
+                            </div>
+                          </td>
+                          <td style={{ padding: "14px 16px", color: "#475569", border: "none" }}>
+                            {o.NombreVendedor ? o.NombreVendedor.toUpperCase() : "MESERO"}
+                            {o.CodigoVendedor && <span className="badge bg-light text-secondary ms-2" style={{ fontSize: "0.65rem" }}>Cód: {o.CodigoVendedor}</span>}
+                          </td>
+                          <td style={{ padding: "14px 16px", textAlign: "right", fontWeight: "bold", color: "#dc2626", border: "none" }}>
+                            {formatMoneda(o.OpeInValor)}
+                          </td>
+                          <td style={{ padding: "14px 16px", textAlign: "center", border: "none", borderTopRightRadius: "10px", borderBottomRightRadius: "10px" }}>
+                            <button 
+                              className={`btn btn-sm ${estaAbiertaEnOtraTerminal ? "btn-outline-warning text-dark" : "btn-outline-danger"} p-1 px-2 d-inline-flex align-items-center gap-1`}
+                              onClick={(e) => { e.stopPropagation(); handleIntentarEditar(o); }}
+                              style={{ borderRadius: "6px", fontSize: "0.8rem" }}
+                            >
+                              {estaAbiertaEnOtraTerminal ? <FiLock size={12} /> : <FiEdit3 size={12} />}
+                              <span>Editar</span>
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
 
           {/* Pagination bar */}
