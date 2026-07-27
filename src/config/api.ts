@@ -3,6 +3,8 @@
  * Para cambiar la URL base, edita el archivo .env en la raíz del proyecto.
  */
 
+import { io, Socket } from "socket.io-client";
+
 // URL Base tomada del entorno o fallback a /comandaApi
 const BASE = import.meta.env.VITE_API_BASE_URL || "/comandaApi";
 
@@ -10,6 +12,27 @@ const BASE = import.meta.env.VITE_API_BASE_URL || "/comandaApi";
 const join = (base: string, path: string) => `${base.replace(/\/$/, "")}/${path.replace(/^\//, "")}`;
 
 export const API_BASE_URL = BASE;
+
+const getSocketUrl = () => {
+  try {
+    if (BASE.startsWith("http")) {
+      const url = new URL(BASE);
+      return `${url.protocol}//${url.host}`;
+    }
+    return window.location.origin;
+  } catch {
+    return window.location.origin;
+  }
+};
+
+export const socket: Socket = io(getSocketUrl(), {
+  path: "/comandaApi/socket.io",
+  autoConnect: true,
+  transports: ["polling", "websocket"],
+  reconnection: true,
+  reconnectionAttempts: Infinity,
+  reconnectionDelay: 1000,
+});
 
 // --- ENDPOINTS ---
 export const LOGIN_URL = join(BASE, "login");

@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { FiLayers, FiSearch, FiEdit3, FiChevronLeft, FiChevronRight, FiLock, FiArrowLeft } from "react-icons/fi";
 import { Spinner, Badge } from "react-bootstrap";
 import Swal from "sweetalert2";
-import { API_BASE_URL } from "../config/api";
+import { API_BASE_URL, socket } from "../config/api";
 import "../styles/crear-ordenes.css";
 
 interface ActiveOrder {
@@ -108,6 +108,16 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
 
   useEffect(() => {
     cargarOrdenes();
+
+    const onActualizar = () => {
+      cargarOrdenes();
+    };
+
+    socket.on("ordenes_actualizadas", onActualizar);
+
+    return () => {
+      socket.off("ordenes_actualizadas", onActualizar);
+    };
   }, [headers]);
 
   // Filtrado de búsqueda en el lado del cliente
