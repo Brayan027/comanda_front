@@ -96,9 +96,10 @@ type VistaMovil = "productos" | "carrito" | "factura";
 interface CrearOrdenesProps {
   initialOrdenId?: string | number | null;
   onClearInitial?: () => void;
+  onRegisterNavigationCheck?: (checkFn: (() => Promise<boolean>) | null) => void;
 }
 
-export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOrdenesProps = {}) {
+export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegisterNavigationCheck }: CrearOrdenesProps = {}) {
   // Detalles de sesión obtenidos de localStorage
   const infoPuntoVenta = (() => {
     try {
@@ -131,7 +132,14 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
     return loggedUsuario?.UsuStIdGrupoUsuario === "ADMS" || loggedUsuario?.UsuStIdGrupoUsuario === "ADM";
   }, [loggedUsuario]);
 
-  const terminalName = localStorage.getItem("terminal") || "";
+  const terminalName = useMemo(() => {
+    let term = localStorage.getItem("terminal");
+    if (!term) {
+      term = "TERMINAL 1";
+      localStorage.setItem("terminal", term);
+    }
+    return term;
+  }, []);
   const token = localStorage.getItem("token") || "";
   
   const comanderaBloqueada = useMemo(() => {
@@ -216,7 +224,149 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
     }
   };
 
-  // Establecer el mesero conectado inicialmente
+  const liberarMesaActual = async (mesaTarget?: string) => {
+    const target = (mesaTarget || mesa || "").trim();
+    if (!target) return;
+    try {
+      await fetch(`${API_BASE_URL}/ordenes/mesa/cerrar`, {
+        method: "PUT",
+        headers,
+        body: JSON.stringify({ mesa: target })
+      });
+    } catch (e) {
+      console.error("Error al liberar mesa:", e);
+    }
+  };
+
+  const mesaRef = useRef(mesa);
+  const ordenIdRef = useRef(ordenId);
+  useEffect(() => {
+    mesaRef.current = mesa;
+    ordenIdRef.current = ordenId;
+  }, [mesa, ordenId]);
+
+  useEffect(() => {
+    return () => {
+      const target = mesaRef.current || ordenIdRef.current;
+      if (target) {
+        liberarMesaActual(String(target));
+      }
+    };
+  }, []);
+
+  // Conteo de productos sin imprimir
+  const sinImprimirCount = useMemo(() => {
+    return carrito.filter(item => String(item.MopStImpreso || '0') !== '1' && !item.esEliminado).length;
+  }, [carrito]);
+
+  // Carrito ordenado: productos NO IMPRESOS primero (arriba), impresos después, eliminados al final
+  const carritoOrdenado = useMemo(() => {
+    return [...carrito].sort((a, b) => {
+      const aImpreso = String(a.MopStImpreso || '0') === '1';
+      const bImpreso = String(b.MopStImpreso || '0') === '1';
+      const aEliminado = Boolean(a.esEliminado);
+      const bEliminado = Boolean(b.esEliminado);
+
+      if (aEliminado !== bEliminado) return aEliminado ? 1 : -1;
+      if (aImpreso !== bImpreso) return aImpreso ? 1 : -1;
+      return 0;
+    });
+  }, [carrito]);
+
+  // Alerta de confirmación al salir/recargar si HAY productos sin imprimir en el carrito
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (sinImprimirCount > 0) {
+        const text = `Tiene ${sinImprimirCount} ${sinImprimirCount === 1 ? 'producto sin imprimir' : 'productos sin imprimir'}. ¿Desea salir?`;
+        e.preventDefault();
+        e.returnValue = text;
+        return e.returnValue;
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [sinImprimirCount]);
+
+  const sinImprimirCountRef = useRef(0);
+  useEffect(() => {
+    sinImprimirCountRef.current = sinImprimirCount;
+  }, [sinImprimirCount]);
+
+  useEffect(() => {
+    if (!onRegisterNavigationCheck) return;
+
+    const checkFn = async (): Promise<boolean> => {
+      const count = sinImprimirCountRef.current;
+      if (count > 0) {
+        const text = `Tiene ${count} ${count === 1 ? 'producto sin imprimir' : 'productos sin imprimir'}. ¿Desea salir?`;
+        const result = await Swal.fire({
+          icon: "warning",
+          title: "Productos sin imprimir",
+          text,
+          showCancelButton: true,
+          confirmButtonColor: "#ef4444",
+          cancelButtonColor: "#64748b",
+          confirmButtonText: "Sí, salir",
+          cancelButtonText: "Cancelar"
+        });
+        return result.isConfirmed;
+      }
+      return true;
+    };
+
+    onRegisterNavigationCheck(checkFn);
+    return () => {
+      onRegisterNavigationCheck(null);
+    };
+  }, [onRegisterNavigationCheck]);
+
+  // Restaurar borrador de carrito de localStorage si no viene una comanda inicial
+  useEffect(() => {
+    if (!initialOrdenId) {
+      try {
+        const savedDraft = localStorage.getItem("comanda_draft_cart");
+        if (savedDraft) {
+          const parsed = JSON.parse(savedDraft);
+          if (parsed && Array.isArray(parsed.carrito) && parsed.carrito.length > 0) {
+            setCarrito(parsed.carrito);
+            if (parsed.mesa) setMesa(parsed.mesa);
+            if (parsed.mesero) setMesero(parsed.mesero);
+            if (parsed.numPersonas) setNumPersonas(parsed.numPersonas);
+            if (parsed.ordenId) setOrdenId(parsed.ordenId);
+            if (parsed.cabeceraConfirmada !== undefined) setCabeceraConfirmada(parsed.cabeceraConfirmada);
+          }
+        }
+      } catch (e) {
+        console.error("Error al recuperar borrador del carrito:", e);
+      }
+    }
+  }, [initialOrdenId]);
+
+  // Persistir borrador del carrito en localStorage al cambiar
+  useEffect(() => {
+    if (initialOrdenId) return;
+    if (carrito.length > 0) {
+      try {
+        const draft = {
+          carrito,
+          mesa,
+          mesero,
+          numPersonas,
+          ordenId,
+          cabeceraConfirmada
+        };
+        localStorage.setItem("comanda_draft_cart", JSON.stringify(draft));
+      } catch (e) {
+        console.error("Error al guardar borrador en localStorage:", e);
+      }
+    } else {
+      localStorage.removeItem("comanda_draft_cart");
+    }
+  }, [carrito, mesa, mesero, numPersonas, ordenId, cabeceraConfirmada, initialOrdenId]);
+
   useEffect(() => {
     if (loggedVendedor) {
       const w = {
@@ -254,6 +404,14 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
               setMesa(comanda.OpeStMesa || "");
               setOrdenId(comanda.OpeIdInOrdenPedido);
               setNumPersonas(comanda.OpeInNumPersonas || 1);
+
+              if (comanda.OpeStMesa) {
+                fetch(`${API_BASE_URL}/ordenes/mesa/abrir`, {
+                  method: "POST",
+                  headers,
+                  body: JSON.stringify({ mesa: comanda.OpeStMesa, terminal: terminalName })
+                }).catch(e => console.error("Error al abrir mesa en loadComanda:", e));
+              }
               
               if (comanda.OpeIdStVendedor) {
                 const waiterInfo = {
@@ -404,6 +562,24 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
 
     setCargandoComanda(true);
     try {
+      const abrirResp = await fetch(`${API_BASE_URL}/ordenes/mesa/abrir`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ mesa: mesa.trim(), terminal: terminalName })
+      });
+
+      const abrirData = await abrirResp.json();
+      if (!abrirResp.ok || abrirData.locked) {
+        Swal.fire({
+          icon: "warning",
+          title: "Mesa Ocupada",
+          text: abrirData.mensaje || "La mesa ya se encuentra abierta en otro dispositivo",
+          confirmButtonColor: "#ef4444"
+        });
+        setCargandoComanda(false);
+        return;
+      }
+
       const resp = await fetch(`${API_BASE_URL}/ordenes/mesa/${encodeURIComponent(mesa.trim())}`, {
         method: "GET",
         headers
@@ -749,6 +925,19 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
     const item = carrito.find(x => x.idUnicoCart === idUnicoCart);
     if (!item) return;
 
+    if (item.MopStImpreso === '1') {
+      Swal.fire({
+        icon: 'info',
+        title: 'Producto Impreso',
+        text: 'No se pueden colocar observaciones a productos que ya fueron enviados a comanda.',
+        timer: 2000,
+        showConfirmButton: false,
+        toast: true,
+        position: 'top-end'
+      });
+      return;
+    }
+
     const obsActual = item.observacion || "";
 
     const obsBotonesHtml = obsPredefinidas && obsPredefinidas.length > 0
@@ -880,6 +1069,19 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
     const item = carrito.find(x => x.idUnicoCart === idUnicoCart);
     if (!item) return;
 
+    if (item.MopStImpreso === '1') {
+      Swal.fire({
+        icon: 'info',
+        title: 'Producto Impreso',
+        text: 'No se puede modificar la cantidad de un producto que ya fue impreso.',
+        timer: 2000,
+        showConfirmButton: false,
+        toast: true,
+        position: 'top-end'
+      });
+      return;
+    }
+
     if (item.esEliminado) {
       if (delta > 0) {
         setCarrito(prev => prev.map(x => x.idUnicoCart === idUnicoCart ? { ...x, esEliminado: false } : x));
@@ -1004,6 +1206,19 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
     const item = carrito.find(x => x.idUnicoCart === idUnicoCart);
     if (!item) return;
 
+    if (item.MopStImpreso === '1') {
+      Swal.fire({
+        icon: 'info',
+        title: 'Producto Impreso',
+        text: 'Los productos ya impresos no se pueden eliminar.',
+        timer: 2000,
+        showConfirmButton: false,
+        toast: true,
+        position: 'top-end'
+      });
+      return;
+    }
+
     if (item.esEliminado) {
       setCarrito(prev => prev.map(x => x.idUnicoCart === idUnicoCart ? { ...x, esEliminado: false } : x));
       return;
@@ -1042,6 +1257,8 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
       });
       return;
     }
+    if (mesa) liberarMesaActual(mesa);
+    localStorage.removeItem("comanda_draft_cart");
     setMesa("");
     setOrdenId(null);
     setCarrito([]);
@@ -1550,6 +1767,8 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
           }
         }
         clearForm(true);
+        liberarMesaActual(mesa);
+        localStorage.removeItem("comanda_draft_cart");
         if (onClearInitial) onClearInitial();
       });
     } catch (err) {
@@ -1606,20 +1825,27 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
                 type="button"
                 title="Volver a órdenes abiertas"
                 onClick={() => {
-                  if (carrito.length > 0) {
+                  if (sinImprimirCount > 0) {
+                    const text = `Tiene ${sinImprimirCount} ${sinImprimirCount === 1 ? 'producto sin imprimir' : 'productos sin imprimir'}. ¿Desea salir?`;
                     Swal.fire({
-                      icon: "question",
-                      title: "¿Salir sin guardar?",
-                      text: "Tienes productos en el carrito. ¿Deseas salir de todas formas?",
+                      icon: "warning",
+                      title: "Productos sin imprimir",
+                      text,
                       showCancelButton: true,
                       confirmButtonColor: "#ef4444",
                       cancelButtonColor: "#64748b",
                       confirmButtonText: "Sí, salir",
                       cancelButtonText: "Cancelar"
                     }).then((result) => {
-                      if (result.isConfirmed) onClearInitial();
+                      if (result.isConfirmed) {
+                        if (mesa) liberarMesaActual(mesa);
+                        localStorage.removeItem("comanda_draft_cart");
+                        onClearInitial();
+                      }
                     });
                   } else {
+                    if (mesa) liberarMesaActual(mesa);
+                    localStorage.removeItem("comanda_draft_cart");
                     onClearInitial();
                   }
                 }}
@@ -2189,8 +2415,13 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
 
         {/* Panel 2: Carrito */}
         <section className={`co-panel ${vistaMovil === "carrito" ? "active" : ""}`}>
-          <div className="co-panel-header">
-            <h2>CARRITO DE PRODUCTOS</h2>
+          <div className="co-panel-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <h2 className="m-0">CARRITO DE PRODUCTOS</h2>
+            {sinImprimirCount > 0 && (
+              <span className="badge bg-warning text-dark fw-bold px-2.5 py-1.5 shadow-sm" style={{ fontSize: "0.75rem", borderRadius: "6px" }}>
+                ⚠️ {sinImprimirCount} {sinImprimirCount === 1 ? "sin imprimir" : "sin imprimir"}
+              </span>
+            )}
           </div>
           
           <div className="co-cart-scroll">
@@ -2224,143 +2455,171 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
                 </div>
               </div>
             ) : (
-              carrito.map((item) => {
+              carritoOrdenado.map((item) => {
                 const sidesPrice = item.adicionales.reduce((sum, ad) => sum + ad.precioVenta, 0);
                 const itemTotal = (item.precioVenta + sidesPrice) * item.cantidad;
                 const estaEliminado = Boolean(item.esEliminado);
 
-                 return (
+                // Si está impreso y no está eliminado, renderizar en 1 sola fila súper compacta
+                if (item.MopStImpreso === '1' && !estaEliminado) {
+                  return (
+                    <article
+                      key={item.idUnicoCart}
+                      className="co-cart-item py-1 px-2 mb-1"
+                      style={{ opacity: 0.82, background: "#f8fafc", borderColor: "#e2e8f0" }}
+                    >
+                      <div className="d-flex align-items-center justify-content-between gap-2" style={{ minHeight: "24px" }}>
+                        <div className="d-flex align-items-center gap-2" style={{ minWidth: 0, flex: 1 }}>
+                          <span style={{ fontSize: "0.75rem", color: "#475569", textTransform: "uppercase" }}>
+                            {item.ProStDescripcion}
+                          </span>
+                          <span style={{ fontSize: "0.75rem", fontWeight: "700", color: "#16a34a" }}>
+                            {formatMoneda(itemTotal)}
+                          </span>
+                        </div>
+                        <div className="d-flex align-items-center gap-1.5 flex-shrink-0">
+                          <span 
+                            className="badge bg-secondary text-white fw-bold py-1 px-1.5" 
+                            style={{ fontSize: "0.6rem", borderRadius: "4px" }}
+                          >
+                            ✓ IMPRESO
+                          </span>
+                          <span className="badge bg-white text-secondary border py-1 px-1.5" style={{ fontSize: "0.65rem", fontWeight: "600", borderRadius: "4px" }}>
+                            Cant: {item.cantidad}
+                          </span>
+                        </div>
+                      </div>
+                      {item.observacion && (
+                        <div style={{ fontSize: "0.65rem", color: "#64748b", fontStyle: "italic", marginTop: "1px" }}>
+                          📝 {item.observacion}
+                        </div>
+                      )}
+                    </article>
+                  );
+                }
+
+                return (
                   <article 
                     key={item.idUnicoCart} 
-                    className="co-cart-item"
+                    className="co-cart-item py-1 px-2 mb-1"
                     style={
                       estaEliminado 
                         ? { background: "#fef2f2", border: "1px dashed #ef4444", opacity: 0.9 } 
-                        : item.MopStImpreso === '1' 
-                          ? { opacity: 0.75 } 
-                          : {}
+                        : {}
                     }
                   >
-                    {/* Fila Superior: Nombre del producto y Boton eliminar/restaurar */}
-                    <div className="co-cart-item-row-top">
+                    <div className="d-flex align-items-center justify-content-between gap-2" style={{ minHeight: "26px" }}>
+                      {/* Lado Izquierdo: Nombre del producto y Precio */}
                       <div className="d-flex align-items-center gap-2" style={{ minWidth: 0, flex: 1 }}>
                         <span
                           style={{
-                            fontWeight: estaEliminado ? "bold" : item.MopStImpreso === '1' ? 'normal' : 'bold',
-                            color: estaEliminado ? "#dc2626" : item.MopStImpreso === '1' ? 'inherit' : '#1e293b',
-                            fontSize: '0.8rem',
-                            textTransform: 'uppercase',
-                            lineHeight: '1.2',
+                            fontWeight: "bold",
+                            color: estaEliminado ? "#dc2626" : "#1e293b",
+                            fontSize: "0.78rem",
+                            textTransform: "uppercase",
                             textDecoration: estaEliminado ? "line-through" : "none"
                           }}
                         >
                           {item.ProStDescripcion}
                         </span>
+                        <span 
+                          style={{ 
+                            color: estaEliminado ? '#94a3b8' : '#16a34a', 
+                            fontSize: '0.78rem', 
+                            fontWeight: '800', 
+                            textDecoration: estaEliminado ? 'line-through' : 'none' 
+                          }}
+                        >
+                          {estaEliminado ? "$0" : formatMoneda(itemTotal)}
+                        </span>
                         {estaEliminado && (
-                          <Badge bg="danger" style={{ fontSize: "0.65rem", padding: "3px 6px" }}>
+                          <Badge bg="danger" style={{ fontSize: "0.6rem", padding: "2px 4px" }}>
                             ELIMINADO
                           </Badge>
                         )}
                       </div>
-                      
-                      {estaEliminado ? (
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-outline-success fw-bold py-0 px-2"
-                          style={{ fontSize: "0.72rem", borderRadius: "6px" }}
-                          onClick={() => handleRemoveItem(item.idUnicoCart)}
-                          title="Restaurar este producto"
-                        >
-                          ↩ Restaurar
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          className="co-btn-delete"
-                          onClick={() => handleRemoveItem(item.idUnicoCart)}
-                          aria-label={`Eliminar ${item.ProStDescripcion}`}
-                          style={{ flexShrink: 0 }}
-                        >
-                          <FiTrash2 size={13} />
-                        </button>
-                      )}
-                    </div>
 
-                    {/* Fila Inferior: Precio e Indicadores de cantidad y notas */}
-                    <div className="co-cart-item-row-bottom">
-                      <span className="co-cart-total" style={{ color: estaEliminado ? '#94a3b8' : '#16a34a', fontSize: '0.82rem', fontWeight: '800', textDecoration: estaEliminado ? 'line-through' : 'none' }}>
-                        {estaEliminado ? "$0" : formatMoneda(itemTotal)}
-                      </span>
-
-                      {!estaEliminado && (
-                        <div className="d-flex align-items-center gap-2">
-                          {/* Botón Notas */}
+                      {/* Lado Derecho: Todos los controles horizontales a lo largo del espacio (Editar, Stepper, Eliminar) */}
+                      <div className="d-flex align-items-center gap-1.5 flex-shrink-0">
+                        {estaEliminado ? (
                           <button
                             type="button"
-                            className="btn btn-sm d-flex align-items-center justify-content-center"
-                            style={{
-                              width: '26px',
-                              height: '26px',
-                              borderRadius: '6px',
-                              border: '1.5px solid #06b6d4',
-                              color: '#06b6d4',
-                              background: 'transparent',
-                              padding: 0
-                            }}
-                            onClick={() => handleEditObservacion(item.idUnicoCart)}
-                            title="Editar observaciones"
+                            className="btn btn-sm btn-outline-success fw-bold py-0 px-2"
+                            style={{ fontSize: "0.68rem", borderRadius: "4px" }}
+                            onClick={() => handleRemoveItem(item.idUnicoCart)}
+                            title="Restaurar este producto"
                           >
-                            <FiEdit size={12} />
+                            ↩ Restaurar
                           </button>
+                        ) : (
+                          <>
+                            {/* Botón Notas / Observaciones */}
+                            <button
+                              type="button"
+                              className="btn btn-sm d-flex align-items-center justify-content-center"
+                              style={{
+                                width: '22px',
+                                height: '22px',
+                                borderRadius: '4px',
+                                border: '1.5px solid #06b6d4',
+                                color: '#06b6d4',
+                                background: 'transparent',
+                                padding: 0
+                              }}
+                              onClick={() => handleEditObservacion(item.idUnicoCart)}
+                              title="Editar observaciones"
+                            >
+                              <FiEdit size={11} />
+                            </button>
 
-                          {/* Control de Cantidad Premium */}
-                          <div className="d-flex align-items-center bg-light border rounded px-1" style={{ height: '26px' }}>
+                            {/* Control de Cantidad stepper +/- */}
+                            <div className="d-flex align-items-center bg-light border rounded px-1" style={{ height: '22px' }}>
+                              <button
+                                type="button"
+                                className="btn p-0 d-flex align-items-center justify-content-center fw-bold"
+                                style={{ width: '16px', height: '16px', fontSize: '0.8rem', color: '#64748b' }}
+                                onClick={() => handleUpdateQty(item.idUnicoCart, -1)}
+                              >
+                                -
+                              </button>
+                              <span className="fw-bold px-1 text-dark" style={{ fontSize: '0.75rem', minWidth: '14px', textAlign: 'center' }}>
+                                {item.cantidad}
+                              </span>
+                              <button
+                                type="button"
+                                className="btn p-0 d-flex align-items-center justify-content-center fw-bold"
+                                style={{ width: '16px', height: '16px', fontSize: '0.8rem', color: '#64748b' }}
+                                onClick={() => handleUpdateQty(item.idUnicoCart, 1)}
+                              >
+                                +
+                              </button>
+                            </div>
+
+                            {/* Botón Eliminar */}
                             <button
                               type="button"
-                              className="btn p-0 d-flex align-items-center justify-content-center fw-bold"
-                              style={{ width: '18px', height: '18px', fontSize: '0.85rem', color: '#64748b' }}
-                              onClick={() => handleUpdateQty(item.idUnicoCart, -1)}
+                              className="co-btn-delete"
+                              onClick={() => handleRemoveItem(item.idUnicoCart)}
+                              aria-label={`Eliminar ${item.ProStDescripcion}`}
+                              style={{ flexShrink: 0, width: "22px", height: "22px" }}
                             >
-                              -
+                              <FiTrash2 size={12} />
                             </button>
-                            <span className="fw-bold px-2 text-dark" style={{ fontSize: '0.78rem', minWidth: '16px', textAlign: 'center' }}>
-                              {item.cantidad}
-                            </span>
-                            <button
-                              type="button"
-                              className="btn p-0 d-flex align-items-center justify-content-center fw-bold"
-                              style={{ width: '18px', height: '18px', fontSize: '0.85rem', color: '#64748b' }}
-                              onClick={() => handleUpdateQty(item.idUnicoCart, 1)}
-                            >
-                              +
-                            </button>
-                          </div>
-                        </div>
-                      )}
+                          </>
+                        )}
+                      </div>
                     </div>
 
                     {/* Observaciones (si las tiene) */}
                     {item.observacion && (
-                      <div 
-                        style={{ 
-                          fontSize: "0.72rem", 
-                          color: "#d97706", 
-                          background: "#fffbeb", 
-                          border: "1px solid #fef3c7", 
-                          borderRadius: "6px",
-                          padding: "4px 8px", 
-                          marginTop: "8px", 
-                          fontWeight: "600",
-                          fontFamily: "'Outfit', sans-serif"
-                        }}
-                      >
-                        Obs: {item.observacion}
+                      <div style={{ fontSize: "0.65rem", color: "#64748b", fontStyle: "italic", marginTop: "1px" }}>
+                        📝 {item.observacion}
                       </div>
                     )}
 
                     {/* Adicionales (si los tiene) */}
                     {item.adicionales.length > 0 && (
-                      <div className="co-cart-sides-box" style={{ gridColumn: 'auto', marginTop: '8px', borderLeft: '2px solid #e2e8f0', paddingLeft: '8px' }}>
+                      <div className="co-cart-sides-box mt-1 border-start ps-2" style={{ fontSize: "0.65rem" }}>
                         {item.adicionales.map((ad, sIdx) => (
                           <div key={sIdx} className="co-cart-side-tag">
                             <span>{Number(ad.cantidad || 1).toFixed(1)} {ad.ProStDescripcion}</span>

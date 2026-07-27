@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
-import { FiLayers, FiSearch, FiEdit3, FiChevronLeft, FiChevronRight } from "react-icons/fi";
-import { Spinner } from "react-bootstrap";
+import { FiLayers, FiSearch, FiEdit3, FiChevronLeft, FiChevronRight, FiLock } from "react-icons/fi";
+import { Spinner, Badge } from "react-bootstrap";
+import Swal from "sweetalert2";
 import { API_BASE_URL } from "../config/api";
 import "../styles/crear-ordenes.css";
 
@@ -13,6 +14,8 @@ interface ActiveOrder {
   OpeDaFechaDoc: string;
   NombreVendedor: string;
   CodigoVendedor: string;
+  OpeStMesaAbierta?: string | number;
+  OpeStTerminal?: string;
 }
 
 interface OrdenesOpenProps {
@@ -38,13 +41,23 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
 
   const token = localStorage.getItem("token") || "";
 
+  const terminalActual = useMemo(() => {
+    let term = localStorage.getItem("terminal");
+    if (!term) {
+      term = "TERMINAL 1";
+      localStorage.setItem("terminal", term);
+    }
+    return term;
+  }, []);
+
   const headers = useMemo(() => ({
     "Content-Type": "application/json",
     "Authorization": `Bearer ${token}`,
     "empresa": infoPuntoVenta?.PveIdStEmpresa || "02",
     "bodega": String(infoPuntoVenta?.PveIdInBodega || "1"),
-    "punto": String(infoPuntoVenta?.PveIdInPuntoVenta || "5")
-  }), [token, infoPuntoVenta]);
+    "punto": String(infoPuntoVenta?.PveIdInPuntoVenta || "5"),
+    "terminal": terminalActual
+  }), [token, infoPuntoVenta, terminalActual]);
 
   const cargarOrdenes = async () => {
     try {
@@ -61,6 +74,35 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
       console.error("Error al cargar ordenes abiertas", e);
     } finally {
       setCargando(false);
+    }
+  };
+
+  const handleIntentarEditar = async (orden: ActiveOrder) => {
+    try {
+      const resp = await fetch(`${API_BASE_URL}/ordenes/mesa/abrir`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          mesa: orden.OpeStMesa,
+          terminal: terminalActual
+        })
+      });
+
+      const resData = await resp.json();
+      if (!resp.ok || resData.locked) {
+        Swal.fire({
+          icon: "warning",
+          title: "Mesa Ocupada",
+          text: resData.mensaje || "La mesa ya se encuentra abierta en otro dispositivo",
+          confirmButtonColor: "#ef4444"
+        });
+        return;
+      }
+
+      onEditar(orden.OpeIdInOrdenPedido);
+    } catch (e) {
+      console.error("Error al abrir/bloquear mesa:", e);
+      onEditar(orden.OpeIdInOrdenPedido);
     }
   };
 
@@ -235,35 +277,49 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
                   </tr>
                 </thead>
                 <tbody>
-                  {ordenesPaginadas.map((o) => (
-                    <tr 
-                      key={o.OpeIdInOrdenPedido}
-                      onClick={() => onEditar(o.OpeIdInOrdenPedido)}
-                      style={{ cursor: "pointer", background: "#f8fafc", borderRadius: "10px" }}
-                      className="table-row-premium"
-                    >
-                      <td style={{ padding: "14px 16px", fontWeight: "bold", color: "#1e293b", border: "none", borderTopLeftRadius: "10px", borderBottomLeftRadius: "10px" }}>
-                        {o.OpeStMesa}
-                      </td>
-                      <td style={{ padding: "14px 16px", color: "#475569", border: "none" }}>
-                        {o.NombreVendedor ? o.NombreVendedor.toUpperCase() : "MESERO"}
-                        {o.CodigoVendedor && <span className="badge bg-light text-secondary ms-2" style={{ fontSize: "0.65rem" }}>Cód: {o.CodigoVendedor}</span>}
-                      </td>
-                      <td style={{ padding: "14px 16px", textAlign: "right", fontWeight: "bold", color: "#dc2626", border: "none" }}>
-                        {formatMoneda(o.OpeInValor)}
-                      </td>
-                      <td style={{ padding: "14px 16px", textAlign: "center", border: "none", borderTopRightRadius: "10px", borderBottomRightRadius: "10px" }}>
-                        <button 
-                          className="btn btn-sm btn-outline-danger p-1 px-2 d-inline-flex align-items-center gap-1"
-                          onClick={(e) => { e.stopPropagation(); onEditar(o.OpeIdInOrdenPedido); }}
-                          style={{ borderRadius: "6px", fontSize: "0.8rem" }}
-                        >
-                          <FiEdit3 size={12} />
-                          <span>Editar</span>
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {ordenesPaginadas.map((o) => {
+                    const estaAbiertaEnOtraTerminal = String(o.OpeStMesaAbierta) === '1' && 
+                      o.OpeStTerminal && 
+                      o.OpeStTerminal.trim().toUpperCase() !== terminalActual.trim().toUpperCase();
+
+                    return (
+                      <tr 
+                        key={o.OpeIdInOrdenPedido}
+                        onClick={() => handleIntentarEditar(o)}
+                        style={{ cursor: "pointer", background: "#f8fafc", borderRadius: "10px" }}
+                        className="table-row-premium"
+                      >
+                        <td style={{ padding: "14px 16px", fontWeight: "bold", color: "#1e293b", border: "none", borderTopLeftRadius: "10px", borderBottomLeftRadius: "10px" }}>
+                          <div className="d-flex align-items-center gap-2">
+                            <span>{o.OpeStMesa}</span>
+                            {estaAbiertaEnOtraTerminal && (
+                              <Badge bg="warning" className="text-dark d-inline-flex align-items-center gap-1" style={{ fontSize: "0.7rem", fontWeight: "bold" }}>
+                                <FiLock size={10} />
+                                En edición ({o.OpeStTerminal})
+                              </Badge>
+                            )}
+                          </div>
+                        </td>
+                        <td style={{ padding: "14px 16px", color: "#475569", border: "none" }}>
+                          {o.NombreVendedor ? o.NombreVendedor.toUpperCase() : "MESERO"}
+                          {o.CodigoVendedor && <span className="badge bg-light text-secondary ms-2" style={{ fontSize: "0.65rem" }}>Cód: {o.CodigoVendedor}</span>}
+                        </td>
+                        <td style={{ padding: "14px 16px", textAlign: "right", fontWeight: "bold", color: "#dc2626", border: "none" }}>
+                          {formatMoneda(o.OpeInValor)}
+                        </td>
+                        <td style={{ padding: "14px 16px", textAlign: "center", border: "none", borderTopRightRadius: "10px", borderBottomRightRadius: "10px" }}>
+                          <button 
+                            className={`btn btn-sm ${estaAbiertaEnOtraTerminal ? "btn-outline-warning text-dark" : "btn-outline-danger"} p-1 px-2 d-inline-flex align-items-center gap-1`}
+                            onClick={(e) => { e.stopPropagation(); handleIntentarEditar(o); }}
+                            style={{ borderRadius: "6px", fontSize: "0.8rem" }}
+                          >
+                            {estaAbiertaEnOtraTerminal ? <FiLock size={12} /> : <FiEdit3 size={12} />}
+                            <span>Editar</span>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import "./styles/App.css";
 import Login from "./pages/Login";
 import Sidebar from "./components/layout/Sidebar";
@@ -21,7 +21,42 @@ export default function App() {
   const [comandaResetKey, setComandaResetKey] = useState(0);
   const [fechaTrabajoRaw, setFechaTrabajoRaw] = useState<string | null>(null);
 
-  const handleNavCrearOrdenes = () => {
+  const navCheckRef = useRef<((() => Promise<boolean>)) | null>(null);
+
+  const solicitarConfirmacionNavegacion = async (): Promise<boolean> => {
+    if (navCheckRef.current) {
+      return await navCheckRef.current();
+    }
+    return true;
+  };
+
+  const unlockCurrentOrder = async (id: string | number | null) => {
+    if (!id) return;
+    try {
+      const token = localStorage.getItem("token") || "";
+      const info = JSON.parse(localStorage.getItem("infoPuntoVenta") || "{}");
+      await fetch(`${API_BASE_URL}/ordenes/mesa/cerrar`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+          "empresa": info?.PveIdStEmpresa || "02",
+          "punto": String(info?.PveIdInPuntoVenta || "5")
+        },
+        body: JSON.stringify({ mesa: id })
+      });
+    } catch (e) {
+      console.error("Error al liberar mesa:", e);
+    }
+  };
+
+  const handleNavCrearOrdenes = async () => {
+    const puedeNavegar = await solicitarConfirmacionNavegacion();
+    if (!puedeNavegar) return;
+
+    if (ordenIdEdicion) {
+      unlockCurrentOrder(ordenIdEdicion);
+    }
     setOrdenIdEdicion(null);
     setMenuActivo("comanda");
     setComandaResetKey(prev => prev + 1);
@@ -44,6 +79,7 @@ export default function App() {
 
     const token = localStorage.getItem("token") || "";
     const headers: Record<string, string> = {
+      "Content-Type": "application/json",
       "Authorization": `Bearer ${token}`
     };
 
@@ -59,6 +95,19 @@ export default function App() {
         console.error(e);
       }
     }
+
+    let terminalName = localStorage.getItem("terminal");
+    if (!terminalName) {
+      terminalName = "TERMINAL 1";
+      localStorage.setItem("terminal", terminalName);
+    }
+    headers["terminal"] = terminalName;
+
+    fetch(`${API_BASE_URL}/ordenes/mesa/cerrar-terminal`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ terminal: terminalName })
+    }).catch(err => console.error("Error al limpiar mesas de terminal:", err));
 
     fetch(`${API_BASE_URL}/ordenes/fecha-trabajo`, { headers })
       .then(res => res.json())
@@ -132,15 +181,24 @@ export default function App() {
     <div className="app-container">
       <Sidebar
         activo={menuActivo}
-        onCambiar={(menu) => {
+        onCambiar={async (menu) => {
           if (menu === "comanda") {
             handleNavCrearOrdenes();
           } else {
+            const puedeNavegar = await solicitarConfirmacionNavegacion();
+            if (!puedeNavegar) return;
+
+            if (ordenIdEdicion) {
+              unlockCurrentOrder(ordenIdEdicion);
+            }
             setOrdenIdEdicion(null);
             setMenuActivo(menu);
           }
         }}
-        onSalir={() => {
+        onSalir={async () => {
+          const puedeSalir = await solicitarConfirmacionNavegacion();
+          if (!puedeSalir) return;
+
           localStorage.removeItem("token");
           localStorage.removeItem("last_login");
           setMenuActivo("home");
@@ -247,7 +305,10 @@ export default function App() {
                     <div
                       className="bg-white p-3 rounded-4 shadow-premium border-0 d-flex align-items-center justify-content-between cursor-pointer"
                       style={{ cursor: "pointer", transition: "transform 0.2s ease, box-shadow 0.2s ease" }}
-                      onClick={() => setMenuActivo("ordenes")}
+                      onClick={async () => {
+                        const puedeNavegar = await solicitarConfirmacionNavegacion();
+                        if (puedeNavegar) setMenuActivo("ordenes");
+                      }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.transform = "translateY(-2px)";
                         e.currentTarget.style.boxShadow = "0 8px 25px rgba(0,0,0,0.08)";
@@ -296,6 +357,7 @@ export default function App() {
               setOrdenIdEdicion(null);
               setMenuActivo("home");
             }} 
+            onRegisterNavigationCheck={(fn) => { navCheckRef.current = fn; }}
           />
         ) : menuActivo === "ordenes" ? (
           ordenIdEdicion !== null ? (
@@ -306,6 +368,7 @@ export default function App() {
                 setOrdenIdEdicion(null);
                 setMenuActivo("ordenes");
               }} 
+              onRegisterNavigationCheck={(fn) => { navCheckRef.current = fn; }}
             />
           ) : (
             <OrdenesOpen 
