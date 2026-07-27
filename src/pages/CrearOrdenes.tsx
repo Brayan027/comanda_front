@@ -1964,7 +1964,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
               className="co-categories-grid mb-3" 
               style={{ 
                 display: 'grid', 
-                gridTemplateColumns: '1fr 1fr', 
+                gridTemplateColumns: 'repeat(3, 1fr)', 
                 gap: '10px', 
                 maxHeight: 'calc(100vh - 280px)', 
                 overflowY: 'auto', 
