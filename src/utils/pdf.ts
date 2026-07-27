@@ -15,6 +15,7 @@ export interface TicketOrden {
     precioVenta: number;
     adicionales: {
       ProStDescripcion: string;
+      cantidad?: number;
     }[];
     MopStImpreso?: string;
     ImpNombre1?: string;
@@ -72,7 +73,7 @@ function crearTicketHTML(orden: TicketOrden, empresa: TicketEmpresa): string {
               ${p.adicionales && p.adicionales.length > 0 ? p.adicionales.map((ad) => `
                 <tr style="${rowStyle}">
                   <td colspan="2" style="vertical-align:top;padding:1px 0 1px 12px;font-size:10.5px;color:#333;text-transform:uppercase;">
-                    + ${ad.ProStDescripcion}
+                    + ${ad.cantidad && ad.cantidad > 1 ? `${ad.cantidad} ` : ""}${ad.ProStDescripcion}
                   </td>
                 </tr>
               `).join("") : ""}

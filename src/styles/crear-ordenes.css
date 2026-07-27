@@ -945,66 +945,64 @@
   color: #ffffff !important;
 }
 
-/* Native Mobile App view: remove lateral borders & paddings under 768px */
+/* Responsive mobile card adjustments */
 @media (max-width: 767px) {
   .crear-ordenes-page {
-    padding: 0 !important;
+    padding: 0 4px 20px 4px !important;
     min-height: 100vh !important;
   }
   
   .crear-ordenes-page .container-fluid {
-    padding-left: 0 !important;
-    padding-right: 0 !important;
+    padding-left: 4px !important;
+    padding-right: 4px !important;
   }
 
   .co-header, 
   .co-filters-strip, 
   .co-panel {
-    border-left: 0 !important;
-    border-right: 0 !important;
-    border-radius: 0 !important;
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-    width: 100% !important;
-    box-shadow: none !important;
-  }
-  
-  .co-header {
-    border-top: 0 !important;
-    margin-top: 0 !important;
-    border-radius: 0 0 12px 12px !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 14px !important;
+    margin-left: 4px !important;
+    margin-right: 4px !important;
+    margin-bottom: 12px !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04) !important;
+    background: #ffffff !important;
   }
 
   .co-tabs-navbar {
-    padding: 0 8px !important;
+    padding: 0 4px !important;
+    margin-bottom: 12px !important;
   }
 
-  /* Compact spacing for inputs in mobile */
   .co-filters-strip {
-    padding: 10px 12px !important;
-    margin-bottom: 10px !important;
+    padding: 12px 14px !important;
   }
 }
 
 @media (max-width: 991px) {
   .co-header {
-    position: sticky !important;
-    top: 60px !important;
-    z-index: 50 !important;
-    padding: 10px 12px !important;
-    margin-bottom: 10px !important;
+    position: relative !important;
+    top: auto !important;
+    z-index: 10 !important;
+    padding: 12px 14px !important;
+    margin-top: 6px !important;
+    margin-bottom: 16px !important;
+    background: #ffffff !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04) !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 14px !important;
   }
 
   .co-header-title {
-    font-size: 0.9rem !important;
+    font-size: 0.95rem !important;
   }
 
   .co-header-subtitle {
-    font-size: 0.6rem !important;
+    font-size: 0.62rem !important;
   }
 
   .co-total-desktop strong {
-    font-size: 1rem !important;
+    font-size: 1.05rem !important;
   }
 }
 

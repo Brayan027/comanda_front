@@ -42,11 +42,11 @@ export default function Sidebar({ activo, onCambiar, onSalir, empresaNombre, pun
                 
                 {/* Info de sesión compacta a la derecha */}
                 {fechaActual && (
-                    <div className="text-end text-muted d-flex flex-column align-items-end" style={{ fontSize: '0.58rem', lineHeight: '1.25', flex: 1, minWidth: 0, paddingLeft: '8px' }}>
-                        <span className="fw-bold text-dark" style={{ textTransform: 'uppercase', letterSpacing: '0.01em', fontSize: '0.62rem', lineHeight: '1.15' }}>
+                    <div className="text-end text-muted d-flex flex-column align-items-end justify-content-center" style={{ fontSize: '0.58rem', lineHeight: '1.2', flex: 1, minWidth: 0, paddingLeft: '6px' }}>
+                        <span className="fw-bold text-dark" style={{ textTransform: 'uppercase', letterSpacing: '0.01em', fontSize: '0.62rem', lineHeight: '1.2', whiteSpace: 'nowrap' }}>
                             {empresaNombre} {puntoNombre ? `• ${puntoNombre}` : ''}
                         </span>
-                        <span className="fw-semibold text-secondary animate__animated animate__fadeIn" style={{ whiteSpace: 'nowrap', fontSize: '0.58rem', marginTop: '2px' }}>
+                        <span className="fw-semibold text-secondary animate__animated animate__fadeIn" style={{ fontSize: '0.56rem', marginTop: '1px', whiteSpace: 'nowrap' }}>
                             {fechaActual} {terminal ? `• ${terminal.toUpperCase()}` : ''}
                         </span>
                     </div>
@@ -82,22 +82,29 @@ export default function Sidebar({ activo, onCambiar, onSalir, empresaNombre, pun
                         />
                     </div>
                     
-                    {/* Información de Sesión Activa debajo del Logo (Solo texto profesional) */}
+                    {/* Información de Sesión Activa debajo del Logo (Texto limpio sin tarjeta) */}
                     {(empresaNombre || fechaActual) && (
-                        <div className="session-info-sidebar w-100 text-start ps-1 mt-0 animate__animated animate__fadeIn" style={{ lineHeight: '1.35' }}>
+                        <div 
+                            className="session-info-sidebar w-100 text-start ps-1 pe-1 mt-1 mb-2 animate__animated animate__fadeIn" 
+                            style={{ 
+                                lineHeight: '1.35'
+                            }}
+                        >
                             <div 
+                                className="fw-bold text-truncate"
                                 style={{ 
                                     fontSize: '0.74rem', 
-                                    fontWeight: 700, 
                                     color: '#334155', 
                                     letterSpacing: '0.02em', 
                                     textTransform: 'uppercase' 
                                 }}
+                                title={`${empresaNombre || ''} ${puntoNombre ? `• ${puntoNombre}` : ''}`}
                             >
                                 {empresaNombre} {puntoNombre ? `• ${puntoNombre}` : ''}
                             </div>
+
                             <div 
-                                className="d-flex align-items-center gap-1.5 flex-wrap mt-0.5" 
+                                className="d-flex align-items-center gap-1.5 flex-wrap mt-1" 
                                 style={{ 
                                     fontSize: '0.7rem', 
                                     fontWeight: 500, 

@@ -948,6 +948,31 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
       return;
     }
 
+    // Si el item NO está impreso, tiene acompañamientos y queremos agregar más unidades
+    // → abrir el modal de acompañamientos para que el usuario elija los del nuevo ítem
+    if (delta > 0 && item.MopStImpreso !== '1' && item.adicionales && item.adicionales.length > 0) {
+      // Reconstruir el objeto Product a partir del CartItem
+      const productoParaModal: Product = {
+        ProIdInProducto: item.ProIdInProducto,
+        ProStDescripcion: item.ProStDescripcion,
+        precioVenta: item.precioVenta,
+        ProInPrecio: item.precioVenta,
+        ProIdInPresentacion: 0,
+        ProIdInUnidadVenta: item.ProIdInUnidadVenta || 1,
+        ProInCosto: item.ProInCosto || 0,
+        ProInIvaVenta: item.ProInIvaVenta || 0,
+        ProInPorcentajeImpoconsumo: item.ProInPorcentajeImpoconsumo || 0,
+        ProStIvaIncluido: item.ProStIvaIncluido,
+        ExiInCantidadFinalBodega: 999,
+        PreStAbreviatura: "",
+        ImpNombre1: item.ImpNombre1 || "Comanda General"
+      };
+      // Forzar cantidad 1 para el nuevo ítem
+      setCantidadesRapidas(prev => ({ ...prev, [item.ProIdInProducto]: 1 }));
+      await addProductToCart(productoParaModal);
+      return;
+    }
+
     setCarrito(prev => {
       const idx = prev.findIndex(x => x.idUnicoCart === idUnicoCart);
       if (idx === -1) return prev;
@@ -1348,6 +1373,33 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
         resData = null;
       }
 
+      // Si el backend retorna 503 = fallo de impresión + rollback ya hecho
+      if (resp.status === 503 && resData?.printFailed) {
+        Swal.close();
+        const errorImp = resData.mensaje || 'No se pudo conectar con la impresora.';
+
+        Swal.fire({
+          icon: 'error',
+          title: '⚠️ Error de Impresión',
+          html: `<b>No se pudo imprimir la comanda.</b><br/><br/>
+                 <span style="color:#64748b;font-size:0.9rem;">${errorImp}</span><br/><br/>
+                 <span style="color:#dc2626;font-weight:700;">⚠️ No se guardó ningún cambio en el sistema.</span><br/>
+                 <span style="font-size:0.85rem;">Puedes reintentar o cancelar la operación.</span>`,
+          showCancelButton: true,
+          confirmButtonText: '🔄 Reintentar',
+          cancelButtonText: 'Cancelar operación',
+          confirmButtonColor: '#eab308',
+          cancelButtonColor: '#64748b'
+        }).then(async (result) => {
+          if (result.isConfirmed) {
+            // Volver a intentar guardar e imprimir
+            await guardarComanda();
+          }
+          // Si cancela → no hace nada, el carrito queda intacto para que el usuario edite
+        });
+        return;
+      }
+
       if (!resp.ok || resData?.error) {
         const errorMsg = resData?.mensaje 
           || resData?.body?.message 
@@ -1381,7 +1433,8 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
             precioVenta: item.precioVenta,
             total: (item.precioVenta + item.adicionales.reduce((acc, ad) => acc + ad.precioVenta, 0)) * item.cantidad,
             adicionales: item.adicionales.map(ad => ({
-              ProStDescripcion: ad.ProStDescripcion
+              ProStDescripcion: ad.ProStDescripcion,
+              cantidad: ad.cantidad
             })),
             MopStImpreso: '1',
             ImpNombre1: item.ImpNombre1 || "Comanda General"
@@ -1442,7 +1495,8 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
           precioVenta: item.precioVenta,
           total: (item.precioVenta + item.adicionales.reduce((acc, ad) => acc + ad.precioVenta, 0)) * item.cantidad,
           adicionales: item.adicionales.map(ad => ({
-            ProStDescripcion: ad.ProStDescripcion
+            ProStDescripcion: ad.ProStDescripcion,
+            cantidad: ad.cantidad
           })),
           MopStImpreso: item.MopStImpreso || '0',
           ImpNombre1: item.ImpNombre1 || "Comanda General"
@@ -2302,7 +2356,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
                       <div className="co-cart-sides-box" style={{ gridColumn: 'auto', marginTop: '8px', borderLeft: '2px solid #e2e8f0', paddingLeft: '8px' }}>
                         {item.adicionales.map((ad, sIdx) => (
                           <div key={sIdx} className="co-cart-side-tag">
-                            <span>+ {ad.ProStDescripcion} {ad.cantidad > 1 ? `x${ad.cantidad}` : ""}</span>
+                            <span>+ {ad.cantidad > 1 ? `${ad.cantidad} ` : ""}{ad.ProStDescripcion}</span>
                             {ad.precioVenta > 0 && (
                               <span className="co-cart-side-price">
                                 +{formatMoneda(ad.precioVenta)}
@@ -2380,7 +2434,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial }: CrearOr
                             <div className="co-bill-sides-list">
                               {item.adicionales.map((ad, sIdx) => (
                                 <span key={sIdx} className="co-bill-side-item">
-                                  + {ad.ProStDescripcion} {ad.cantidad > 1 ? `x${ad.cantidad}` : ""} {ad.precioVenta > 0 ? `(${formatMoneda(ad.precioVenta)})` : ""}
+                                  + {ad.cantidad > 1 ? `${ad.cantidad} ` : ""}{ad.ProStDescripcion} {ad.precioVenta > 0 ? `(${formatMoneda(ad.precioVenta)})` : ""}
                                 </span>
                               ))}
                             </div>

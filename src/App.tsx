@@ -13,17 +13,6 @@ import { API_BASE_URL } from "./config/api";
 export default function App() {
   const [logueado, setLogueado] = useState(() => {
     const token = localStorage.getItem("token");
-    const lastLogin = localStorage.getItem("last_login");
-    /**Validar sesión y si el tiempo ha expirado */
-    if (token && lastLogin) {
-      const dosHoras = 2 * 60 * 60 * 1000;
-      if (Date.now() - Number(lastLogin) > dosHoras) {
-        localStorage.removeItem("token");
-        localStorage.removeItem("last_login");
-        return false;
-      }
-      return true;
-    }
     return Boolean(token);
   });
 
@@ -118,47 +107,20 @@ export default function App() {
   useEffect(() => {
     if (!logueado) return;
 
-    // Registrar actividad del usuario para prolongar la sesión si está interactuando
     let ultimoGuardado = Date.now();
     const registrarActividad = () => {
       const ahora = Date.now();
-      if (ahora - ultimoGuardado > 30000) { // Actualizar last_login como máximo cada 30 segundos
+      if (ahora - ultimoGuardado > 30000) {
         localStorage.setItem("last_login", ahora.toString());
         ultimoGuardado = ahora;
       }
     };
 
-    const revisarSesion = () => {
-      const lastLogin = localStorage.getItem("last_login");
-      if (lastLogin) {
-        const dosHoras = 2 * 60 * 60 * 1000;
-        if (Date.now() - Number(lastLogin) > dosHoras) {
-          localStorage.removeItem("token");
-          localStorage.removeItem("last_login");
-          setLogueado(false);
-        }
-      }
-    };
-
-    // Prolongar sesión automáticamente si la pestaña está visible
-    const intervaloVisible = setInterval(() => {
-      if (document.visibilityState === "visible") {
-        localStorage.setItem("last_login", Date.now().toString());
-      }
-    }, 300000); // Cada 5 minutos
-
     const eventos = ["mousedown", "mousemove", "keypress", "scroll", "touchstart", "click"];
     eventos.forEach((ev) => window.addEventListener(ev, registrarActividad));
 
-    // Revisar cada minuto y al volver a la pestaña
-    const intervaloRevisar = setInterval(revisarSesion, 60000);
-    window.addEventListener("focus", revisarSesion);
-
     return () => {
       eventos.forEach((ev) => window.removeEventListener(ev, registrarActividad));
-      clearInterval(intervaloVisible);
-      clearInterval(intervaloRevisar);
-      window.removeEventListener("focus", revisarSesion);
     };
   }, [logueado]);
 
@@ -232,40 +194,6 @@ export default function App() {
                       Inicio
                     </h1>
                   </div>
-                </div>
-
-                {/* Lado derecho: Información organizativa de sesión (Oculto en móvil) */}
-                <div className="d-none d-md-flex flex-column align-items-end text-end gap-1 mt-1 mt-md-0">
-                  {/* Empresa y Punto de Venta */}
-                  <div className="d-flex align-items-center justify-content-end gap-2 flex-wrap" style={{ fontSize: "0.85rem", fontWeight: 700 }}>
-                    {(infoPuntoVenta?.gmpnomb || infoPuntoVenta?.PveStNombreEmpresa) && (
-                      <span style={{ color: "#1e293b" }}>
-                        {(infoPuntoVenta.gmpnomb || infoPuntoVenta.PveStNombreEmpresa).toUpperCase()}
-                      </span>
-                    )}
-                    {(infoPuntoVenta?.gmpnomb || infoPuntoVenta?.PveStNombreEmpresa) && infoPuntoVenta?.PveStNombre && (
-                      <span style={{ color: "#cbd5e1" }}>•</span>
-                    )}
-                    {infoPuntoVenta?.PveStNombre && (
-                      <span style={{ color: "#475569" }}>
-                        {infoPuntoVenta.PveStNombre.toUpperCase()}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Fecha y Terminal */}
-                  <div className="d-flex align-items-center justify-content-end gap-2 flex-wrap text-muted" style={{ fontSize: "0.8rem", fontWeight: 500 }}>
-                    <span>{fechaActual}</span>
-                    <span style={{ color: "#cbd5e1" }}>•</span>
-                    <span className="d-inline-flex align-items-center gap-1.5 fw-semibold" style={{ color: "#334155" }}>
-                      <span 
-                        className="rounded-circle d-inline-block"
-                        style={{ width: "6px", height: "6px", backgroundColor: "#22c55e" }}
-                      ></span>
-                      {(localStorage.getItem("terminal") || "Terminal Desconocida").toUpperCase()}
-                    </span>
-                  </div>
-
                 </div>
               </header>
 

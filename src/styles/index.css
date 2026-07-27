@@ -579,19 +579,12 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   display: flex;
   align-items: center;
-  padding: 0 16px;
-  position: fixed;
+  padding: 0 12px;
+  position: sticky;
   top: 0;
-  left: 0;
-  right: 0;
   z-index: 90;
-  gap: 12px;
-}
-
-@media (max-width: 991px) {
-  .app-content {
-    padding-top: 60px !important;
-  }
+  gap: 8px;
+  overflow: hidden;
 }
 
 .mobile-menu-btn {
