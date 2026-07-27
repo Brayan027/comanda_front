@@ -595,6 +595,13 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
         body: JSON.stringify({ mesa: mesa.trim(), terminal: terminalName })
       });
 
+      if (abrirResp.status === 401) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("last_login");
+        window.location.href = "/";
+        return;
+      }
+
       const abrirData = await abrirResp.json();
       if (!abrirResp.ok || abrirData.locked) {
         Swal.fire({
