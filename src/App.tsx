@@ -326,135 +326,157 @@ export default function App() {
       <section className="app-content">
         {menuActivo === "home" ? (
           <section
-            className="premium-home-panel px-0 px-md-3 pt-0"
+            className="premium-home-panel pt-3"
             aria-label="Pantalla de inicio"
-            style={{ background: "#f8fafc", minHeight: "100vh", paddingBottom: "60px" }}
+            style={{ background: "#f8fafc", minHeight: "100vh", paddingBottom: "60px", paddingLeft: "12px", paddingRight: "12px" }}
           >
-            <div className="container-fluid">
+            <div className="w-100 m-0 p-0">
               {/* Header Premium Limpio en Texto */}
               <header
-                className="bg-white px-3 py-2 mb-2 rounded-4 shadow-sm border d-flex align-items-center justify-content-between flex-wrap gap-3"
-                style={{ borderColor: "#e2e8f0", minHeight: "56px" }}
+                className="bg-white py-2 mb-3 mt-0 rounded-3 border d-flex align-items-center justify-content-between flex-wrap gap-3 w-100"
+                style={{ borderColor: "#e2e8f0", minHeight: "52px", boxShadow: "0 1px 3px rgba(15, 23, 42, 0.02)", paddingLeft: "12px", paddingRight: "12px" }}
               >
                 {/* Lado izquierdo: Icono y Título alineados */}
-                <div className="d-flex align-items-center gap-2">
+                <div className="d-flex align-items-center gap-3">
                   {/* Icono Red Home */}
                   <div
                     className="premium-icon-box flex-shrink-0"
                     style={{
-                      width: "34px",
-                      height: "34px",
-                      background: "linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)",
-                      color: "#fff",
-                      borderRadius: "10px",
+                      width: "28px",
+                      height: "28px",
+                      background: "#e31b23",
+                      color: "#ffffff",
+                      borderRadius: "7px",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      boxShadow: "0 2px 8px rgba(239, 68, 68, 0.15)",
+                      boxShadow: "0 2px 5px rgba(227, 27, 35, 0.2)",
                     }}
                   >
-                    <FiHome size={16} />
+                    <FiHome size={14} />
                   </div>
 
                   {/* Título de la sección */}
                   <div className="d-flex flex-column">
-                    <span className="text-uppercase fw-bold mb-0" style={{ fontSize: "0.6rem", letterSpacing: "0.08em", color: "#94a3b8" }}>
+                    <span className="text-uppercase fw-bold mb-0" style={{ fontSize: "0.6rem", letterSpacing: "0.08em", color: "#64748b" }}>
                       Comanda
                     </span>
-                    <h1 className="m-0 text-uppercase fw-bold" style={{ fontSize: "1.1rem", color: "#0f172a", letterSpacing: "-0.01em", lineHeight: 1.1 }}>
+                    <h1 className="m-0 text-uppercase fw-bold" style={{ fontSize: "1.05rem", color: "#1e293b", letterSpacing: "-0.01em", lineHeight: 1.1 }}>
                       Inicio
                     </h1>
                   </div>
                 </div>
               </header>
 
-              <main className="pt-0 px-0">
-                <div className="row g-4 mt-0">
+              <main className="pt-1 px-0 w-100">
+                <div className="row g-3 m-0 w-100">
                   {/* Tarjeta Nuevo Pedido */}
-                  <div className="col-12 col-md-6">
+                  <div className="col-12 col-md-6 p-0 pe-md-2 mb-3 mb-md-0">
                     <div
-                      className="bg-white p-3 rounded-4 shadow-premium border-0 d-flex align-items-center justify-content-between cursor-pointer"
-                      style={{ cursor: "pointer", transition: "transform 0.2s ease, box-shadow 0.2s ease" }}
+                      className="bg-white py-3 rounded-3 border d-flex align-items-center justify-content-between cursor-pointer w-100"
+                      style={{ 
+                        cursor: "pointer", 
+                        borderColor: "#e2e8f0",
+                        transition: "all 0.15s ease-in-out",
+                        boxShadow: "0 1px 3px rgba(15, 23, 42, 0.02)",
+                        paddingLeft: "12px",
+                        paddingRight: "12px"
+                      }}
                       onClick={handleNavCrearOrdenes}
                       onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = "#cbd5e1";
                         e.currentTarget.style.transform = "translateY(-2px)";
-                        e.currentTarget.style.boxShadow = "0 8px 25px rgba(0,0,0,0.08)";
+                        e.currentTarget.style.boxShadow = "0 4px 12px rgba(15, 23, 42, 0.05)";
                       }}
                       onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = "#e2e8f0";
                         e.currentTarget.style.transform = "none";
-                        e.currentTarget.style.boxShadow = "none";
-                      }}
-                    >
-                      <div className="d-flex align-items-center gap-3">
-                        <div
-                          className="d-flex align-items-center justify-content-center animate-hover"
-                          style={{
-                            width: "56px",
-                            height: "56px",
-                            borderRadius: "14px",
-                            background: "rgba(239, 68, 68, 0.08)",
-                            color: "#ef4444"
-                          }}
-                        >
-                          <FiPlus size={24} />
-                        </div>
-                        <div className="d-flex flex-column text-start">
-                          <h3 className="m-0 fw-bold" style={{ fontSize: "1.1rem", color: "#1e293b" }}>
-                            Nuevo Pedido
-                          </h3>
-                          <p className="m-0 text-muted" style={{ fontSize: "0.85rem", marginTop: "2px" }}>
-                            Crear y registrar un nuevo pedido para un cliente de forma rápida.
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-muted ps-2">
-                        <FiChevronRight size={20} />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Tarjeta Órdenes Abiertas */}
-                  <div className="col-12 col-md-6">
-                    <div
-                      className="bg-white p-3 rounded-4 shadow-premium border-0 d-flex align-items-center justify-content-between cursor-pointer"
-                      style={{ cursor: "pointer", transition: "transform 0.2s ease, box-shadow 0.2s ease" }}
-                      onClick={async () => {
-                        const puedeNavegar = await solicitarConfirmacionNavegacion();
-                        if (puedeNavegar) setMenuActivo("ordenes");
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = "translateY(-2px)";
-                        e.currentTarget.style.boxShadow = "0 8px 25px rgba(0,0,0,0.08)";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = "none";
-                        e.currentTarget.style.boxShadow = "none";
+                        e.currentTarget.style.boxShadow = "0 1px 3px rgba(15, 23, 42, 0.02)";
                       }}
                     >
                       <div className="d-flex align-items-center gap-3">
                         <div
                           className="d-flex align-items-center justify-content-center"
                           style={{
-                            width: "56px",
-                            height: "56px",
-                            borderRadius: "14px",
-                            background: "rgba(245, 158, 11, 0.08)",
-                            color: "#f59e0b"
+                            width: "28px",
+                            height: "28px",
+                            borderRadius: "7px",
+                            background: "#e31b23",
+                            color: "#ffffff",
+                            flexShrink: 0,
+                            boxShadow: "0 2px 6px rgba(227, 27, 35, 0.25)"
                           }}
                         >
-                          <FiLayers size={22} />
+                          <FiPlus size={14} />
                         </div>
                         <div className="d-flex flex-column text-start">
-                          <h3 className="m-0 fw-bold" style={{ fontSize: "1.1rem", color: "#1e293b" }}>
+                          <h3 className="m-0 fw-bold" style={{ fontSize: "0.98rem", color: "#1e293b" }}>
+                            Nuevo Pedido
+                          </h3>
+                          <p className="m-0 text-muted" style={{ fontSize: "0.78rem", marginTop: "2px" }}>
+                            Crear y registrar un nuevo pedido para un cliente de forma rápida.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-muted ps-2">
+                        <FiChevronRight size={18} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Tarjeta Órdenes Abiertas */}
+                  <div className="col-12 col-md-6 p-0 ps-md-2">
+                    <div
+                      className="bg-white py-3 rounded-3 border d-flex align-items-center justify-content-between cursor-pointer w-100"
+                      style={{ 
+                        cursor: "pointer", 
+                        borderColor: "#e2e8f0",
+                        transition: "all 0.15s ease-in-out",
+                        boxShadow: "0 1px 3px rgba(15, 23, 42, 0.02)",
+                        paddingLeft: "12px",
+                        paddingRight: "12px"
+                      }}
+                      onClick={async () => {
+                        const puedeNavegar = await solicitarConfirmacionNavegacion();
+                        if (puedeNavegar) setMenuActivo("ordenes");
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = "#cbd5e1";
+                        e.currentTarget.style.transform = "translateY(-2px)";
+                        e.currentTarget.style.boxShadow = "0 4px 12px rgba(15, 23, 42, 0.05)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = "#e2e8f0";
+                        e.currentTarget.style.transform = "none";
+                        e.currentTarget.style.boxShadow = "0 1px 3px rgba(15, 23, 42, 0.02)";
+                      }}
+                    >
+                      <div className="d-flex align-items-center gap-3">
+                        <div
+                          className="d-flex align-items-center justify-content-center"
+                          style={{
+                            width: "28px",
+                            height: "28px",
+                            borderRadius: "7px",
+                            background: "#e31b23",
+                            color: "#ffffff",
+                            flexShrink: 0,
+                            boxShadow: "0 2px 6px rgba(227, 27, 35, 0.25)"
+                          }}
+                        >
+                          <FiLayers size={14} />
+                        </div>
+                        <div className="d-flex flex-column text-start">
+                          <h3 className="m-0 fw-bold" style={{ fontSize: "0.98rem", color: "#1e293b" }}>
                             Órdenes Abiertas
                           </h3>
-                          <p className="m-0 text-muted" style={{ fontSize: "0.85rem", marginTop: "2px" }}>
+                          <p className="m-0 text-muted" style={{ fontSize: "0.78rem", marginTop: "2px" }}>
                             Visualizar, editar y gestionar pedidos que aún están en proceso.
                           </p>
                         </div>
                       </div>
                       <div className="text-muted ps-2">
-                        <FiChevronRight size={20} />
+                        <FiChevronRight size={18} />
                       </div>
                     </div>
                   </div>

@@ -1861,6 +1861,39 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
         {/* Header Strip */}
         <header className="co-header">
           <div className="d-flex align-items-center gap-3">
+            <div
+              style={{
+                width: "28px",
+                height: "28px",
+                borderRadius: "7px",
+                background: "#e31b23",
+                color: "#ffffff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+                boxShadow: "0 2px 6px rgba(227, 27, 35, 0.25)"
+              }}
+            >
+              <FiPlus size={14} />
+            </div>
+
+            <div style={{ minWidth: 0 }}>
+              <div className="co-header-subtitle">
+                {ordenId ? `Comanda #${ordenId}` : "Nuevo pedido"}
+              </div>
+              <h1 className="co-header-title">
+                {ordenId ? "ORDEN ABIERTA" : "PEDIDOS"}
+              </h1>
+            </div>
+          </div>
+
+          <div className="d-flex align-items-center gap-3">
+            <div className="co-total-desktop">
+              <span>Total</span>
+              <strong>{formatMoneda(total)}</strong>
+            </div>
+
             {onClearInitial && (
               <button
                 type="button"
@@ -1873,7 +1906,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
                       title: "Productos sin imprimir",
                       text,
                       showCancelButton: true,
-                      confirmButtonColor: "#ef4444",
+                      confirmButtonColor: "#e31b23",
                       cancelButtonColor: "#64748b",
                       confirmButtonText: "Sí, salir",
                       cancelButtonText: "Cancelar"
@@ -1890,6 +1923,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
                     onClearInitial();
                   }
                 }}
+                className="btn btn-sm d-flex align-items-center gap-1.5 fw-bold"
                 style={{
                   border: "1.5px solid #cbd5e1",
                   borderRadius: "8px",
@@ -1903,41 +1937,13 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
                   boxShadow: "0 2px 5px rgba(0, 0, 0, 0.04)",
                   transition: "all 0.15s ease"
                 }}
-                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "#ef4444"; (e.currentTarget as HTMLButtonElement).style.color = "#fff"; (e.currentTarget as HTMLButtonElement).style.borderColor = "#ef4444"; }}
+                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "#e31b23"; (e.currentTarget as HTMLButtonElement).style.color = "#fff"; (e.currentTarget as HTMLButtonElement).style.borderColor = "#e31b23"; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#ffffff"; (e.currentTarget as HTMLButtonElement).style.color = "#334155"; (e.currentTarget as HTMLButtonElement).style.borderColor = "#cbd5e1"; }}
               >
                 <FiArrowLeft size={16} />
                 <span>Volver</span>
               </button>
             )}
-            <div
-              style={{
-                width: "36px",
-                height: "36px",
-                background: "linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)",
-                color: "#fff",
-                borderRadius: "10px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-                boxShadow: "0 3px 10px rgba(239,68,68,0.4)",
-              }}
-            >
-              <FiLayers size={17} />
-            </div>
-            <div style={{ minWidth: 0 }}>
-              <div className="co-header-subtitle">
-                {ordenId ? `Comanda #${ordenId}` : "Nuevo pedido"}
-              </div>
-              <h1 className="co-header-title">
-                {ordenId ? "ORDEN ABIERTA" : "PEDIDOS"}
-              </h1>
-            </div>
-          </div>
-          <div className="co-total-desktop">
-            <span>Total</span>
-            <strong>{formatMoneda(total)}</strong>
           </div>
         </header>
 
@@ -1955,14 +1961,14 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
               {/* Fila 1: Mesa y Personas juntas */}
               <div className="d-flex align-items-center gap-2">
                 <span 
-                  className="badge bg-danger text-white px-3 py-2 text-uppercase d-inline-flex align-items-center gap-1" 
-                  style={{ fontSize: "0.75rem", borderRadius: "8px", fontWeight: "700", letterSpacing: "0.02em" }}
+                  className="badge px-3 py-2 text-uppercase d-inline-flex align-items-center gap-1" 
+                  style={{ fontSize: "0.75rem", borderRadius: "8px", fontWeight: "700", letterSpacing: "0.02em", backgroundColor: "#dc2626", color: "#ffffff" }}
                 >
                   <FiGrid size={12} /> Mesa: {mesa}
                 </span>
                 <span 
-                  className="badge text-white px-3 py-2 text-uppercase d-inline-flex align-items-center gap-1" 
-                  style={{ fontSize: "0.75rem", borderRadius: "8px", fontWeight: "700", letterSpacing: "0.02em", backgroundColor: "#64748b" }}
+                  className="badge px-3 py-2 text-uppercase d-inline-flex align-items-center gap-1" 
+                  style={{ fontSize: "0.75rem", borderRadius: "7px", fontWeight: "700", letterSpacing: "0.02em", backgroundColor: "#f1f5f9", color: "#475569", border: "1px solid #cbd5e1" }}
                 >
                   Personas: {numPersonas}
                 </span>
@@ -1976,9 +1982,9 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
           </div>
         ) : (
           <div className="co-filters-strip">
-            <div className="row g-3 align-items-end">
-              {/* Table / Mesa */}
-              <div className="col-12 col-md-3">
+            <div className="row g-2 g-md-3 align-items-end">
+              {/* Renglón 1 Móvil: Table / Mesa (col-7) */}
+              <div className="col-7 col-md-3">
                 <label className="co-form-label">Digite Mesa</label>
                 <div className="co-input-box" style={{ opacity: cabeceraConfirmada ? 0.75 : 1 }}>
                   <FiGrid size={16} />
@@ -1993,7 +1999,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
                             icon: "error",
                             title: "Mesa Requerida",
                             text: "Falta ingresar la mesa.",
-                            confirmButtonColor: "#ef4444"
+                            confirmButtonColor: "#e31b23"
                           });
                           return;
                         }
@@ -2002,81 +2008,21 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
                             icon: "error",
                             title: "Mesero Requerido",
                             text: "Falta seleccionar el mesero responsable.",
-                            confirmButtonColor: "#ef4444"
+                            confirmButtonColor: "#e31b23"
                           });
                           return;
                         }
                         verificarMesa();
                       }
                     }}
-                    placeholder="Mesa o Barra..."
+                    placeholder="Mesa..."
                     disabled={cabeceraConfirmada}
                   />
                 </div>
               </div>
 
-              {/* Waiter / Mesero Autocomplete */}
-              <div className="col-12 col-md-4">
-                <label className="co-form-label">Mesero Responsable</label>
-                <div className="co-input-box" style={{ opacity: (cabeceraConfirmada || !esAdministrador) ? 0.75 : 1 }}>
-                  <FiUser size={16} />
-                  <input
-                    type="text"
-                    value={meseroBusqueda}
-                    onChange={(e) => handleMeseroChange(e.target.value)}
-                    onFocus={() => { if (!cabeceraConfirmada && esAdministrador) setShowWaitersList(true); }}
-                    placeholder="Escriba nombre o cédula..."
-                    disabled={cabeceraConfirmada || !esAdministrador}
-                  />
-                  {!cabeceraConfirmada && esAdministrador && (
-                    <>
-                      {mesero ? (
-                        <button className="co-btn-clear" onClick={limpiarMesero} title="Cambiar mesero">
-                          <FiX size={14} />
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => { setShowWaitersList(v => !v); if (!showWaitersList) fetchWaiters(""); }}
-                          style={{ border: 0, background: "transparent", cursor: "pointer", display: "flex", alignItems: "center" }}
-                        >
-                          <FiList size={14} />
-                        </button>
-                      )}
-                    </>
-                  )}
-
-                  {/* Suggestions Flotante */}
-                  {showWaitersList && waitersSuggestions.length > 0 && !cabeceraConfirmada && (
-                    <div className="co-waiters-dropdown shadow">
-                      <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 10px", borderBottom: "1px solid #f1f5f9", background: "#f8fafc" }}>
-                        <span style={{ fontSize: "0.65rem", fontWeight: "700", color: "#64748b" }}>Coincidencias</span>
-                        <button
-                          type="button"
-                          onClick={() => setShowWaitersList(false)}
-                          style={{ border: 0, background: "transparent", color: "#ef4444", fontSize: "0.7rem", fontWeight: "bold" }}
-                        >
-                          Cerrar
-                        </button>
-                      </div>
-                      {waitersSuggestions.map((w) => (
-                        <button
-                          key={w.id}
-                          type="button"
-                          className="co-waiter-option-btn"
-                          onClick={() => selectMesero(w)}
-                        >
-                          <strong>{w.nombre}</strong>
-                          <span>{w.codigo ? `Código: ${w.codigo} | ` : ""}Cédula: {w.id}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Guest Counter */}
-              <div className="col-12 col-md-2">
+              {/* Renglón 1 Móvil: Guest Counter (col-5) */}
+              <div className="col-5 col-md-2">
                 <label className="co-form-label">Nro. Personas</label>
                 <div className="co-people-counter-box" style={{ opacity: cabeceraConfirmada ? 0.75 : 1 }}>
                   <button
@@ -2121,21 +2067,82 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
                 </div>
               </div>
 
-              {/* Botón Aceptar Permanente */}
-              <div className="col-12 col-md-3">
+              {/* Renglón 2 Móvil: Waiter / Mesero Autocomplete (col-7) */}
+              <div className="col-7 col-md-4">
+                <label className="co-form-label">Mesero Responsable</label>
+                <div className="co-input-box" style={{ opacity: (cabeceraConfirmada || !esAdministrador) ? 0.75 : 1 }}>
+                  <FiUser size={16} />
+                  <input
+                    type="text"
+                    value={meseroBusqueda}
+                    onChange={(e) => handleMeseroChange(e.target.value)}
+                    onFocus={() => { if (!cabeceraConfirmada && esAdministrador) setShowWaitersList(true); }}
+                    placeholder="Escriba mesero..."
+                    disabled={cabeceraConfirmada || !esAdministrador}
+                  />
+                  {!cabeceraConfirmada && esAdministrador && (
+                    <>
+                      {mesero ? (
+                        <button className="co-btn-clear" onClick={limpiarMesero} title="Cambiar mesero">
+                          <FiX size={14} />
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => { setShowWaitersList(v => !v); if (!showWaitersList) fetchWaiters(""); }}
+                          style={{ border: 0, background: "transparent", cursor: "pointer", display: "flex", alignItems: "center" }}
+                        >
+                          <FiList size={14} />
+                        </button>
+                      )}
+                    </>
+                  )}
+
+                  {/* Suggestions Flotante */}
+                  {showWaitersList && waitersSuggestions.length > 0 && !cabeceraConfirmada && (
+                    <div className="co-waiters-dropdown shadow">
+                      <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 10px", borderBottom: "1px solid #f1f5f9", background: "#f8fafc" }}>
+                        <span style={{ fontSize: "0.65rem", fontWeight: "700", color: "#64748b" }}>Coincidencias</span>
+                        <button
+                          type="button"
+                          onClick={() => setShowWaitersList(false)}
+                          style={{ border: 0, background: "transparent", color: "#e31b23", fontSize: "0.7rem", fontWeight: "bold" }}
+                        >
+                          Cerrar
+                        </button>
+                      </div>
+                      {waitersSuggestions.map((w) => (
+                        <button
+                          key={w.id}
+                          type="button"
+                          className="co-waiter-option-btn"
+                          onClick={() => selectMesero(w)}
+                        >
+                          <strong>{w.nombre}</strong>
+                          <span>{w.codigo ? `Código: ${w.codigo} | ` : ""}Cédula: {w.id}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Renglón 2 Móvil: Botón Aceptar (col-5) */}
+              <div className="col-5 col-md-3">
                 <button
                   type="button"
-                  className="btn btn-danger w-100 fw-bold d-flex align-items-center justify-content-center gap-2"
+                  className="btn btn-danger w-100 fw-bold d-flex align-items-center justify-content-center gap-1"
                   style={{
-                    borderRadius: "10px",
+                    borderRadius: "8px",
                     fontFamily: "'Outfit', sans-serif",
-                    height: "44px",
-                    background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
-                    boxShadow: "0 4px 12px rgba(239, 68, 68, 0.25)",
+                    height: "38px",
+                    background: "#e31b23",
+                    boxShadow: "0 2px 6px rgba(227, 27, 35, 0.2)",
                     border: "none",
                     color: "#fff",
                     opacity: cabeceraConfirmada ? 0.6 : 1,
-                    cursor: cabeceraConfirmada ? "not-allowed" : "pointer"
+                    cursor: cabeceraConfirmada ? "not-allowed" : "pointer",
+                    fontSize: "0.78rem"
                   }}
                   disabled={cabeceraConfirmada}
                   onClick={async () => {
@@ -2144,7 +2151,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
                         icon: "error",
                         title: "Mesa Requerida",
                         text: "Falta ingresar la mesa.",
-                        confirmButtonColor: "#ef4444"
+                        confirmButtonColor: "#e31b23"
                       });
                       return;
                     }
@@ -2153,14 +2160,14 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
                         icon: "error",
                         title: "Mesero Requerido",
                         text: "Falta seleccionar el mesero responsable.",
-                        confirmButtonColor: "#ef4444"
+                        confirmButtonColor: "#e31b23"
                       });
                       return;
                     }
                     await verificarMesa();
                   }}
                 >
-                  <FiCheck size={18} />
+                  <FiCheck size={16} />
                   {cabeceraConfirmada ? "ACEPTADO" : "ACEPTAR"}
                 </button>
               </div>
@@ -2202,8 +2209,8 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
             <div className="d-flex gap-2 mb-2 mt-3 justify-content-start" style={{ margin: '0 12px' }}>
               <button
                 type="button"
-                className={`btn d-flex align-items-center justify-content-center gap-1 py-1 px-3 fw-bold ${subTabProductos === "productos" ? "btn-danger text-white" : "btn-outline-secondary bg-white"}`}
-                style={{ borderRadius: '6px', fontSize: '0.72rem', minHeight: '30px' }}
+                className={`btn d-flex align-items-center justify-content-center gap-1 py-1 px-3 fw-bold ${subTabProductos === "productos" ? "btn-danger text-white" : "bg-white text-muted"}`}
+                style={{ borderRadius: '6px', fontSize: '0.72rem', minHeight: '30px', border: subTabProductos === "productos" ? "none" : "1px solid #e2e8f0", backgroundColor: subTabProductos === "productos" ? "#dc2626" : "#ffffff" }}
                 onClick={() => {
                   setSubTabProductos("productos");
                   setLineaSeleccionada(null);
@@ -2213,8 +2220,8 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
               </button>
               <button
                 type="button"
-                className={`btn d-flex align-items-center justify-content-center gap-1 py-1 px-3 fw-bold ${subTabProductos === "categorias" ? "btn-danger text-white" : "btn-outline-secondary bg-white"}`}
-                style={{ borderRadius: '6px', fontSize: '0.72rem', minHeight: '30px' }}
+                className={`btn d-flex align-items-center justify-content-center gap-1 py-1 px-3 fw-bold ${subTabProductos === "categorias" ? "btn-danger text-white" : "bg-white text-muted"}`}
+                style={{ borderRadius: '6px', fontSize: '0.72rem', minHeight: '30px', border: subTabProductos === "categorias" ? "none" : "1px solid #e2e8f0", backgroundColor: subTabProductos === "categorias" ? "#dc2626" : "#ffffff" }}
                 onClick={() => {
                   setSubTabProductos("categorias");
                   setLineaSeleccionada(null);

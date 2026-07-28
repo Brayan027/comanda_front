@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { FiLayers, FiSearch, FiEdit3, FiChevronLeft, FiChevronRight, FiLock, FiArrowLeft } from "react-icons/fi";
+import { FiLayers, FiSearch, FiEdit3, FiChevronLeft, FiChevronRight, FiLock, FiArrowLeft, FiUser } from "react-icons/fi";
 import { Spinner, Badge } from "react-bootstrap";
 import Swal from "sweetalert2";
 import { API_BASE_URL, socket } from "../config/api";
@@ -176,105 +176,85 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
     <section className="ordenes-page px-1 px-md-3 pt-0" style={{ background: "#f8fafc", minHeight: "100vh", paddingBottom: "60px" }}>
       <div className="container-fluid pt-2 px-1 px-md-2">
         
-        {/* Header Premium Estandarizado */}
-        <header className="co-header">
-          <div className="d-flex align-items-center gap-2">
-            {onVolver && (
-              <button
-                type="button"
-                title="Volver a inicio"
-                onClick={onVolver}
-                className="btn btn-sm d-flex align-items-center gap-1.5 fw-bold"
-                style={{
-                  border: "1.5px solid #cbd5e1",
-                  borderRadius: "8px",
-                  background: "#ffffff",
-                  color: "#334155",
-                  padding: "5px 12px",
-                  height: "36px",
-                  cursor: "pointer",
-                  flexShrink: 0,
-                  fontSize: "0.82rem",
-                  boxShadow: "0 2px 5px rgba(0, 0, 0, 0.04)",
-                  transition: "all 0.15s ease"
-                }}
-                onMouseEnter={(e) => {
-                  const btn = e.currentTarget as HTMLButtonElement;
-                  btn.style.background = "#ef4444";
-                  btn.style.color = "#ffffff";
-                  btn.style.borderColor = "#ef4444";
-                }}
-                onMouseLeave={(e) => {
-                  const btn = e.currentTarget as HTMLButtonElement;
-                  btn.style.background = "#ffffff";
-                  btn.style.color = "#334155";
-                  btn.style.borderColor = "#cbd5e1";
-                }}
-              >
-                <FiArrowLeft size={16} />
-                <span>Volver</span>
-              </button>
-            )}
+        <header className="co-header d-flex align-items-center justify-content-between">
+          <div className="d-flex align-items-center gap-3">
             <div
               style={{
-                width: "36px",
-                height: "36px",
-                background: "linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)",
+                width: "28px",
+                height: "28px",
+                background: "#e31b23",
                 color: "#fff",
-                borderRadius: "10px",
+                borderRadius: "7px",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 flexShrink: 0,
-                boxShadow: "0 3px 10px rgba(239,68,68,0.4)",
+                boxShadow: "0 2px 6px rgba(227, 27, 35, 0.25)",
               }}
             >
-              <FiLayers size={17} />
+              <FiLayers size={14} />
             </div>
             <div style={{ minWidth: 0 }}>
-              <div className="co-header-subtitle">
-                Comandas Activas
-              </div>
-              <h1 className="co-header-title">
-                Órdenes Abiertas
-              </h1>
+              <div className="co-header-subtitle">Comandas Activas</div>
+              <h1 className="co-header-title">Órdenes Abiertas</h1>
             </div>
           </div>
+
+          {onVolver && (
+            <button
+              type="button"
+              title="Volver a inicio"
+              onClick={onVolver}
+              className="btn btn-sm d-flex align-items-center gap-1.5 fw-bold"
+              style={{
+                border: "1.5px solid #cbd5e1",
+                borderRadius: "8px",
+                background: "#ffffff",
+                color: "#334155",
+                padding: "5px 12px",
+                height: "36px",
+                cursor: "pointer",
+                flexShrink: 0,
+                fontSize: "0.82rem",
+                boxShadow: "0 2px 5px rgba(0, 0, 0, 0.04)",
+                transition: "all 0.15s ease"
+              }}
+              onMouseEnter={(e) => {
+                const btn = e.currentTarget as HTMLButtonElement;
+                btn.style.background = "#e31b23";
+                btn.style.color = "#ffffff";
+                btn.style.borderColor = "#e31b23";
+              }}
+              onMouseLeave={(e) => {
+                const btn = e.currentTarget as HTMLButtonElement;
+                btn.style.background = "#ffffff";
+                btn.style.color = "#334155";
+                btn.style.borderColor = "#cbd5e1";
+              }}
+            >
+              <FiArrowLeft size={16} />
+              <span>Volver</span>
+            </button>
+          )}
         </header>
 
         {/* Datatable Card container */}
-        <div className="bg-white rounded-4 shadow-premium p-2 p-md-4 border-0">
+        <div className="bg-white rounded-4 shadow-sm p-3 p-md-4 border" style={{ borderColor: "#e2e8f0" }}>
           
-          {/* Controls bar */}
-          <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
-            <div className="d-flex align-items-center gap-2">
-              <span className="text-muted" style={{ fontSize: "0.9rem" }}>Mostrar</span>
-              <select 
-                className="form-select form-select-sm" 
-                value={limite}
-                onChange={(e) => { setLimite(Number(e.target.value)); setPagina(1); }}
-                style={{ width: "80px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
-              >
-                <option value={5}>5</option>
-                <option value={10}>10</option>
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-              </select>
-              <span className="text-muted" style={{ fontSize: "0.9rem" }}>registros</span>
-            </div>
-
-            <div className="d-flex align-items-center gap-2 w-100 w-md-auto" style={{ maxWidth: "320px" }}>
-              <span className="text-muted" style={{ fontSize: "0.9rem" }}>Buscar:</span>
+          {/* Controls bar superior: SOLO el filtro de búsqueda */}
+          <div className="d-flex justify-content-end align-items-center mb-3">
+            <div className="d-flex align-items-center gap-2 w-100 w-sm-auto" style={{ maxWidth: "340px" }}>
+              <span className="fw-semibold text-secondary" style={{ fontSize: "0.85rem", whiteSpace: "nowrap" }}>Buscar:</span>
               <div className="position-relative w-100">
                 <input
                   type="text"
-                  className="form-control form-control-sm pe-4"
+                  className="form-control form-control-sm pe-4 shadow-none"
                   placeholder="Filtrar mesa o mesero..."
                   value={busqueda}
                   onChange={(e) => { setBusqueda(e.target.value); setPagina(1); }}
-                  style={{ borderRadius: "8px", border: "1px solid #cbd5e1", height: "34px", fontSize: "0.85rem" }}
+                  style={{ borderRadius: "8px", border: "1px solid #cbd5e1", height: "36px", fontSize: "0.85rem", paddingLeft: "12px" }}
                 />
-                <FiSearch className="position-absolute text-muted" style={{ right: "10px", top: "10px" }} size={14} />
+                <FiSearch className="position-absolute text-muted" style={{ right: "12px", top: "11px" }} size={14} />
               </div>
             </div>
           </div>
@@ -282,87 +262,101 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
           {/* Table content */}
           {cargando ? (
             <div className="text-center py-5">
-              <Spinner animation="border" variant="danger" className="mb-3" />
-              <div className="text-muted">Cargando listado de mesas abiertas...</div>
+              <Spinner animation="border" variant="danger" className="mb-3" style={{ color: "#e31b23" }} />
+              <div className="text-muted fw-semibold" style={{ fontSize: "0.9rem" }}>Cargando listado de mesas abiertas...</div>
             </div>
           ) : ordenes.length === 0 ? (
-            <div className="text-center text-muted py-5" style={{ fontSize: "0.95rem" }}>
+            <div className="text-center text-muted py-5 fw-semibold" style={{ fontSize: "0.92rem" }}>
               No hay pedidos abiertos en este momento.
             </div>
           ) : (
             <>
-              {/* Vista Móvil: Tarjetas ultra compactas (1 solo bloque horizontal por mesa, sin scroll lateral) */}
+              {/* Vista Móvil: Tarjetas Nativas Bien Melas */}
               <div className="d-block d-md-none">
                 {ordenesPaginadas.map((o) => {
                   const estaAbiertaEnOtraTerminal = String(o.OpeStMesaAbierta) === '1' && 
                     o.OpeStTerminal && 
                     o.OpeStTerminal.trim().toUpperCase() !== terminalActual.trim().toUpperCase();
 
+                  const nombreMesaFormateado = o.OpeStMesa?.trim().toLowerCase().startsWith("mesa") 
+                    ? o.OpeStMesa.trim() 
+                    : `Mesa ${o.OpeStMesa.trim()}`;
+
                   return (
                     <div
                       key={o.OpeIdInOrdenPedido}
                       onClick={() => handleIntentarEditar(o)}
-                      className="card mb-2 p-2 shadow-sm"
+                      className="card p-3 border"
                       style={{
-                        borderRadius: "8px",
+                        borderRadius: "12px",
                         background: "#ffffff",
-                        border: "1.5px solid #e2e8f0",
+                        borderColor: "#e2e8f0",
+                        marginBottom: "14px",
+                        boxShadow: "0 2px 6px rgba(15, 23, 42, 0.05)",
                         cursor: "pointer",
-                        transition: "all 0.15s ease"
+                        transition: "all 0.15s ease-in-out"
                       }}
                     >
-                      <div className="d-flex align-items-center justify-content-between gap-1.5">
-                        {/* Columna Izquierda: Mesa + Mesero o Estado */}
-                        <div className="d-flex align-items-center gap-1.5" style={{ minWidth: 0, flex: 1 }}>
-                          <span style={{ fontWeight: "800", fontSize: "0.85rem", color: "#1e293b", flexShrink: 0 }}>
-                            {o.OpeStMesa}
+                      {/* Fila Superior: Nombre de Mesa + Precio Destacado */}
+                      <div className="d-flex align-items-center justify-content-between mb-2">
+                        <div className="d-flex align-items-center gap-2" style={{ minWidth: 0 }}>
+                          <span className="fw-extrabold text-dark" style={{ fontSize: "0.95rem" }}>
+                            {nombreMesaFormateado}
                           </span>
 
-                          {estaAbiertaEnOtraTerminal ? (
-                            <Badge bg="warning" className="text-dark d-inline-flex align-items-center gap-1" style={{ fontSize: "0.62rem", flexShrink: 0 }}>
-                              <FiLock size={9} />
+                          {estaAbiertaEnOtraTerminal && (
+                            <Badge bg="warning" className="text-dark d-inline-flex align-items-center gap-1" style={{ fontSize: "0.65rem", padding: "4px 6px" }}>
+                              <FiLock size={10} />
                               {o.OpeStTerminal}
                             </Badge>
-                          ) : (
-                            <span 
-                              style={{ fontSize: "0.68rem", color: "#64748b", fontWeight: "600" }} 
-                              className="text-truncate"
-                              title={o.NombreVendedor || "MESERO"}
-                            >
-                              • {o.NombreVendedor || "MESERO"}
-                            </span>
                           )}
                         </div>
 
-                        {/* Columna Derecha: Valor de la cuenta + Botón Editar */}
-                        <div className="d-flex align-items-center gap-2 flex-shrink-0">
-                          <span style={{ fontWeight: "800", fontSize: "0.85rem", color: "#dc2626" }}>
-                            {formatMoneda(o.OpeInValor)}
+                        <span className="fw-bold" style={{ fontSize: "1rem", color: "#e31b23" }}>
+                          {formatMoneda(o.OpeInValor)}
+                        </span>
+                      </div>
+
+                      {/* Fila Inferior: Icono & Mesero + Botón Editar */}
+                      <div className="d-flex align-items-center justify-content-between pt-2 border-top" style={{ borderColor: "#f1f5f9" }}>
+                        <div className="d-flex align-items-center gap-1.5 text-secondary" style={{ fontSize: "0.78rem", minWidth: 0, flex: 1, paddingRight: "8px" }}>
+                          <FiUser size={13} className="text-muted flex-shrink-0" />
+                          <span className="fw-semibold text-truncate" style={{ color: "#334155" }}>
+                            {o.NombreVendedor ? o.NombreVendedor.toUpperCase() : "MESERO"}
                           </span>
-                          <button 
-                            className={`btn btn-sm ${estaAbiertaEnOtraTerminal ? "btn-outline-warning text-dark" : "btn-outline-danger"} py-1 px-2 d-inline-flex align-items-center gap-1`}
-                            onClick={(e) => { e.stopPropagation(); handleIntentarEditar(o); }}
-                            style={{ borderRadius: "6px", fontSize: "0.75rem", height: "28px" }}
-                          >
-                            {estaAbiertaEnOtraTerminal ? <FiLock size={10} /> : <FiEdit3 size={10} />}
-                            <span>Editar</span>
-                          </button>
                         </div>
+
+                        <button 
+                          className={`btn btn-sm ${estaAbiertaEnOtraTerminal ? "btn-outline-warning text-dark" : "btn-danger"} py-1 px-3 d-inline-flex align-items-center gap-1.5 fw-bold flex-shrink-0`}
+                          onClick={(e) => { e.stopPropagation(); handleIntentarEditar(o); }}
+                          style={{ 
+                            borderRadius: "7px", 
+                            fontSize: "0.78rem", 
+                            height: "30px",
+                            background: estaAbiertaEnOtraTerminal ? "transparent" : "#e31b23",
+                            border: estaAbiertaEnOtraTerminal ? "1px solid #ffc107" : "none",
+                            color: estaAbiertaEnOtraTerminal ? "#212529" : "#ffffff",
+                            boxShadow: estaAbiertaEnOtraTerminal ? "none" : "0 2px 5px rgba(227, 27, 35, 0.22)"
+                          }}
+                        >
+                          {estaAbiertaEnOtraTerminal ? <FiLock size={12} /> : <FiEdit3 size={12} />}
+                          <span>Editar</span>
+                        </button>
                       </div>
                     </div>
                   );
                 })}
               </div>
 
-              {/* Vista Escritorio / Tablet: Tabla completa */}
+              {/* Vista Escritorio / Tablet: Tabla mela ultra moderna */}
               <div className="table-responsive d-none d-md-block">
-                <table className="table table-hover align-middle" style={{ borderCollapse: "separate", borderSpacing: "0 8px" }}>
+                <table className="table align-middle m-0" style={{ borderCollapse: "separate", borderSpacing: "0" }}>
                   <thead>
-                    <tr className="text-muted" style={{ fontSize: "0.75rem", textTransform: "uppercase", fontWeight: "bold", borderBottom: "2px solid #f1f5f9" }}>
-                      <th style={{ padding: "12px 16px", width: "15%" }}>Mesa</th>
-                      <th style={{ padding: "12px 16px", width: "50%" }}>Nombre del mesero</th>
-                      <th style={{ padding: "12px 16px", width: "25%", textAlign: "right" }}>Vr. cuenta</th>
-                      <th style={{ padding: "12px 16px", width: "10%", textAlign: "center" }}>Acción</th>
+                    <tr style={{ background: "#f8fafc", borderBottom: "2px solid #e2e8f0" }}>
+                      <th style={{ padding: "12px 16px", width: "15%", fontSize: "0.75rem", textTransform: "uppercase", fontWeight: "700", color: "#475569", borderTopLeftRadius: "8px", borderBottomLeftRadius: "8px" }}>Mesa</th>
+                      <th style={{ padding: "12px 16px", width: "50%", fontSize: "0.75rem", textTransform: "uppercase", fontWeight: "700", color: "#475569" }}>Nombre del mesero</th>
+                      <th style={{ padding: "12px 16px", width: "25%", fontSize: "0.75rem", textTransform: "uppercase", fontWeight: "700", color: "#475569", textAlign: "right" }}>Vr. cuenta</th>
+                      <th style={{ padding: "12px 16px", width: "10%", fontSize: "0.75rem", textTransform: "uppercase", fontWeight: "700", color: "#475569", textAlign: "center", borderTopRightRadius: "8px", borderBottomRightRadius: "8px" }}>Acción</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -375,32 +369,43 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
                         <tr 
                           key={o.OpeIdInOrdenPedido}
                           onClick={() => handleIntentarEditar(o)}
-                          style={{ cursor: "pointer", background: "#f8fafc", borderRadius: "10px" }}
-                          className="table-row-premium"
+                          style={{ 
+                            cursor: "pointer", 
+                            borderBottom: "1px solid #f1f5f9",
+                            transition: "background-color 0.15s ease-in-out"
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#fdf2f2"; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "#ffffff"; }}
                         >
-                          <td style={{ padding: "14px 16px", fontWeight: "bold", color: "#1e293b", border: "none", borderTopLeftRadius: "10px", borderBottomLeftRadius: "10px" }}>
+                          <td style={{ padding: "14px 16px", fontWeight: "700", color: "#1e293b" }}>
                             <div className="d-flex align-items-center gap-2">
                               <span>{o.OpeStMesa}</span>
                               {estaAbiertaEnOtraTerminal && (
-                                <Badge bg="warning" className="text-dark d-inline-flex align-items-center gap-1" style={{ fontSize: "0.7rem", fontWeight: "bold" }}>
+                                <Badge bg="warning" className="text-dark d-inline-flex align-items-center gap-1" style={{ fontSize: "0.68rem", fontWeight: "700" }}>
                                   <FiLock size={10} />
                                   En edición ({o.OpeStTerminal})
                                 </Badge>
                               )}
                             </div>
                           </td>
-                          <td style={{ padding: "14px 16px", color: "#475569", border: "none" }}>
+                          <td style={{ padding: "14px 16px", color: "#334155", fontWeight: "500" }}>
                             {o.NombreVendedor ? o.NombreVendedor.toUpperCase() : "MESERO"}
-                            {o.CodigoVendedor && <span className="badge bg-light text-secondary ms-2" style={{ fontSize: "0.65rem" }}>Cód: {o.CodigoVendedor}</span>}
                           </td>
-                          <td style={{ padding: "14px 16px", textAlign: "right", fontWeight: "bold", color: "#dc2626", border: "none" }}>
+                          <td style={{ padding: "14px 16px", textAlign: "right", fontWeight: "800", color: "#e31b23", fontSize: "0.95rem" }}>
                             {formatMoneda(o.OpeInValor)}
                           </td>
-                          <td style={{ padding: "14px 16px", textAlign: "center", border: "none", borderTopRightRadius: "10px", borderBottomRightRadius: "10px" }}>
+                          <td style={{ padding: "14px 16px", textAlign: "center" }}>
                             <button 
-                              className={`btn btn-sm ${estaAbiertaEnOtraTerminal ? "btn-outline-warning text-dark" : "btn-outline-danger"} p-1 px-2 d-inline-flex align-items-center gap-1`}
+                              className={`btn btn-sm ${estaAbiertaEnOtraTerminal ? "btn-outline-warning text-dark" : "btn-danger"} py-1 px-3 d-inline-flex align-items-center gap-1.5 fw-bold`}
                               onClick={(e) => { e.stopPropagation(); handleIntentarEditar(o); }}
-                              style={{ borderRadius: "6px", fontSize: "0.8rem" }}
+                              style={{ 
+                                borderRadius: "6px", 
+                                fontSize: "0.78rem",
+                                background: estaAbiertaEnOtraTerminal ? "transparent" : "#e31b23",
+                                border: estaAbiertaEnOtraTerminal ? "1px solid #ffc107" : "none",
+                                color: estaAbiertaEnOtraTerminal ? "#212529" : "#ffffff",
+                                boxShadow: estaAbiertaEnOtraTerminal ? "none" : "0 2px 4px rgba(227, 27, 35, 0.25)"
+                              }}
                             >
                               {estaAbiertaEnOtraTerminal ? <FiLock size={12} /> : <FiEdit3 size={12} />}
                               <span>Editar</span>
@@ -415,32 +420,51 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
             </>
           )}
 
-          {/* Pagination bar */}
+          {/* Pagination & Records Footer: 'Mostrar X registros' abajo a la izquierda y paginador a la derecha */}
           {!cargando && total > 0 && (
-            <div className="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3 mt-4 pt-3" style={{ borderTop: "1px solid #f1f5f9" }}>
-              <div className="text-muted" style={{ fontSize: "0.85rem" }}>
-                Mostrando desde el {startIndex + 1} hasta el {endIndex} ( Total: {total} )
+            <div className="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3 mt-3 pt-3" style={{ borderTop: "1px solid #e2e8f0" }}>
+              {/* Selector 'Mostrar X registros' abajo */}
+              <div className="d-flex align-items-center gap-2">
+                <span className="text-secondary" style={{ fontSize: "0.85rem" }}>Mostrar</span>
+                <select 
+                  className="form-select form-select-sm shadow-none" 
+                  value={limite}
+                  onChange={(e) => { setLimite(Number(e.target.value)); setPagina(1); }}
+                  style={{ width: "76px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "0.82rem" }}
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                </select>
+                <span className="text-secondary" style={{ fontSize: "0.85rem" }}>registros</span>
               </div>
 
-              <div className="d-flex align-items-center gap-2">
+              {/* Información de rango */}
+              <div className="text-secondary" style={{ fontSize: "0.82rem" }}>
+                Mostrando desde el <strong>{startIndex + 1}</strong> hasta el <strong>{endIndex}</strong> (Total: <strong>{total}</strong>)
+              </div>
+
+              {/* Botones Paginador */}
+              <div className="d-flex align-items-center gap-1.5">
                 <button
-                  className="btn btn-sm btn-light d-flex align-items-center justify-content-center p-2"
+                  className="btn btn-sm btn-light d-flex align-items-center justify-content-center p-1.5"
                   disabled={pagina <= 1}
                   onClick={() => setPagina(prev => Math.max(1, prev - 1))}
-                  style={{ borderRadius: "8px", border: "1px solid #cbd5e1" }}
+                  style={{ borderRadius: "6px", border: "1px solid #cbd5e1", width: "32px", height: "32px" }}
                 >
                   <FiChevronLeft size={16} />
                 </button>
                 
-                <span className="fw-bold px-3 py-1 bg-danger text-white rounded-3" style={{ fontSize: "0.9rem" }}>
+                <span className="fw-bold px-3 py-1 text-white rounded-2 d-flex align-items-center justify-content-center" style={{ fontSize: "0.85rem", background: "#e31b23", minWidth: "32px", height: "32px" }}>
                   {pagina}
                 </span>
 
                 <button
-                  className="btn btn-sm btn-light d-flex align-items-center justify-content-center p-2"
+                  className="btn btn-sm btn-light d-flex align-items-center justify-content-center p-1.5"
                   disabled={pagina >= totalPaginas}
                   onClick={() => setPagina(prev => Math.min(totalPaginas, prev + 1))}
-                  style={{ borderRadius: "8px", border: "1px solid #cbd5e1" }}
+                  style={{ borderRadius: "6px", border: "1px solid #cbd5e1", width: "32px", height: "32px" }}
                 >
                   <FiChevronRight size={16} />
                 </button>

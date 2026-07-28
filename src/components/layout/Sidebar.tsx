@@ -30,23 +30,44 @@ export default function Sidebar({ activo, onCambiar, onSalir, empresaNombre, pun
     return (
         <>
             {/* HEADER MÓVIL (Solo se ve en móvil) */}
-            <header className="mobile-header d-lg-none d-flex align-items-center justify-content-between w-100" style={{ paddingLeft: '12px', paddingRight: '12px' }}>
-                <div className="d-flex align-items-center" style={{ gap: '8px' }}>
-                    <button className="mobile-menu-btn" onClick={() => setAbierto(true)}>
-                        <FiMenu size={24} />
+            <header className="mobile-header d-lg-none d-flex align-items-center justify-content-between w-100" style={{ paddingLeft: '24px', paddingRight: '24px', paddingTop: '6px', paddingBottom: '6px', gap: '8px' }}>
+                <div className="d-flex align-items-center flex-shrink-0" style={{ gap: '8px' }}>
+                    <button 
+                      className="mobile-menu-btn m-0 flex-shrink-0" 
+                      onClick={() => setAbierto(true)} 
+                      style={{ 
+                        width: '28px', 
+                        height: '28px', 
+                        minWidth: '28px',
+                        minHeight: '28px',
+                        maxWidth: '28px',
+                        maxHeight: '28px',
+                        borderRadius: '7px', 
+                        background: '#e31b23', 
+                        border: 'none', 
+                        color: '#ffffff', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center', 
+                        boxShadow: '0 1px 3px rgba(227, 27, 35, 0.25)', 
+                        padding: 0,
+                        lineHeight: 1
+                      }}
+                    >
+                        <FiMenu size={14} />
                     </button>
-                    <div className="mobile-brand">
-                        <img src={logoReporte} alt="Logo Dianasis" style={{ width: '90px', height: 'auto' }} onClick={() => setAbierto(false)} />
+                    <div className="mobile-brand flex-shrink-0" style={{ display: 'flex', alignItems: 'center' }}>
+                        <img src={logoReporte} alt="Logo Dianasis" style={{ width: '90px', height: 'auto', display: 'block' }} onClick={() => setAbierto(false)} />
                     </div>
                 </div>
                 
-                {/* Info de sesión compacta a la derecha */}
+                {/* Info de sesión compacta a la derecha sin colisión */}
                 {fechaActual && (
-                    <div className="text-end text-muted d-flex flex-column align-items-end justify-content-center" style={{ fontSize: '0.58rem', lineHeight: '1.2', flex: 1, minWidth: 0, paddingLeft: '6px' }}>
-                        <span className="fw-bold text-dark" style={{ textTransform: 'uppercase', letterSpacing: '0.01em', fontSize: '0.62rem', lineHeight: '1.2', whiteSpace: 'nowrap' }}>
+                    <div className="text-end text-muted d-flex flex-column align-items-end justify-content-center flex-grow-1" style={{ minWidth: 0, overflow: 'hidden', paddingLeft: '4px' }}>
+                        <span className="fw-bold text-dark text-truncate w-100" style={{ textTransform: 'uppercase', letterSpacing: '0.01em', fontSize: '0.58rem', lineHeight: '1.2', display: 'block' }}>
                             {empresaNombre} {puntoNombre ? `• ${puntoNombre}` : ''}
                         </span>
-                        <span className="fw-semibold text-secondary animate__animated animate__fadeIn" style={{ fontSize: '0.56rem', marginTop: '1px', whiteSpace: 'nowrap' }}>
+                        <span className="fw-semibold text-secondary text-truncate w-100 animate__animated animate__fadeIn" style={{ fontSize: '0.54rem', marginTop: '1px', display: 'block' }}>
                             {fechaActual} {terminal ? `• ${terminal.toUpperCase()}` : ''}
                         </span>
                     </div>
@@ -61,22 +82,21 @@ export default function Sidebar({ activo, onCambiar, onSalir, empresaNombre, pun
                 <div 
                     className="sidebar-header d-flex flex-column align-items-start justify-content-start border-bottom w-100" 
                     style={{ 
-                        paddingTop: '0px', 
-                        paddingBottom: '8px', 
+                        paddingTop: '16px', 
+                        paddingBottom: '12px', 
                         paddingLeft: '16px', 
                         paddingRight: '16px',
-                        gap: '0px' 
+                        gap: '4px' 
                     }}
                 >
-                    <div className="d-flex align-items-center justify-content-start w-100" style={{ marginTop: '-10px' }}>
+                    <div className="d-flex align-items-center justify-content-start w-100">
                         <img
                             src={logoReporte}
                             alt="Logo Reportes"
                             style={{ 
-                                width: '160px', 
+                                width: '150px', 
                                 height: 'auto', 
                                 filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.05))',
-                                marginBottom: '-10px'
                             }}
                             className="animate__animated animate__fadeIn"
                         />
