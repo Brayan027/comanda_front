@@ -8,7 +8,7 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import { FiHome, FiPlus, FiLayers, FiChevronRight } from "react-icons/fi";
 import type { MenuKey } from "./components/layout/Sidebar";
-import { API_BASE_URL } from "./config/api";
+import { API_BASE_URL, socket } from "./config/api";
 
 export default function App() {
   const [logueado, setLogueado] = useState(() => {
@@ -109,23 +109,84 @@ export default function App() {
       body: JSON.stringify({ terminal: terminalName })
     }).catch(err => console.error("Error al limpiar mesas de terminal:", err));
 
-    fetch(`${API_BASE_URL}/ordenes/fecha-trabajo`, { headers })
-      .then(res => res.json())
-      .then(data => {
-        if (data && data.body) {
-          if (data.body.fecha) {
-            setFechaTrabajoRaw(data.body.fecha);
+    const fetchFechaTrabajo = () => {
+      fetch(`${API_BASE_URL}/ordenes/fecha-trabajo`, { headers })
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.body) {
+            if (data.body.fecha) {
+              setFechaTrabajoRaw(data.body.fecha);
+              try {
+                const stored = localStorage.getItem("infoPuntoVenta");
+                if (stored) {
+                  const info = JSON.parse(stored);
+                  if (info.PveDtFechaTrabajo !== data.body.fecha) {
+                    info.PveDtFechaTrabajo = data.body.fecha;
+                    localStorage.setItem("infoPuntoVenta", JSON.stringify(info));
+                  }
+                }
+              } catch (e) {
+                console.error(e);
+              }
+            }
+            if (data.body.bloqueada !== undefined) {
+              localStorage.setItem("comanderaBloqueada", String(data.body.bloqueada));
+            } else {
+              localStorage.removeItem("comanderaBloqueada");
+            }
           }
-          if (data.body.bloqueada !== undefined) {
-            localStorage.setItem("comanderaBloqueada", String(data.body.bloqueada));
-          } else {
-            localStorage.removeItem("comanderaBloqueada");
+        })
+        .catch(err => {
+          console.error("Error al obtener la fecha de trabajo:", err);
+        });
+    };
+
+    fetchFechaTrabajo();
+
+    // Listener de socket para recibir actualización de fecha de trabajo en tiempo real
+    const handleFechaTrabajoActualizada = (data: { fecha?: string; bloqueada?: boolean }) => {
+      if (data?.fecha) {
+        setFechaTrabajoRaw(data.fecha);
+        try {
+          const stored = localStorage.getItem("infoPuntoVenta");
+          if (stored) {
+            const info = JSON.parse(stored);
+            info.PveDtFechaTrabajo = data.fecha;
+            localStorage.setItem("infoPuntoVenta", JSON.stringify(info));
           }
+        } catch (e) {
+          console.error(e);
         }
-      })
-      .catch(err => {
-        console.error("Error al obtener la fecha de trabajo:", err);
-      });
+      }
+      if (data?.bloqueada !== undefined) {
+        localStorage.setItem("comanderaBloqueada", String(data.bloqueada));
+      } else {
+        localStorage.removeItem("comanderaBloqueada");
+      }
+    };
+
+    const handleOrdenesActualizadas = () => {
+      fetchFechaTrabajo();
+    };
+
+    socket.on("fecha_trabajo_actualizada", handleFechaTrabajoActualizada);
+    socket.on("ordenes_actualizadas", handleOrdenesActualizadas);
+
+    // Solicitar fecha de trabajo mediante Socket al conectar y mantener intervalo de refresco automático
+    socket.emit("obtener_fecha_trabajo", {
+      empresa: headers["empresa"] || "02",
+      punto: headers["punto"] || "5"
+    });
+
+    const intervalId = setInterval(() => {
+      fetchFechaTrabajo();
+      if (socket.connected) {
+        socket.emit("obtener_fecha_trabajo", {
+          empresa: headers["empresa"] || "02",
+          punto: headers["punto"] || "5"
+        });
+      }
+    }, 4000);
 
     const handleSendBeaconGlobal = () => {
       const term = localStorage.getItem("terminal") || "TERMINAL 1";
@@ -150,31 +211,56 @@ export default function App() {
     window.addEventListener("beforeunload", handleSendBeaconGlobal);
 
     return () => {
+      clearInterval(intervalId);
+      socket.off("fecha_trabajo_actualizada", handleFechaTrabajoActualizada);
+      socket.off("ordenes_actualizadas", handleOrdenesActualizadas);
       window.removeEventListener("pagehide", handleSendBeaconGlobal);
       window.removeEventListener("beforeunload", handleSendBeaconGlobal);
     };
   }, [logueado]);
 
   const getFechaActual = (rawDate: string | null) => {
-    let baseDate = new Date();
-    const stored = localStorage.getItem("infoPuntoVenta");
-    
-    if (rawDate) {
-      const parts = rawDate.split("-");
-      baseDate = new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])));
-    } else if (stored) {
-      try {
-        const info = JSON.parse(stored);
-        if (info && info.PveDtFechaTrabajo) {
-          const dateStr = info.PveDtFechaTrabajo.split("T")[0];
-          const parts = dateStr.split("-");
-          baseDate = new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])));
+    let dateStr = rawDate;
+    if (!dateStr) {
+      const stored = localStorage.getItem("infoPuntoVenta");
+      if (stored) {
+        try {
+          const info = JSON.parse(stored);
+          if (info && info.PveDtFechaTrabajo) {
+            dateStr = info.PveDtFechaTrabajo;
+          }
+        } catch (e) {
+          console.error(e);
         }
-      } catch (e) {
-        console.error(e);
       }
     }
-    const f = baseDate.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
+
+    if (!dateStr) {
+      const now = new Date();
+      const f = now.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      return f.charAt(0).toUpperCase() + f.slice(1);
+    }
+
+    const cleanDate = String(dateStr).split("T")[0].split(" ")[0];
+    const parts = cleanDate.split("-");
+
+    if (parts.length === 3 && !isNaN(Number(parts[0])) && !isNaN(Number(parts[1])) && !isNaN(Number(parts[2]))) {
+      const year = Number(parts[0]);
+      const month = Number(parts[1]) - 1;
+      const day = Number(parts[2]);
+      const baseDate = new Date(Date.UTC(year, month, day));
+      const f = baseDate.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
+      return f.charAt(0).toUpperCase() + f.slice(1);
+    }
+
+    const fallbackDate = new Date(dateStr);
+    if (!isNaN(fallbackDate.getTime())) {
+      const f = fallbackDate.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      return f.charAt(0).toUpperCase() + f.slice(1);
+    }
+
+    const now = new Date();
+    const f = now.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     return f.charAt(0).toUpperCase() + f.slice(1);
   };
 
