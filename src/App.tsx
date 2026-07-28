@@ -165,8 +165,7 @@ export default function App() {
       }
     };
 
-    const handleOrdenesActualizadas = (data?: { evento?: string }) => {
-      if (data?.evento === "cerrarBeacon") return;
+    const handleOrdenesActualizadas = () => {
       fetchFechaTrabajo();
     };
 

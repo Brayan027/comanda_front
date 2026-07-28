@@ -26,7 +26,6 @@ interface OrdenesOpenProps {
 export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
   const [ordenes, setOrdenes] = useState<ActiveOrder[]>([]);
   const [cargando, setCargando] = useState(true);
-  const [abriendoMesaId, setAbriendoMesaId] = useState<string | number | null>(null);
   const [busqueda, setBusqueda] = useState("");
   const [limite, setLimite] = useState(10);
   const [pagina, setPagina] = useState(1);
@@ -60,9 +59,9 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
     "terminal": terminalActual
   }), [token, infoPuntoVenta, terminalActual]);
 
-  const cargarOrdenes = async (silencioso = false) => {
+  const cargarOrdenes = async () => {
     try {
-      if (!silencioso) setCargando(true);
+      setCargando(true);
       const resp = await fetch(`${API_BASE_URL}/ordenes/activas`, {
         method: "GET",
         headers
@@ -74,39 +73,12 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
     } catch (e) {
       console.error("Error al cargar ordenes abiertas", e);
     } finally {
-      if (!silencioso) setCargando(false);
+      setCargando(false);
     }
   };
 
   const handleIntentarEditar = async (orden: ActiveOrder) => {
-    if (abriendoMesaId) return;
-
-    // Verificar si ya está bloqueada por otra terminal
-    const estaAbiertaEnOtraTerminal = String(orden.OpeStMesaAbierta) === '1' && 
-      orden.OpeStTerminal && 
-      orden.OpeStTerminal.trim().toUpperCase() !== terminalActual.trim().toUpperCase();
-
-    if (estaAbiertaEnOtraTerminal) {
-      Swal.fire({
-        icon: "warning",
-        title: "Mesa Ocupada",
-        text: `La mesa ya se encuentra abierta en ${orden.OpeStTerminal}`,
-        confirmButtonColor: "#e31b23"
-      });
-      return;
-    }
-
     try {
-      setAbriendoMesaId(orden.OpeIdInOrdenPedido);
-
-      // Bloqueo optimista instantáneo en 0ms
-      setOrdenes(prev => prev.map(o => {
-        if (o.OpeIdInOrdenPedido === orden.OpeIdInOrdenPedido) {
-          return { ...o, OpeStMesaAbierta: "1", OpeStTerminal: terminalActual };
-        }
-        return o;
-      }));
-
       const resp = await fetch(`${API_BASE_URL}/ordenes/mesa/abrir`, {
         method: "POST",
         headers,
@@ -124,7 +96,7 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
           title: "Sesión Expirada",
           text: "Su sesión ha expirado, por favor inicie sesión nuevamente.",
           confirmButtonText: "Aceptar",
-          confirmButtonColor: "#e31b23"
+          confirmButtonColor: "#2563eb"
         });
         window.location.href = "/";
         return;
@@ -132,19 +104,11 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
 
       const resData = await resp.json();
       if (!resp.ok || resData.locked) {
-        // Revertir bloqueo local si fue bloqueada por otro
-        setOrdenes(prev => prev.map(o => {
-          if (o.OpeIdInOrdenPedido === orden.OpeIdInOrdenPedido) {
-            return { ...o, OpeStMesaAbierta: "1", OpeStTerminal: resData.terminal || "OTRA TERMINAL" };
-          }
-          return o;
-        }));
-
         Swal.fire({
           icon: "warning",
           title: "Mesa Ocupada",
           text: resData.mensaje || "La mesa ya se encuentra abierta en otro dispositivo",
-          confirmButtonColor: "#e31b23"
+          confirmButtonColor: "#ef4444"
         });
         return;
       }
@@ -153,35 +117,14 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
     } catch (e) {
       console.error("Error al abrir/bloquear mesa:", e);
       onEditar(orden.OpeIdInOrdenPedido);
-    } finally {
-      setAbriendoMesaId(null);
     }
   };
 
   useEffect(() => {
     cargarOrdenes();
 
-    const onActualizar = (data?: { evento?: string; mesa?: string; terminal?: string }) => {
-      if (data?.evento === "cerrarBeacon" || data?.evento === "cerrarMesasTerminal") return;
-      
-      // Actualización reactiva instantánea por socket en 10ms
-      if (data?.evento === "abrirMesa" && data?.mesa) {
-        setOrdenes(prev => prev.map(o => {
-          if (String(o.OpeStMesa).trim().toLowerCase() === String(data.mesa).trim().toLowerCase()) {
-            return { ...o, OpeStMesaAbierta: "1", OpeStTerminal: data.terminal || "" };
-          }
-          return o;
-        }));
-      } else if (data?.evento === "cerrarMesa" && data?.mesa) {
-        setOrdenes(prev => prev.map(o => {
-          if (String(o.OpeStMesa).trim().toLowerCase() === String(data.mesa).trim().toLowerCase()) {
-            return { ...o, OpeStMesaAbierta: "0", OpeStTerminal: "" };
-          }
-          return o;
-        }));
-      }
-
-      cargarOrdenes(true);
+    const onActualizar = () => {
+      cargarOrdenes();
     };
 
     socket.on("ordenes_actualizadas", onActualizar);
@@ -386,7 +329,6 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
                         <button 
                           className={`btn btn-sm ${estaAbiertaEnOtraTerminal ? "btn-outline-warning text-dark" : "btn-danger"} py-1 px-3 d-inline-flex align-items-center gap-1.5 fw-bold flex-shrink-0`}
                           onClick={(e) => { e.stopPropagation(); handleIntentarEditar(o); }}
-                          disabled={abriendoMesaId === o.OpeIdInOrdenPedido}
                           style={{ 
                             borderRadius: "7px", 
                             fontSize: "0.78rem", 
@@ -394,15 +336,10 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
                             background: estaAbiertaEnOtraTerminal ? "transparent" : "#e31b23",
                             border: estaAbiertaEnOtraTerminal ? "1px solid #ffc107" : "none",
                             color: estaAbiertaEnOtraTerminal ? "#212529" : "#ffffff",
-                            boxShadow: estaAbiertaEnOtraTerminal ? "none" : "0 2px 5px rgba(227, 27, 35, 0.22)",
-                            opacity: abriendoMesaId === o.OpeIdInOrdenPedido ? 0.7 : 1
+                            boxShadow: estaAbiertaEnOtraTerminal ? "none" : "0 2px 5px rgba(227, 27, 35, 0.22)"
                           }}
                         >
-                          {abriendoMesaId === o.OpeIdInOrdenPedido ? (
-                            <Spinner animation="border" size="sm" style={{ width: "12px", height: "12px" }} />
-                          ) : (
-                            estaAbiertaEnOtraTerminal ? <FiLock size={12} /> : <FiEdit3 size={12} />
-                          )}
+                          {estaAbiertaEnOtraTerminal ? <FiLock size={12} /> : <FiEdit3 size={12} />}
                           <span>Editar</span>
                         </button>
                       </div>
@@ -461,22 +398,16 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
                             <button 
                               className={`btn btn-sm ${estaAbiertaEnOtraTerminal ? "btn-outline-warning text-dark" : "btn-danger"} py-1 px-3 d-inline-flex align-items-center gap-1.5 fw-bold`}
                               onClick={(e) => { e.stopPropagation(); handleIntentarEditar(o); }}
-                              disabled={abriendoMesaId === o.OpeIdInOrdenPedido}
                               style={{ 
                                 borderRadius: "6px", 
                                 fontSize: "0.78rem",
                                 background: estaAbiertaEnOtraTerminal ? "transparent" : "#e31b23",
                                 border: estaAbiertaEnOtraTerminal ? "1px solid #ffc107" : "none",
                                 color: estaAbiertaEnOtraTerminal ? "#212529" : "#ffffff",
-                                boxShadow: estaAbiertaEnOtraTerminal ? "none" : "0 2px 4px rgba(227, 27, 35, 0.25)",
-                                opacity: abriendoMesaId === o.OpeIdInOrdenPedido ? 0.7 : 1
+                                boxShadow: estaAbiertaEnOtraTerminal ? "none" : "0 2px 4px rgba(227, 27, 35, 0.25)"
                               }}
                             >
-                              {abriendoMesaId === o.OpeIdInOrdenPedido ? (
-                                <Spinner animation="border" size="sm" style={{ width: "12px", height: "12px" }} />
-                              ) : (
-                                estaAbiertaEnOtraTerminal ? <FiLock size={12} /> : <FiEdit3 size={12} />
-                              )}
+                              {estaAbiertaEnOtraTerminal ? <FiLock size={12} /> : <FiEdit3 size={12} />}
                               <span>Editar</span>
                             </button>
                           </td>
