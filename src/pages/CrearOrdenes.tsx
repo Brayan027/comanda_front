@@ -261,7 +261,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
       });
 
       if (navigator.sendBeacon) {
-        const blob = new Blob([payload], { type: "text/plain" });
+        const blob = new Blob([payload], { type: "application/json" });
         navigator.sendBeacon(`${API_BASE_URL}/ordenes/mesa/cerrar-beacon`, blob);
       }
     };

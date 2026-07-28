@@ -8,7 +8,7 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import { FiHome, FiPlus, FiLayers, FiChevronRight } from "react-icons/fi";
 import type { MenuKey } from "./components/layout/Sidebar";
-import { API_BASE_URL, socket, getTerminalId, registrarTerminalEnServidor } from "./config/api";
+import { API_BASE_URL, socket, getTerminalId } from "./config/api";
 
 export default function App() {
   const [logueado, setLogueado] = useState(() => {
@@ -98,7 +98,12 @@ export default function App() {
 
     const terminalName = getTerminalId();
     headers["terminal"] = terminalName;
-    registrarTerminalEnServidor();
+
+    fetch(`${API_BASE_URL}/ordenes/mesa/cerrar-terminal`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ terminal: terminalName })
+    }).catch(err => console.error("Error al limpiar mesas de terminal:", err));
 
     const fetchFechaTrabajo = () => {
       fetch(`${API_BASE_URL}/ordenes/fecha-trabajo`, { headers })
