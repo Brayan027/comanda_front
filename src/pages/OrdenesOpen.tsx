@@ -59,9 +59,9 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
     "terminal": terminalActual
   }), [token, infoPuntoVenta, terminalActual]);
 
-  const cargarOrdenes = async () => {
+  const cargarOrdenes = async (silencioso = false) => {
     try {
-      setCargando(true);
+      if (!silencioso) setCargando(true);
       const resp = await fetch(`${API_BASE_URL}/ordenes/activas`, {
         method: "GET",
         headers
@@ -73,7 +73,7 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
     } catch (e) {
       console.error("Error al cargar ordenes abiertas", e);
     } finally {
-      setCargando(false);
+      if (!silencioso) setCargando(false);
     }
   };
 
@@ -124,8 +124,8 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
     cargarOrdenes();
 
     const onActualizar = (data?: { evento?: string }) => {
-      if (data?.evento === "cerrarBeacon") return;
-      cargarOrdenes();
+      if (data?.evento === "cerrarBeacon" || data?.evento === "cerrarMesasTerminal") return;
+      cargarOrdenes(true);
     };
 
     socket.on("ordenes_actualizadas", onActualizar);
