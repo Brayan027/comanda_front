@@ -88,6 +88,20 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
         })
       });
 
+      if (resp.status === 401) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("last_login");
+        await Swal.fire({
+          icon: "info",
+          title: "Sesión Expirada",
+          text: "Su sesión ha expirado, por favor inicie sesión nuevamente.",
+          confirmButtonText: "Aceptar",
+          confirmButtonColor: "#2563eb"
+        });
+        window.location.href = "/";
+        return;
+      }
+
       const resData = await resp.json();
       if (!resp.ok || resData.locked) {
         Swal.fire({
