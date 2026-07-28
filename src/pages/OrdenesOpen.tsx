@@ -123,7 +123,8 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
   useEffect(() => {
     cargarOrdenes();
 
-    const onActualizar = () => {
+    const onActualizar = (data?: { evento?: string }) => {
+      if (data?.evento === "cerrarBeacon") return;
       cargarOrdenes();
     };
 
