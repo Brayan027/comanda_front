@@ -34,12 +34,9 @@ export const socket: Socket = io(getSocketUrl(), {
   reconnectionDelay: 1000,
 });
 
-// Registrar el terminal en el servidor al conectar/reconectar
-// Esto permite al servidor liberar mesas automáticamente si el socket se cae
-function registrarTerminalEnServidor() {
-  // Usar 'terminal' directamente (es el que el usuario configuró y el que el backend usa)
-  const termId = localStorage.getItem("terminal");
-  if (!termId || termId === "TERMINAL 1") return;
+export function registrarTerminalEnServidor() {
+  const termId = getTerminalId();
+  if (!termId) return;
   let empresa = "02";
   try {
     const info = JSON.parse(localStorage.getItem("infoPuntoVenta") || "{}");
