@@ -16,7 +16,7 @@ import {
 } from "react-icons/fi";
 import { Modal, Button, Badge } from "react-bootstrap";
 import Swal from "sweetalert2";
-import { API_BASE_URL, sanitizarError } from "../config/api";
+import { API_BASE_URL, sanitizarError, getTerminalId } from "../config/api";
 import "../styles/crear-ordenes.css";
 import { descargarPDF, compartirPDF } from "../utils/pdf";
 
@@ -133,14 +133,9 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
     return loggedUsuario?.UsuStIdGrupoUsuario === "ADMS" || loggedUsuario?.UsuStIdGrupoUsuario === "ADM";
   }, [loggedUsuario]);
 
-  const terminalName = useMemo(() => {
-    let term = localStorage.getItem("terminal");
-    if (!term) {
-      term = "TERMINAL 1";
-      localStorage.setItem("terminal", term);
-    }
-    return term;
-  }, []);
+  // Terminal ID estable y permanente para este dispositivo (nunca cambia entre recargas)
+  const terminalName = useMemo(() => getTerminalId(), []);
+
   const token = localStorage.getItem("token") || "";
   
   const comanderaBloqueada = useMemo(() => {
@@ -152,8 +147,9 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
     "Authorization": `Bearer ${token}`,
     "empresa": infoPuntoVenta?.PveIdStEmpresa || "02",
     "bodega": String(infoPuntoVenta?.PveIdInBodega || "1"),
-    "punto": String(infoPuntoVenta?.PveIdInPuntoVenta || "5")
-  }), [token, infoPuntoVenta]);
+    "punto": String(infoPuntoVenta?.PveIdInPuntoVenta || "5"),
+    "terminal": terminalName
+  }), [token, infoPuntoVenta, terminalName]);
 
   // Variables de estado
   const [mesa, setMesa] = useState("");
@@ -218,7 +214,9 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
       });
       if (resp.ok) {
         const resData = await resp.json();
-        setLineas(resData.body || []);
+        const lista: { id: number; descripcion: string }[] = resData.body || [];
+        lista.sort((a, b) => (a.descripcion || "").localeCompare(b.descripcion || "", "es", { sensitivity: "base" }));
+        setLineas(lista);
       }
     } catch (e) {
       console.error("Error loading product lines", e);
@@ -249,7 +247,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
   useEffect(() => {
     const handleSendBeacon = () => {
       const target = mesaRef.current || ordenIdRef.current;
-      const term = localStorage.getItem("terminal") || "TERMINAL 1";
+      const term = getTerminalId();
       let info: any = {};
       try {
         info = JSON.parse(localStorage.getItem("infoPuntoVenta") || "{}");
@@ -631,72 +629,19 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
         const comanda = resData.body;
         
         if (comanda) {
-          setMesa(comanda.OpeStMesa || mesa.trim());
-          setOrdenId(comanda.OpeIdInOrdenPedido);
-          setNumPersonas(comanda.OpeInNumPersonas || 1);
-          
-          if (comanda.OpeIdStVendedor) {
-            const waiterInfo = {
-              id: comanda.OpeIdStVendedor,
-              nombre: comanda.NombreVendedor || "Mesero Cargado",
-              codigo: comanda.CodigoVendedor
-            };
-            setMesero(waiterInfo);
-            const displayVal = waiterInfo.codigo 
-              ? `${waiterInfo.codigo} - ${waiterInfo.nombre.toUpperCase()}`
-              : `${waiterInfo.id} - ${waiterInfo.nombre.toUpperCase()}`;
-            setMeseroBusqueda(displayVal);
-          }
-
-          // Poblar los elementos del carrito
-          const itemsFormateados = (comanda.productos || []).map((p: any) => {
-            const adicionales = (p.adicionales || []).map((ad: any) => ({
-              ApmIdInProducto: ad.ApmIdInProducto,
-              ProStDescripcion: ad.ProStDescripcion,
-              precioVenta: ad.precioVenta,
-              cantidad: ad.cantidad || 1
-            }));
-
-            const sidesKey = adicionales
-              .map((ad: any) => ad.ApmIdInProducto)
-              .sort()
-              .join(",");
-            const idUnicoCart = `${p.ProIdInProducto}_${sidesKey}_imp_${p.MopInItem || Math.random()}`;
-            const descCompleta = p.ProStDescripcion || "";
-            const parts = descCompleta.split(" - ");
-            const nombreOriginal = parts[0];
-            const observacion = parts.slice(1).join(" - ");
-
-            return {
-              idUnicoCart,
-              ProIdInProducto: p.ProIdInProducto,
-              ProStDescripcion: nombreOriginal,
-              precioVenta: p.valor,
-              cantidad: p.cantidad,
-              ProIdInUnidadVenta: p.MopIdInUnidadVenta || 1,
-              ProInCosto: p.MopInCosto || 0,
-              ProInIvaVenta: Number(p.ProInIvaVenta) || 0,
-              ProInPorcentajeImpoconsumo: Number(p.ProInPorcentajeImpoconsumo) || 0,
-              ProStIvaIncluido: p.ProStIvaIncluido !== undefined ? p.ProStIvaIncluido : '1',
-              MopStImpreso: String(p.MopStImpreso || '0'),
-              ImpNombre1: p.ImpNombre1 || "Comanda General",
-              adicionales,
-              observacion: observacion || ""
-            };
-          });
-
-          setCarrito(itemsFormateados);
-          setCabeceraConfirmada(true);
-          setVistaMovil("productos");
+          // Si la mesa ya tiene una comanda abierta, rechazar la recuperación automática
+          // y exigir al usuario elegir otro nombre o usar Comandas Abiertas
+          await liberarMesaActual(mesa.trim());
+          setMesa("");
+          setOrdenId(null);
+          setCabeceraConfirmada(false);
 
           Swal.fire({
-            icon: "info",
-            title: "Orden Cargada",
-            text: `Se recuperó el pedido abierto #${comanda.OpeIdStDocumento} para la Mesa ${comanda.OpeStMesa || mesa}`,
-            timer: 2000,
-            showConfirmButton: false,
-            toast: true,
-            position: "top-end"
+            icon: "warning",
+            title: "Mesa Ocupada",
+            text: `La mesa "${comanda.OpeStMesa || mesa.trim()}" ya tiene una comanda abierta (Orden #${comanda.OpeIdStDocumento}). Para modificarla, búsquela en "Comandas Abiertas" o ingrese un nombre de mesa diferente.`,
+            confirmButtonColor: "#e31b23",
+            confirmButtonText: "Entendido"
           });
         }
       } else if (resp.status === 404) {
@@ -1585,6 +1530,21 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
       return;
     }
 
+    // Verificar si hay productos nuevos por imprimir o cancelaciones de impresos
+    const hayNuevosSinImprimir = carrito.some(item => String(item.MopStImpreso || '0') !== '1' && !item.esEliminado);
+    const hayEliminadosPreviamenteImpresos = carrito.some(item => Boolean(item.esEliminado) && String(item.MopStImpreso || '0') === '1');
+
+    if (ordenId && !hayNuevosSinImprimir && !hayEliminadosPreviamenteImpresos) {
+      Swal.fire({
+        icon: "info",
+        title: "No hay productos nuevos para imprimir",
+        text: "Todos los productos de este pedido ya fueron enviados e impresos en comanda anteriormente.",
+        confirmButtonColor: "#e31b23",
+        confirmButtonText: "Entendido"
+      });
+      return;
+    }
+
     Swal.fire({
       title: ordenId ? "Actualizando Pedido" : "Procesando Pedido",
       text: "Por favor espera un momento...",
@@ -2282,7 +2242,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
           ) : (
             <>
               <div className="co-search-bar mb-2" style={{ opacity: infoSuperiorCompleta ? 1 : 0.6 }}>
-                <FiSearch size={16} />
+                <FiSearch size={18} />
                 <input
                   type="text"
                   value={busquedaProducto}

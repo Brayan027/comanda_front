@@ -2,7 +2,8 @@ import { useEffect, useState, useMemo } from "react";
 import { FiLayers, FiSearch, FiEdit3, FiChevronLeft, FiChevronRight, FiLock, FiArrowLeft, FiUser } from "react-icons/fi";
 import { Spinner, Badge } from "react-bootstrap";
 import Swal from "sweetalert2";
-import { API_BASE_URL, socket } from "../config/api";
+import { API_BASE_URL, socket, getTerminalId } from "../config/api";
+
 import "../styles/crear-ordenes.css";
 
 interface ActiveOrder {
@@ -41,14 +42,9 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
 
   const token = localStorage.getItem("token") || "";
 
-  const terminalActual = useMemo(() => {
-    let term = localStorage.getItem("terminal");
-    if (!term) {
-      term = "TERMINAL 1";
-      localStorage.setItem("terminal", term);
-    }
-    return term;
-  }, []);
+  // Terminal ID estable y permanente para este dispositivo (nunca cambia entre recargas)
+  const terminalActual = useMemo(() => getTerminalId(), []);
+
 
   const headers = useMemo(() => ({
     "Content-Type": "application/json",
@@ -59,9 +55,9 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
     "terminal": terminalActual
   }), [token, infoPuntoVenta, terminalActual]);
 
-  const cargarOrdenes = async () => {
+  const cargarOrdenes = async (mostrarCargando = true) => {
     try {
-      setCargando(true);
+      if (mostrarCargando) setCargando(true);
       const resp = await fetch(`${API_BASE_URL}/ordenes/activas`, {
         method: "GET",
         headers
@@ -73,17 +69,26 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
     } catch (e) {
       console.error("Error al cargar ordenes abiertas", e);
     } finally {
-      setCargando(false);
+      if (mostrarCargando) setCargando(false);
     }
   };
 
+  const [mesaVerificando, setMesaVerificando] = useState<string | null>(null);
+
   const handleIntentarEditar = async (orden: ActiveOrder) => {
+    const mesaId = orden.OpeStMesa;
+    if (mesaVerificando === mesaId) return; // Evitar doble click
+
     try {
+      setMesaVerificando(mesaId);
+
+      // Solicitar acceso exclusivo a la mesa directamente en el backend
+      // El backend garantiza atomicidad con mutex + transacción SELECT FOR UPDATE
       const resp = await fetch(`${API_BASE_URL}/ordenes/mesa/abrir`, {
         method: "POST",
         headers,
         body: JSON.stringify({
-          mesa: orden.OpeStMesa,
+          mesa: mesaId,
           terminal: terminalActual
         })
       });
@@ -104,33 +109,61 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
 
       const resData = await resp.json();
       if (!resp.ok || resData.locked) {
+        const terminalBloqueo = resData.terminal || "otro dispositivo";
         Swal.fire({
           icon: "warning",
-          title: "Mesa Ocupada",
-          text: resData.mensaje || "La mesa ya se encuentra abierta en otro dispositivo",
-          confirmButtonColor: "#ef4444"
+          title: "🔒 Mesa Ocupada",
+          html: `La mesa ya está siendo editada por <b>${terminalBloqueo}</b>.<br/>No puedes editarla al mismo tiempo.`,
+          confirmButtonColor: "#e31b23",
+          confirmButtonText: "Entendido"
         });
         return;
       }
 
+      // Acceso concedido → navegar al editor
       onEditar(orden.OpeIdInOrdenPedido);
     } catch (e) {
-      console.error("Error al abrir/bloquear mesa:", e);
+      console.error("Error al verificar/bloquear mesa:", e);
+      // En caso de error de red, permitir acceso para no bloquear la operación
       onEditar(orden.OpeIdInOrdenPedido);
+    } finally {
+      setMesaVerificando(null);
     }
   };
 
+
   useEffect(() => {
-    cargarOrdenes();
+    cargarOrdenes(true);
 
     const onActualizar = () => {
-      cargarOrdenes();
+      cargarOrdenes(false);
     };
 
+    // Escuchar evento genérico de actualización de órdenes
     socket.on("ordenes_actualizadas", onActualizar);
+
+    // Escuchar evento específico de bloqueo/desbloqueo de mesa
+    // Actualiza solo la orden afectada sin recargar toda la lista → instantáneo
+    const onMesaBloqueada = (data: { mesa: string; terminal: string | null; bloqueada: boolean; evento: string }) => {
+      if (!data?.mesa) return;
+      const mesaEvento = data.mesa.trim().toUpperCase();
+      setOrdenes(prev => prev.map(o => {
+        if (o.OpeStMesa.trim().toUpperCase() === mesaEvento) {
+          return {
+            ...o,
+            OpeStMesaAbierta: data.bloqueada ? '1' : '0',
+            OpeStTerminal: data.bloqueada ? (data.terminal || '') : ''
+          };
+        }
+        return o;
+      }));
+    };
+
+    socket.on("mesa_bloqueada", onMesaBloqueada);
 
     return () => {
       socket.off("ordenes_actualizadas", onActualizar);
+      socket.off("mesa_bloqueada", onMesaBloqueada);
     };
   }, [headers]);
 
@@ -275,8 +308,9 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
               <div className="d-block d-md-none">
                 {ordenesPaginadas.map((o) => {
                   const estaAbiertaEnOtraTerminal = String(o.OpeStMesaAbierta) === '1' && 
-                    o.OpeStTerminal && 
-                    o.OpeStTerminal.trim().toUpperCase() !== terminalActual.trim().toUpperCase();
+                    (!o.OpeStTerminal || o.OpeStTerminal.trim().toUpperCase() !== terminalActual.trim().toUpperCase());
+
+                  const estaVerificando = mesaVerificando === o.OpeStMesa;
 
                   const nombreMesaFormateado = o.OpeStMesa?.trim().toLowerCase().startsWith("mesa") 
                     ? o.OpeStMesa.trim() 
@@ -285,22 +319,25 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
                   return (
                     <div
                       key={o.OpeIdInOrdenPedido}
-                      onClick={() => handleIntentarEditar(o)}
+                      onClick={() => !estaVerificando && handleIntentarEditar(o)}
                       className="card p-3 border"
                       style={{
                         borderRadius: "12px",
-                        background: "#ffffff",
-                        borderColor: "#e2e8f0",
+                        background: estaAbiertaEnOtraTerminal ? "#fffbeb" : "#ffffff",
+                        borderColor: estaAbiertaEnOtraTerminal ? "#fbbf24" : "#e2e8f0",
                         marginBottom: "14px",
-                        boxShadow: "0 2px 6px rgba(15, 23, 42, 0.05)",
-                        cursor: "pointer",
-                        transition: "all 0.15s ease-in-out"
+                        boxShadow: estaAbiertaEnOtraTerminal 
+                          ? "0 2px 8px rgba(251, 191, 36, 0.2)" 
+                          : "0 2px 6px rgba(15, 23, 42, 0.05)",
+                        cursor: estaVerificando ? "wait" : "pointer",
+                        transition: "all 0.15s ease-in-out",
+                        opacity: estaVerificando ? 0.75 : 1
                       }}
                     >
                       {/* Fila Superior: Nombre de Mesa + Precio Destacado */}
                       <div className="d-flex align-items-center justify-content-between mb-2">
                         <div className="d-flex align-items-center gap-2" style={{ minWidth: 0 }}>
-                          <span className="fw-extrabold text-dark" style={{ fontSize: "0.95rem" }}>
+                          <span className="fw-bold" style={{ fontSize: "0.92rem", color: "#334155" }}>
                             {nombreMesaFormateado}
                           </span>
 
@@ -312,7 +349,7 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
                           )}
                         </div>
 
-                        <span className="fw-bold" style={{ fontSize: "1rem", color: "#e31b23" }}>
+                        <span className="fw-bold" style={{ fontSize: "0.95rem", color: "#0f172a" }}>
                           {formatMoneda(o.OpeInValor)}
                         </span>
                       </div>
@@ -321,26 +358,31 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
                       <div className="d-flex align-items-center justify-content-between pt-2 border-top" style={{ borderColor: "#f1f5f9" }}>
                         <div className="d-flex align-items-center gap-1.5 text-secondary" style={{ fontSize: "0.78rem", minWidth: 0, flex: 1, paddingRight: "8px" }}>
                           <FiUser size={13} className="text-muted flex-shrink-0" />
-                          <span className="fw-semibold text-truncate" style={{ color: "#334155" }}>
+                          <span className="fw-semibold text-truncate" style={{ color: "#64748b" }}>
                             {o.NombreVendedor ? o.NombreVendedor.toUpperCase() : "MESERO"}
                           </span>
                         </div>
 
                         <button 
+                          disabled={estaVerificando}
                           className={`btn btn-sm ${estaAbiertaEnOtraTerminal ? "btn-outline-warning text-dark" : "btn-danger"} py-1 px-3 d-inline-flex align-items-center gap-1.5 fw-bold flex-shrink-0`}
-                          onClick={(e) => { e.stopPropagation(); handleIntentarEditar(o); }}
+                          onClick={(e) => { e.stopPropagation(); if (!estaVerificando) handleIntentarEditar(o); }}
                           style={{ 
                             borderRadius: "7px", 
                             fontSize: "0.78rem", 
                             height: "30px",
-                            background: estaAbiertaEnOtraTerminal ? "transparent" : "#e31b23",
-                            border: estaAbiertaEnOtraTerminal ? "1px solid #ffc107" : "none",
-                            color: estaAbiertaEnOtraTerminal ? "#212529" : "#ffffff",
-                            boxShadow: estaAbiertaEnOtraTerminal ? "none" : "0 2px 5px rgba(227, 27, 35, 0.22)"
+                            background: estaVerificando ? "#94a3b8" : (estaAbiertaEnOtraTerminal ? "transparent" : "#e31b23"),
+                            border: estaAbiertaEnOtraTerminal && !estaVerificando ? "1px solid #ffc107" : "none",
+                            color: estaVerificando ? "#fff" : (estaAbiertaEnOtraTerminal ? "#212529" : "#ffffff"),
+                            boxShadow: estaVerificando || estaAbiertaEnOtraTerminal ? "none" : "0 2px 5px rgba(227, 27, 35, 0.22)",
+                            cursor: estaVerificando ? "wait" : "pointer"
                           }}
                         >
-                          {estaAbiertaEnOtraTerminal ? <FiLock size={12} /> : <FiEdit3 size={12} />}
-                          <span>Editar</span>
+                          {estaVerificando 
+                            ? <Spinner animation="border" size="sm" style={{ width: "12px", height: "12px", borderWidth: "2px" }} />
+                            : (estaAbiertaEnOtraTerminal ? <FiLock size={12} /> : <FiEdit3 size={12} />)
+                          }
+                          <span>{estaVerificando ? "Verificando..." : "Editar"}</span>
                         </button>
                       </div>
                     </div>
@@ -353,31 +395,34 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
                 <table className="table align-middle m-0" style={{ borderCollapse: "separate", borderSpacing: "0" }}>
                   <thead>
                     <tr style={{ background: "#f8fafc", borderBottom: "2px solid #e2e8f0" }}>
-                      <th style={{ padding: "12px 16px", width: "15%", fontSize: "0.75rem", textTransform: "uppercase", fontWeight: "700", color: "#475569", borderTopLeftRadius: "8px", borderBottomLeftRadius: "8px" }}>Mesa</th>
-                      <th style={{ padding: "12px 16px", width: "50%", fontSize: "0.75rem", textTransform: "uppercase", fontWeight: "700", color: "#475569" }}>Nombre del mesero</th>
-                      <th style={{ padding: "12px 16px", width: "25%", fontSize: "0.75rem", textTransform: "uppercase", fontWeight: "700", color: "#475569", textAlign: "right" }}>Vr. cuenta</th>
-                      <th style={{ padding: "12px 16px", width: "10%", fontSize: "0.75rem", textTransform: "uppercase", fontWeight: "700", color: "#475569", textAlign: "center", borderTopRightRadius: "8px", borderBottomRightRadius: "8px" }}>Acción</th>
+                      <th style={{ padding: "12px 16px", width: "15%", fontSize: "0.75rem", textTransform: "uppercase", fontWeight: "700", color: "#64748b", borderTopLeftRadius: "8px", borderBottomLeftRadius: "8px" }}>Mesa</th>
+                      <th style={{ padding: "12px 16px", width: "50%", fontSize: "0.75rem", textTransform: "uppercase", fontWeight: "700", color: "#64748b" }}>Nombre del mesero</th>
+                      <th style={{ padding: "12px 16px", width: "25%", fontSize: "0.75rem", textTransform: "uppercase", fontWeight: "700", color: "#64748b", textAlign: "right" }}>Vr. cuenta</th>
+                      <th style={{ padding: "12px 16px", width: "10%", fontSize: "0.75rem", textTransform: "uppercase", fontWeight: "700", color: "#64748b", textAlign: "center", borderTopRightRadius: "8px", borderBottomRightRadius: "8px" }}>Acción</th>
                     </tr>
                   </thead>
                   <tbody>
                     {ordenesPaginadas.map((o) => {
                       const estaAbiertaEnOtraTerminal = String(o.OpeStMesaAbierta) === '1' && 
-                        o.OpeStTerminal && 
-                        o.OpeStTerminal.trim().toUpperCase() !== terminalActual.trim().toUpperCase();
+                        (!o.OpeStTerminal || o.OpeStTerminal.trim().toUpperCase() !== terminalActual.trim().toUpperCase());
+
+                      const estaVerificando = mesaVerificando === o.OpeStMesa;
 
                       return (
                         <tr 
                           key={o.OpeIdInOrdenPedido}
-                          onClick={() => handleIntentarEditar(o)}
+                          onClick={() => !estaVerificando && handleIntentarEditar(o)}
                           style={{ 
-                            cursor: "pointer", 
+                            cursor: estaVerificando ? "wait" : "pointer", 
                             borderBottom: "1px solid #f1f5f9",
-                            transition: "background-color 0.15s ease-in-out"
+                            transition: "background-color 0.15s ease-in-out",
+                            background: estaAbiertaEnOtraTerminal ? "#fffbeb" : "#ffffff",
+                            opacity: estaVerificando ? 0.75 : 1
                           }}
-                          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#fdf2f2"; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "#ffffff"; }}
+                          onMouseEnter={(e) => { if (!estaVerificando) e.currentTarget.style.backgroundColor = estaAbiertaEnOtraTerminal ? "#fef3c7" : "#f8fafc"; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = estaAbiertaEnOtraTerminal ? "#fffbeb" : "#ffffff"; }}
                         >
-                          <td style={{ padding: "14px 16px", fontWeight: "700", color: "#1e293b" }}>
+                          <td style={{ padding: "14px 16px", fontWeight: "600", color: "#334155" }}>
                             <div className="d-flex align-items-center gap-2">
                               <span>{o.OpeStMesa}</span>
                               {estaAbiertaEnOtraTerminal && (
@@ -388,27 +433,32 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
                               )}
                             </div>
                           </td>
-                          <td style={{ padding: "14px 16px", color: "#334155", fontWeight: "500" }}>
+                          <td style={{ padding: "14px 16px", color: "#64748b", fontWeight: "500" }}>
                             {o.NombreVendedor ? o.NombreVendedor.toUpperCase() : "MESERO"}
                           </td>
-                          <td style={{ padding: "14px 16px", textAlign: "right", fontWeight: "800", color: "#e31b23", fontSize: "0.95rem" }}>
+                          <td style={{ padding: "14px 16px", textAlign: "right", fontWeight: "700", color: "#0f172a", fontSize: "0.92rem" }}>
                             {formatMoneda(o.OpeInValor)}
                           </td>
                           <td style={{ padding: "14px 16px", textAlign: "center" }}>
                             <button 
-                              className={`btn btn-sm ${estaAbiertaEnOtraTerminal ? "btn-outline-warning text-dark" : "btn-danger"} py-1 px-3 d-inline-flex align-items-center gap-1.5 fw-bold`}
-                              onClick={(e) => { e.stopPropagation(); handleIntentarEditar(o); }}
+                              disabled={estaVerificando}
+                              className={`btn btn-sm ${estaAbiertaEnOtraTerminal && !estaVerificando ? "btn-outline-warning text-dark" : "btn-danger"} py-1 px-3 d-inline-flex align-items-center gap-1.5 fw-bold`}
+                              onClick={(e) => { e.stopPropagation(); if (!estaVerificando) handleIntentarEditar(o); }}
                               style={{ 
                                 borderRadius: "6px", 
                                 fontSize: "0.78rem",
-                                background: estaAbiertaEnOtraTerminal ? "transparent" : "#e31b23",
-                                border: estaAbiertaEnOtraTerminal ? "1px solid #ffc107" : "none",
-                                color: estaAbiertaEnOtraTerminal ? "#212529" : "#ffffff",
-                                boxShadow: estaAbiertaEnOtraTerminal ? "none" : "0 2px 4px rgba(227, 27, 35, 0.25)"
+                                background: estaVerificando ? "#94a3b8" : (estaAbiertaEnOtraTerminal ? "transparent" : "#e31b23"),
+                                border: estaAbiertaEnOtraTerminal && !estaVerificando ? "1px solid #ffc107" : "none",
+                                color: estaVerificando ? "#fff" : (estaAbiertaEnOtraTerminal ? "#212529" : "#ffffff"),
+                                boxShadow: estaVerificando || estaAbiertaEnOtraTerminal ? "none" : "0 2px 4px rgba(227, 27, 35, 0.25)",
+                                cursor: estaVerificando ? "wait" : "pointer"
                               }}
                             >
-                              {estaAbiertaEnOtraTerminal ? <FiLock size={12} /> : <FiEdit3 size={12} />}
-                              <span>Editar</span>
+                              {estaVerificando 
+                                ? <Spinner animation="border" size="sm" style={{ width: "12px", height: "12px", borderWidth: "2px" }} />
+                                : (estaAbiertaEnOtraTerminal ? <FiLock size={12} /> : <FiEdit3 size={12} />)
+                              }
+                              <span>{estaVerificando ? "Verificando..." : "Editar"}</span>
                             </button>
                           </td>
                         </tr>

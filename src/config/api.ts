@@ -34,6 +34,72 @@ export const socket: Socket = io(getSocketUrl(), {
   reconnectionDelay: 1000,
 });
 
+// Registrar el terminal en el servidor al conectar/reconectar
+// Esto permite al servidor liberar mesas automáticamente si el socket se cae
+function registrarTerminalEnServidor() {
+  // Usar 'terminal' directamente (es el que el usuario configuró y el que el backend usa)
+  const termId = localStorage.getItem("terminal");
+  if (!termId || termId === "TERMINAL 1") return;
+  let empresa = "02";
+  try {
+    const info = JSON.parse(localStorage.getItem("infoPuntoVenta") || "{}");
+    empresa = info?.PveIdStEmpresa || "02";
+  } catch { /* ignorar */ }
+  socket.emit("registrar_terminal", { terminal: termId, empresa });
+}
+
+socket.on("connect", () => {
+  registrarTerminalEnServidor();
+});
+
+socket.on("reconnect", () => {
+  registrarTerminalEnServidor();
+});
+
+
+/**
+ * Obtiene el ID de terminal de este dispositivo.
+ * PRIORIDAD:
+ *   1. El valor que el usuario ya tenia configurado en 'terminal' (respetarlo siempre)
+ *   2. Solo si no hay nada o era 'TERMINAL 1', generar uno automático y guardarlo
+ * NUNCA sobreescribe un terminal que el usuario configuró manualmente.
+ */
+export function getTerminalId(): string {
+  let deviceId = localStorage.getItem("device_unique_id");
+  if (!deviceId) {
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const prefix = isMobile ? "MOV" : "POS";
+    let uid: string;
+    try {
+      uid = crypto.randomUUID().replace(/-/g, "").substring(0, 4).toUpperCase();
+    } catch {
+      uid = Date.now().toString(36).toUpperCase().substring(0, 4);
+    }
+    deviceId = `${prefix}_${uid}`;
+    localStorage.setItem("device_unique_id", deviceId);
+  }
+
+  let tabId = sessionStorage.getItem("tab_session_id");
+  if (!tabId) {
+    try {
+      tabId = crypto.randomUUID().replace(/-/g, "").substring(0, 4).toUpperCase();
+    } catch {
+      tabId = Math.random().toString(36).substring(2, 6).toUpperCase();
+    }
+    sessionStorage.setItem("tab_session_id", tabId);
+  }
+
+  const terminalUsuario = (localStorage.getItem("terminal") || "TERMINAL 1").trim();
+  const fullTag = `${deviceId}-${tabId}`;
+
+  if (!terminalUsuario.includes(fullTag)) {
+    return `${terminalUsuario} (${fullTag})`;
+  }
+
+  return terminalUsuario;
+}
+
+
 // --- ENDPOINTS ---
 export const LOGIN_URL = join(BASE, "login");
 

@@ -8,7 +8,7 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import { FiHome, FiPlus, FiLayers, FiChevronRight } from "react-icons/fi";
 import type { MenuKey } from "./components/layout/Sidebar";
-import { API_BASE_URL, socket } from "./config/api";
+import { API_BASE_URL, socket, getTerminalId } from "./config/api";
 
 export default function App() {
   const [logueado, setLogueado] = useState(() => {
@@ -96,11 +96,7 @@ export default function App() {
       }
     }
 
-    let terminalName = localStorage.getItem("terminal");
-    if (!terminalName) {
-      terminalName = "TERMINAL 1";
-      localStorage.setItem("terminal", terminalName);
-    }
+    const terminalName = getTerminalId();
     headers["terminal"] = terminalName;
 
     fetch(`${API_BASE_URL}/ordenes/mesa/cerrar-terminal`, {
@@ -172,21 +168,11 @@ export default function App() {
     socket.on("fecha_trabajo_actualizada", handleFechaTrabajoActualizada);
     socket.on("ordenes_actualizadas", handleOrdenesActualizadas);
 
-    // Solicitar fecha de trabajo mediante Socket al conectar y mantener intervalo de refresco automático
+    // Solicitar fecha de trabajo mediante Socket al conectar
     socket.emit("obtener_fecha_trabajo", {
       empresa: headers["empresa"] || "02",
       punto: headers["punto"] || "5"
     });
-
-    const intervalId = setInterval(() => {
-      fetchFechaTrabajo();
-      if (socket.connected) {
-        socket.emit("obtener_fecha_trabajo", {
-          empresa: headers["empresa"] || "02",
-          punto: headers["punto"] || "5"
-        });
-      }
-    }, 4000);
 
     const handleSendBeaconGlobal = () => {
       const term = localStorage.getItem("terminal") || "TERMINAL 1";
@@ -211,7 +197,6 @@ export default function App() {
     window.addEventListener("beforeunload", handleSendBeaconGlobal);
 
     return () => {
-      clearInterval(intervalId);
       socket.off("fecha_trabajo_actualizada", handleFechaTrabajoActualizada);
       socket.off("ordenes_actualizadas", handleOrdenesActualizadas);
       window.removeEventListener("pagehide", handleSendBeaconGlobal);
