@@ -18,7 +18,7 @@ import { Modal, Button, Badge } from "react-bootstrap";
 import Swal from "sweetalert2";
 import { API_BASE_URL, sanitizarError, getTerminalId } from "../config/api";
 import "../styles/crear-ordenes.css";
-import { descargarPDF, compartirPDF } from "../utils/pdf";
+
 
 // Interfaces de TypeScript
 interface Waiter {
@@ -1321,107 +1321,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
 
 
 
-  const descargarFacturasPDF = async (nroOrden: string | number, customTicketOrden?: any, customTicketEmpresa?: any) => {
-    try {
-      Swal.fire({
-        title: "Generando PDF de facturas...",
-        text: "Por favor espera un momento...",
-        allowOutsideClick: false,
-        didOpen: () => {
-          Swal.showLoading();
-        }
-      });
 
-      try {
-        await fetch(`${API_BASE_URL}/ordenes/${nroOrden}/marcar-impreso`, {
-          method: "POST",
-          headers
-        });
-      } catch (e) {
-        console.error("Error al marcar comanda como impresa", e);
-      }
-
-      let tOrden = customTicketOrden;
-      let tEmpresa = customTicketEmpresa;
-
-      if (!tOrden) {
-        const resp = await fetch(`${API_BASE_URL}/ordenes/${nroOrden}`, { method: "GET", headers });
-        if (resp.ok) {
-          const resData = await resp.json();
-          const comanda = resData.body;
-          if (comanda) {
-            const now = new Date();
-            const fecha = now.toISOString().split('T')[0];
-            const hora = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-
-            tOrden = {
-              nro_orden: comanda.OpeIdInOrdenPedido,
-              mesa: comanda.OpeStMesa || "",
-              mesero: comanda.NombreVendedor || "VENDEDOR",
-              numPersonas: comanda.OpeInNumPersonas || 1,
-              fecha,
-              hora,
-              productos: (comanda.productos || []).map((p: any) => ({
-                cantidad: p.cantidad,
-                ProStDescripcion: p.ProStDescripcion || "",
-                precioVenta: p.valor || 0,
-                total: (p.valor || 0) * p.cantidad,
-                adicionales: (p.adicionales || []).map((ad: any) => ({
-                  ProStDescripcion: ad.ProStDescripcion || ""
-                })),
-                MopStImpreso: '1',
-                ImpNombre1: p.ImpNombre1 || "Comanda General"
-              })),
-              totales: {
-                subtotal: comanda.OpeInValor || 0,
-                iva: 0,
-                impoconsumo: 0,
-                total: comanda.OpeInValor || 0
-              }
-            };
-
-            tEmpresa = {
-              nombre: infoPuntoVenta?.gmpnomb || "DIANASIS RESTAURANTE",
-              puntoVenta: infoPuntoVenta?.PveStNombre || "COMANDERA",
-              empresaId: infoPuntoVenta?.PveIdStEmpresa || "02"
-            };
-          }
-        }
-      }
-
-      if (tOrden && tEmpresa) {
-        await descargarPDF(tOrden, tEmpresa);
-        Swal.close();
-        Swal.fire({
-          icon: "success",
-          title: "Facturas PDF Guardadas",
-          text: "Se han guardado las facturas correspondientes a cada impresora.",
-          timer: 2000,
-          showConfirmButton: false
-        });
-      } else {
-        Swal.close();
-        Swal.fire({
-          icon: "error",
-          title: "Error",
-          text: "No se pudieron obtener los datos de la orden para generar el PDF.",
-          confirmButtonColor: "#ef4444"
-        });
-      }
-    } catch (err) {
-      Swal.close();
-      console.error("Error al generar facturas PDF", err);
-      Swal.fire({
-        icon: "error",
-        title: "Error al generar PDF",
-        text: "Ocurrió un error al procesar las facturas en PDF.",
-        confirmButtonColor: "#ef4444"
-      });
-    } finally {
-      clearForm(true);
-      if (onClearInitial) onClearInitial();
-    }
-  };
 
   const reintentarImpresionManual = async (nroOrden: string | number) => {
     Swal.fire({
@@ -1459,18 +1359,13 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
           title: "No se pudo imprimir",
           text: resData.mensaje || resData.body?.error || "La impresora no respondió. Revisa la conexión e intenta de nuevo.",
           showCancelButton: true,
-          showDenyButton: true,
           confirmButtonText: "🔄 Reintentar nuevamente",
-          denyButtonText: "📄 Guardar cada factura en PDF",
           cancelButtonText: "Continuar sin imprimir",
           confirmButtonColor: "#eab308",
-          denyButtonColor: "#2563eb",
           cancelButtonColor: "#64748b"
         }).then((r) => {
           if (r.isConfirmed) {
             reintentarImpresionManual(nroOrden);
-          } else if (r.isDenied) {
-            descargarFacturasPDF(nroOrden);
           } else {
             clearForm(true);
             if (onClearInitial) onClearInitial();
@@ -1484,18 +1379,13 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
         title: "Error de Conexión",
         text: "No se pudo comunicar con el servicio de impresión.",
         showCancelButton: true,
-        showDenyButton: true,
         confirmButtonText: "🔄 Reintentar",
-        denyButtonText: "📄 Guardar cada factura en PDF",
         cancelButtonText: "Cancelar",
         confirmButtonColor: "#eab308",
-        denyButtonColor: "#2563eb",
         cancelButtonColor: "#64748b"
       }).then((r) => {
         if (r.isConfirmed) {
           reintentarImpresionManual(nroOrden);
-        } else if (r.isDenied) {
-          descargarFacturasPDF(nroOrden);
         }
       });
     }
@@ -1642,58 +1532,18 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
       if (falloImpresion) {
         const ordenActualId = resData.body.nro_orden;
 
-        const now = new Date();
-        const fecha = now.toISOString().split('T')[0];
-        const hora = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        const ticketOrden = {
-          nro_orden: ordenActualId,
-          mesa: mesa.trim(),
-          mesero: mesero?.nombre || "VENDEDOR",
-          numPersonas: Number(numPersonas) || 1,
-          fecha,
-          hora,
-          productos: carrito.map(item => ({
-            cantidad: item.cantidad,
-            ProStDescripcion: item.ProStDescripcion,
-            precioVenta: item.precioVenta,
-            total: (item.precioVenta + item.adicionales.reduce((acc, ad) => acc + ad.precioVenta, 0)) * item.cantidad,
-            adicionales: item.adicionales.map(ad => ({
-              ProStDescripcion: ad.ProStDescripcion,
-              cantidad: ad.cantidad
-            })),
-            MopStImpreso: '1',
-            ImpNombre1: item.ImpNombre1 || "Comanda General"
-          })),
-          totales: {
-            subtotal: resumenTotales.total - resumenTotales.iva - resumenTotales.impoconsumo,
-            iva: resumenTotales.iva,
-            impoconsumo: resumenTotales.impoconsumo,
-            total: resumenTotales.total
-          }
-        };
-        const ticketEmpresa = {
-          nombre: infoPuntoVenta?.gmpnomb || "DIANASIS RESTAURANTE",
-          puntoVenta: infoPuntoVenta?.PveStNombre || "COMANDERA",
-          empresaId: infoPuntoVenta?.PveIdStEmpresa || "02"
-        };
-
         Swal.fire({
           icon: "warning",
           title: "Orden Guardada en Sistema",
           html: `La orden para la <b>Mesa ${mesa}</b> (#${ordenActualId}) <b>se guardó correctamente</b>.<br/><br/><span style="color: #ef4444; font-weight: 700;">⚠️ Advertencia de Impresión:</span><br/>${impStatus.error || "La impresora no respondió."}<br/><br/>¿Qué deseas hacer con la comanda?`,
           showCancelButton: true,
-          showDenyButton: true,
           confirmButtonText: "🔄 Reintentar Impresión",
-          denyButtonText: "📄 Guardar cada factura en PDF",
           cancelButtonText: "Continuar sin imprimir",
           confirmButtonColor: "#eab308",
-          denyButtonColor: "#2563eb",
           cancelButtonColor: "#64748b"
         }).then(async (result) => {
           if (result.isConfirmed) {
             reintentarImpresionManual(ordenActualId);
-          } else if (result.isDenied) {
-            await descargarFacturasPDF(ordenActualId, ticketOrden, ticketEmpresa);
           } else {
             clearForm(true);
             if (onClearInitial) onClearInitial();
@@ -1702,76 +1552,18 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
         return;
       }
 
-      // Preparar los detalles del pedido para el ticket PDF
-      const now = new Date();
-      const fecha = now.toISOString().split('T')[0];
-      const hora = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-
-      const ticketOrden = {
-        nro_orden: resData.body.nro_orden,
-        mesa: mesa.trim(),
-        mesero: mesero?.nombre || "VENDEDOR",
-        numPersonas: Number(numPersonas) || 1,
-        fecha,
-        hora,
-        productos: carrito.map(item => ({
-          cantidad: item.cantidad,
-          ProStDescripcion: item.ProStDescripcion,
-          precioVenta: item.precioVenta,
-          total: (item.precioVenta + item.adicionales.reduce((acc, ad) => acc + ad.precioVenta, 0)) * item.cantidad,
-          adicionales: item.adicionales.map(ad => ({
-            ProStDescripcion: ad.ProStDescripcion,
-            cantidad: ad.cantidad
-          })),
-          MopStImpreso: item.MopStImpreso || '0',
-          ImpNombre1: item.ImpNombre1 || "Comanda General"
-        })),
-        totales: {
-          subtotal: resumenTotales.total - resumenTotales.iva - resumenTotales.impoconsumo,
-          iva: resumenTotales.iva,
-          impoconsumo: resumenTotales.impoconsumo,
-          total: resumenTotales.total
-        }
-      };
-
-      const ticketEmpresa = {
-        nombre: infoPuntoVenta?.gmpnomb || "DIANASIS RESTAURANTE",
-        puntoVenta: infoPuntoVenta?.PveStNombre || "COMANDERA",
-        empresaId: infoPuntoVenta?.PveIdStEmpresa || "02"
-      };
-
       Swal.fire({
         icon: "success",
         title: ordenId ? "Pedido Enviado e Impreso" : "Pedido Registrado e Impreso",
         text: `Mesa: ${mesa} - Orden: #${resData.body.nro_orden}`,
-        showCancelButton: true,
-        confirmButtonText: "Compartir Ticket",
-        cancelButtonText: "Aceptar",
-        confirmButtonColor: "#22c55e",
-        cancelButtonColor: "#3b82f6"
-      }).then(async (result) => {
-        if (result.isConfirmed) {
-          Swal.fire({
-            title: "Generando PDF...",
-            text: "Por favor espera un momento...",
-            allowOutsideClick: false,
-            didOpen: () => {
-              Swal.showLoading();
-            }
-          });
-
-          const exitoShare = await compartirPDF(ticketOrden, ticketEmpresa);
-          Swal.close();
-
-          if (!exitoShare) {
-            await descargarPDF(ticketOrden, ticketEmpresa);
-          }
-        }
-        clearForm(true);
-        liberarMesaActual(mesa);
-        localStorage.removeItem("comanda_draft_cart");
-        if (onClearInitial) onClearInitial();
+        timer: 1500,
+        showConfirmButton: false
       });
+
+      clearForm(true);
+      liberarMesaActual(mesa);
+      localStorage.removeItem("comanda_draft_cart");
+      if (onClearInitial) onClearInitial();
     } catch (err) {
       Swal.close();
       const msg = err instanceof Error ? err.message : "Error al guardar";
