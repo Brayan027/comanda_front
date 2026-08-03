@@ -899,3 +899,44 @@
     margin-bottom: 8px !important;
   }
 }
+
+/* Animación de Parpadeo Destacado durante 5 segundos para nuevos pedidos */
+@keyframes parpadeoNuevo {
+  0%, 100% {
+    background-color: #fffdf5;
+    border-color: #fde68a;
+    box-shadow: 0 2px 6px rgba(251, 191, 36, 0.2);
+  }
+  50% {
+    background-color: #fee2e2;
+    border-color: #ef4444;
+    box-shadow: 0 0 16px rgba(239, 68, 68, 0.6);
+  }
+}
+
+.tarjeta-pedido-nuevo {
+  animation: parpadeoNuevo 1s infinite ease-in-out !important;
+}
+
+/* Animación de Latido (crece y se encoge) para el Badge del Contador de Pedidos Pendientes */
+@keyframes latidoBadge {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.25);
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.85);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.badge-latido {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  animation: latidoBadge 1s infinite ease-in-out !important;
+  transform-origin: center center !important;
+}
+

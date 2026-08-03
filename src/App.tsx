@@ -4,11 +4,15 @@ import Login from "./pages/Login";
 import Sidebar from "./components/layout/Sidebar";
 import CrearOrdenes from "./pages/CrearOrdenes";
 import OrdenesOpen from "./pages/OrdenesOpen";
+import PedidosPendientes from "./pages/PedidosPendientes";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
-import { FiHome, FiPlus, FiLayers, FiChevronRight } from "react-icons/fi";
+import { FiHome, FiPlus, FiLayers, FiChevronRight, FiClock } from "react-icons/fi";
+import Swal from "sweetalert2";
 import type { MenuKey } from "./components/layout/Sidebar";
-import { API_BASE_URL, socket, getTerminalId } from "./config/api";
+import { API_BASE_URL, socket, getTerminalId, isMobileOrTabletDevice, isMandatoryPrintEnabled } from "./config/api";
+
+import { playNewOrderSound } from "./utils/audioAlert";
 
 export default function App() {
   const [logueado, setLogueado] = useState(() => {
@@ -20,8 +24,52 @@ export default function App() {
   const [ordenIdEdicion, setOrdenIdEdicion] = useState<string | number | null>(null);
   const [comandaResetKey, setComandaResetKey] = useState(0);
   const [fechaTrabajoRaw, setFechaTrabajoRaw] = useState<string | null>(null);
+  const [cantPendientes, setCantPendientes] = useState(0);
+  const [esMovilOTablet, setEsMovilOTablet] = useState(() => isMobileOrTabletDevice());
+
+  useEffect(() => {
+    const handleResize = () => setEsMovilOTablet(isMobileOrTabletDevice());
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Redirección segura de menús: En Móvil/Tablet o si esObligatorio siempre usa 'ordenes' (Órdenes abiertas)
+  useEffect(() => {
+    if (isMandatoryPrintEnabled() || esMovilOTablet) {
+      if (menuActivo === "pendientes") {
+        setMenuActivo("ordenes");
+      }
+    } else {
+      if (menuActivo === "ordenes") {
+        setMenuActivo("pendientes");
+      }
+    }
+  }, [esMovilOTablet, menuActivo]);
+
+
+
+
+  // Alarma sonora continua mientras existan pedidos sin procesar
+  useEffect(() => {
+    if (!logueado || cantPendientes <= 0) return;
+
+    const soundOn = localStorage.getItem("sonidoPendientesHabilitado") !== "false";
+    if (soundOn) {
+      playNewOrderSound();
+    }
+
+    const intervalId = setInterval(() => {
+      const soundActive = localStorage.getItem("sonidoPendientesHabilitado") !== "false";
+      if (soundActive) {
+        playNewOrderSound();
+      }
+    }, 3500);
+
+    return () => clearInterval(intervalId);
+  }, [logueado, cantPendientes]);
 
   const navCheckRef = useRef<((() => Promise<boolean>)) | null>(null);
+
 
   const solicitarConfirmacionNavegacion = async (): Promise<boolean> => {
     if (navCheckRef.current) {
@@ -105,7 +153,21 @@ export default function App() {
       body: JSON.stringify({ terminal: terminalName })
     }).catch(err => console.error("Error al limpiar mesas de terminal:", err));
 
+    const fetchConfigApp = () => {
+      fetch(`${API_BASE_URL}/ordenes/config-app`, { headers })
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.body && data.body.obligatorioImprimir) {
+            localStorage.setItem("obligatorioImprimir", String(data.body.obligatorioImprimir));
+          }
+        })
+        .catch(err => console.error("Error al obtener config-app:", err));
+    };
+
+    fetchConfigApp();
+
     const fetchFechaTrabajo = () => {
+
       fetch(`${API_BASE_URL}/ordenes/fecha-trabajo`, { headers })
         .then(res => res.json())
         .then(data => {
@@ -130,6 +192,10 @@ export default function App() {
             } else {
               localStorage.removeItem("comanderaBloqueada");
             }
+            if (data.body.obligatorioImprimir !== undefined) {
+              localStorage.setItem("obligatorioImprimir", String(data.body.obligatorioImprimir));
+            }
+
           }
         })
         .catch(err => {
@@ -137,10 +203,42 @@ export default function App() {
         });
     };
 
+    const fetchPendientesCount = () => {
+      fetch(`${API_BASE_URL}/ordenes/pendientes`, { headers })
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.body) {
+            const count = Array.isArray(data.body) ? data.body.length : 0;
+            setCantPendientes(prev => {
+              if (count > prev && prev > 0) {
+                const soundOn = localStorage.getItem("sonidoPendientesHabilitado") !== "false";
+                if (soundOn) {
+                  playNewOrderSound();
+                }
+
+                Swal.fire({
+                  icon: "info",
+                  title: "¡Nuevo pedido recibido!",
+                  text: `Tienes ${count} comanda${count > 1 ? "s" : ""} pendiente${count > 1 ? "s" : ""} por confirmar.`,
+                  toast: true,
+                  position: "top-end",
+                  showConfirmButton: false,
+                  timer: 3500,
+                  timerProgressBar: true
+                });
+              }
+              return count;
+            });
+          }
+        })
+        .catch(err => console.error("Error al consultar conteo de pendientes:", err));
+    };
+
     fetchFechaTrabajo();
+    fetchPendientesCount();
 
     // Listener de socket para recibir actualización de fecha de trabajo en tiempo real
-    const handleFechaTrabajoActualizada = (data: { fecha?: string; bloqueada?: boolean }) => {
+    const handleFechaTrabajoActualizada = (data: { fecha?: string; bloqueada?: boolean; obligatorioImprimir?: boolean }) => {
       if (data?.fecha) {
         setFechaTrabajoRaw(data.fecha);
         try {
@@ -159,14 +257,20 @@ export default function App() {
       } else {
         localStorage.removeItem("comanderaBloqueada");
       }
+      if (data?.obligatorioImprimir !== undefined) {
+        localStorage.setItem("obligatorioImprimir", String(data.obligatorioImprimir));
+      }
     };
+
 
     const handleOrdenesActualizadas = () => {
       fetchFechaTrabajo();
+      fetchPendientesCount();
     };
 
     socket.on("fecha_trabajo_actualizada", handleFechaTrabajoActualizada);
     socket.on("ordenes_actualizadas", handleOrdenesActualizadas);
+    socket.on("nuevo_pedido_pendiente", handleOrdenesActualizadas);
 
     // Solicitar fecha de trabajo mediante Socket al conectar
     socket.emit("obtener_fecha_trabajo", {
@@ -306,6 +410,7 @@ export default function App() {
         puntoNombre={infoPuntoVenta?.PveStNombre}
         fechaActual={fechaActual}
         terminal={localStorage.getItem("terminal") || "Terminal Desconocida"}
+        cantPendientes={cantPendientes}
       />
 
       <section className="app-content">
@@ -354,18 +459,19 @@ export default function App() {
               </header>
 
               <main className="pt-1 px-0 w-100">
-                <div className="row g-3 m-0 w-100">
-                  {/* Tarjeta Nuevo Pedido */}
-                  <div className="col-12 col-md-6 p-0 pe-md-2 mb-3 mb-md-0">
+                <div className="row g-3 m-0 w-100 align-items-stretch">
+                  {/* Tarjeta 1: Nuevo Pedido */}
+                  <div className="col-12 col-md-6 p-0 px-md-1">
                     <div
-                      className="bg-white py-3 rounded-3 border d-flex align-items-center justify-content-between cursor-pointer w-100"
+                      className="bg-white py-3 rounded-3 border d-flex align-items-center justify-content-between cursor-pointer w-100 h-100"
                       style={{ 
                         cursor: "pointer", 
                         borderColor: "#e2e8f0",
                         transition: "all 0.15s ease-in-out",
                         boxShadow: "0 1px 3px rgba(15, 23, 42, 0.02)",
-                        paddingLeft: "12px",
-                        paddingRight: "12px"
+                        paddingLeft: "14px",
+                        paddingRight: "14px",
+                        minHeight: "90px"
                       }}
                       onClick={handleNavCrearOrdenes}
                       onMouseEnter={(e) => {
@@ -398,73 +504,150 @@ export default function App() {
                           <h3 className="m-0 fw-bold" style={{ fontSize: "0.98rem", color: "#1e293b" }}>
                             Nuevo Pedido
                           </h3>
-                          <p className="m-0 text-muted" style={{ fontSize: "0.78rem", marginTop: "2px" }}>
-                            Crear y registrar un nuevo pedido para un cliente de forma rápida.
+                          <p className="m-0 text-muted" style={{ fontSize: "0.76rem", marginTop: "2px" }}>
+                            Crear y registrar un nuevo pedido para un cliente.
                           </p>
                         </div>
                       </div>
-                      <div className="text-muted ps-2">
+                      <div className="text-muted ps-2 flex-shrink-0">
                         <FiChevronRight size={18} />
                       </div>
                     </div>
                   </div>
 
-                  {/* Tarjeta Órdenes Abiertas */}
-                  <div className="col-12 col-md-6 p-0 ps-md-2">
-                    <div
-                      className="bg-white py-3 rounded-3 border d-flex align-items-center justify-content-between cursor-pointer w-100"
-                      style={{ 
-                        cursor: "pointer", 
-                        borderColor: "#e2e8f0",
-                        transition: "all 0.15s ease-in-out",
-                        boxShadow: "0 1px 3px rgba(15, 23, 42, 0.02)",
-                        paddingLeft: "12px",
-                        paddingRight: "12px"
-                      }}
-                      onClick={async () => {
-                        const puedeNavegar = await solicitarConfirmacionNavegacion();
-                        if (puedeNavegar) setMenuActivo("ordenes");
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.borderColor = "#cbd5e1";
-                        e.currentTarget.style.transform = "translateY(-2px)";
-                        e.currentTarget.style.boxShadow = "0 4px 12px rgba(15, 23, 42, 0.05)";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.borderColor = "#e2e8f0";
-                        e.currentTarget.style.transform = "none";
-                        e.currentTarget.style.boxShadow = "0 1px 3px rgba(15, 23, 42, 0.02)";
-                      }}
-                    >
-                      <div className="d-flex align-items-center gap-3">
-                        <div
-                          className="d-flex align-items-center justify-content-center"
-                          style={{
-                            width: "28px",
-                            height: "28px",
-                            borderRadius: "7px",
-                            background: "#e31b23",
-                            color: "#ffffff",
-                            flexShrink: 0,
-                            boxShadow: "0 2px 6px rgba(227, 27, 35, 0.25)"
-                          }}
-                        >
-                          <FiLayers size={14} />
+                  {/* Tarjeta 2: Órdenes Abiertas (Si es OBLIGATORIO_IMPRIMIR="SI" o si es Móvil/Tablet) */}
+                  {(isMandatoryPrintEnabled() || esMovilOTablet) && (
+                    <div className="col-12 col-md-6 p-0 px-md-1">
+                      <div
+                        className="bg-white py-3 rounded-3 border d-flex align-items-center justify-content-between cursor-pointer w-100 h-100"
+                        style={{ 
+                          cursor: "pointer", 
+                          borderColor: "#e2e8f0",
+                          transition: "all 0.15s ease-in-out",
+                          boxShadow: "0 1px 3px rgba(15, 23, 42, 0.02)",
+                          paddingLeft: "14px",
+                          paddingRight: "14px",
+                          minHeight: "90px"
+                        }}
+                        onClick={async () => {
+                          const puedeNavegar = await solicitarConfirmacionNavegacion();
+                          if (puedeNavegar) setMenuActivo("ordenes");
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.borderColor = "#cbd5e1";
+                          e.currentTarget.style.transform = "translateY(-2px)";
+                          e.currentTarget.style.boxShadow = "0 4px 12px rgba(15, 23, 42, 0.05)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.borderColor = "#e2e8f0";
+                          e.currentTarget.style.transform = "none";
+                          e.currentTarget.style.boxShadow = "0 1px 3px rgba(15, 23, 42, 0.02)";
+                        }}
+                      >
+                        <div className="d-flex align-items-center gap-3">
+                          <div
+                            className="d-flex align-items-center justify-content-center"
+                            style={{
+                              width: "28px",
+                              height: "28px",
+                              borderRadius: "7px",
+                              background: "#e31b23",
+                              color: "#ffffff",
+                              flexShrink: 0,
+                              boxShadow: "0 2px 6px rgba(227, 27, 35, 0.25)"
+                            }}
+                          >
+                            <FiLayers size={14} />
+                          </div>
+                          <div className="d-flex flex-column text-start">
+                            <h3 className="m-0 fw-bold" style={{ fontSize: "0.98rem", color: "#1e293b" }}>
+                              Órdenes Abiertas
+                            </h3>
+                            <p className="m-0 text-muted" style={{ fontSize: "0.76rem", marginTop: "2px" }}>
+                              Visualizar, editar y gestionar pedidos en proceso.
+                            </p>
+                          </div>
                         </div>
-                        <div className="d-flex flex-column text-start">
-                          <h3 className="m-0 fw-bold" style={{ fontSize: "0.98rem", color: "#1e293b" }}>
-                            Órdenes Abiertas
-                          </h3>
-                          <p className="m-0 text-muted" style={{ fontSize: "0.78rem", marginTop: "2px" }}>
-                            Visualizar, editar y gestionar pedidos que aún están en proceso.
-                          </p>
+                        <div className="text-muted ps-2 flex-shrink-0">
+                          <FiChevronRight size={18} />
                         </div>
-                      </div>
-                      <div className="text-muted ps-2">
-                        <FiChevronRight size={18} />
                       </div>
                     </div>
-                  </div>
+                  )}
+
+                  {/* Tarjeta 2: Pedidos Pendientes (Solo en PC cuando OBLIGATORIO_IMPRIMIR="NO") */}
+                  {(!isMandatoryPrintEnabled() && !esMovilOTablet) && (
+
+                    <div className="col-12 col-md-6 p-0 px-md-1">
+
+
+                      <div
+                        className="bg-white py-3 rounded-3 border d-flex align-items-center justify-content-between cursor-pointer w-100 h-100 position-relative"
+                        style={{ 
+                          cursor: "pointer", 
+                          borderColor: cantPendientes > 0 ? "#fca5a5" : "#e2e8f0",
+                          background: cantPendientes > 0 ? "#fffdf5" : "#ffffff",
+                          transition: "all 0.15s ease-in-out",
+                          boxShadow: "0 1px 3px rgba(15, 23, 42, 0.02)",
+                          paddingLeft: "14px",
+                          paddingRight: "14px",
+                          minHeight: "90px"
+                        }}
+                        onClick={async () => {
+                          const puedeNavegar = await solicitarConfirmacionNavegacion();
+                          if (puedeNavegar) setMenuActivo("pendientes");
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.borderColor = "#cbd5e1";
+                          e.currentTarget.style.transform = "translateY(-2px)";
+                          e.currentTarget.style.boxShadow = "0 4px 12px rgba(15, 23, 42, 0.05)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.borderColor = cantPendientes > 0 ? "#fca5a5" : "#e2e8f0";
+                          e.currentTarget.style.transform = "none";
+                          e.currentTarget.style.boxShadow = "0 1px 3px rgba(15, 23, 42, 0.02)";
+                        }}
+                      >
+                        <div className="d-flex align-items-center gap-3">
+                          <div
+                            className="d-flex align-items-center justify-content-center"
+                            style={{
+                              width: "28px",
+                              height: "28px",
+                              borderRadius: "7px",
+                              background: "#e31b23",
+                              color: "#ffffff",
+                              flexShrink: 0,
+                              boxShadow: "0 2px 6px rgba(227, 27, 35, 0.25)"
+                            }}
+                          >
+                            <FiClock size={14} />
+                          </div>
+                          <div className="d-flex flex-column text-start">
+                            <div className="d-flex align-items-center gap-2">
+                              <h3 className="m-0 fw-bold" style={{ fontSize: "0.98rem", color: "#1e293b" }}>
+                                Pedidos Pendientes
+                              </h3>
+                              {cantPendientes > 0 && (
+                                <span className="badge rounded-pill bg-danger text-white px-2 py-0.5 fw-bold badge-latido" style={{ fontSize: "0.7rem" }}>
+                                  {cantPendientes}
+                                </span>
+                              )}
+
+                            </div>
+                            <p className="m-0 text-muted" style={{ fontSize: "0.76rem", marginTop: "2px" }}>
+                              Comandas recibidas sin confirmar.
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-muted ps-2 flex-shrink-0">
+                          <FiChevronRight size={18} />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+
                 </div>
               </main>
             </div>
@@ -499,6 +682,14 @@ export default function App() {
               onVolver={() => setMenuActivo("home")}
             />
           )
+        ) : menuActivo === "pendientes" ? (
+          <PedidosPendientes 
+            onEditarMesa={(id) => {
+              setOrdenIdEdicion(id);
+              setMenuActivo("ordenes");
+            }}
+            onVolver={() => setMenuActivo("home")}
+          />
         ) : null}
       </section>
     </div>

@@ -122,3 +122,29 @@ export function sanitizarError(mensaje: string): string {
   } 
   return limpio;
 }
+
+/**
+ * Indica si la impresión es obligatoria al guardar/enviar pedidos.
+ * Se configura en el archivo .env del BACKEND (OBLIGATORIO_IMPRIMIR="SI" o "NO").
+ */
+export function isMandatoryPrintEnabled(): boolean {
+  const storedVal = localStorage.getItem("obligatorioImprimir");
+  if (storedVal !== null) {
+    return storedVal === "true" || storedVal === "SI" || storedVal === "1" || storedVal === "YES";
+  }
+  const envVal = import.meta.env.VITE_OBLIGATORIO_IMPRIMIR;
+  if (envVal !== undefined && envVal !== null && envVal !== "") {
+    const clean = String(envVal).trim().toUpperCase();
+    return clean === "SI" || clean === "TRUE" || clean === "1" || clean === "YES";
+  }
+  return true;
+}
+
+
+/**
+ * Detecta si el dispositivo actual es Móvil o Tablet.
+ */
+export function isMobileOrTabletDevice(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.innerWidth < 1024 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}

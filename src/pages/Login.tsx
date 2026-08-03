@@ -144,7 +144,13 @@ export default function Login({ onLogin }: LoginProps) {
         if (data.body.usuario) {
           localStorage.setItem("usuario", JSON.stringify(data.body.usuario));
         }
+        const bodyData = data.body as any;
+        if (bodyData.obligatorioImprimir) {
+          localStorage.setItem("obligatorioImprimir", String(bodyData.obligatorioImprimir));
+        }
       }
+
+
 
       // Si existe localstorage de lineas (config anterior), se limpia
       localStorage.removeItem("lineas");

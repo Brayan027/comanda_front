@@ -16,8 +16,9 @@ import {
 } from "react-icons/fi";
 import { Modal, Button, Badge } from "react-bootstrap";
 import Swal from "sweetalert2";
-import { API_BASE_URL, sanitizarError, getTerminalId } from "../config/api";
+import { API_BASE_URL, sanitizarError, getTerminalId, isMandatoryPrintEnabled } from "../config/api";
 import "../styles/crear-ordenes.css";
+
 
 
 // Interfaces de TypeScript
@@ -135,8 +136,22 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
 
   // Terminal ID estable y permanente para este dispositivo (nunca cambia entre recargas)
   const terminalName = useMemo(() => getTerminalId(), []);
+  const [mandatoryPrint, setMandatoryPrint] = useState(() => isMandatoryPrintEnabled());
+
+  useEffect(() => {
+    const handleConfigChange = () => {
+      setMandatoryPrint(isMandatoryPrintEnabled());
+    };
+    window.addEventListener("config_impresion_cambiada", handleConfigChange);
+    window.addEventListener("storage", handleConfigChange);
+    return () => {
+      window.removeEventListener("config_impresion_cambiada", handleConfigChange);
+      window.removeEventListener("storage", handleConfigChange);
+    };
+  }, []);
 
   const token = localStorage.getItem("token") || "";
+
   
   const comanderaBloqueada = useMemo(() => {
     return localStorage.getItem("comanderaBloqueada") === "true";
@@ -337,7 +352,20 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
           confirmButtonText: "Sí, salir",
           cancelButtonText: "Cancelar"
         });
-        return result.isConfirmed;
+
+        if (result.isConfirmed) {
+          // El usuario confirmó descartar los productos sin guardar/imprimir
+          localStorage.removeItem("comanda_draft_cart");
+          if (mesaRef.current) {
+            liberarMesaActual(String(mesaRef.current));
+          }
+          setCarrito([]);
+          setMesa("");
+          setOrdenId(null);
+          setCabeceraConfirmada(false);
+          return true;
+        }
+        return false;
       }
       return true;
     };
@@ -629,22 +657,70 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
         const comanda = resData.body;
         
         if (comanda) {
-          // Si la mesa ya tiene una comanda abierta, rechazar la recuperación automática
-          // y exigir al usuario elegir otro nombre o usar Comandas Abiertas
-          await liberarMesaActual(mesa.trim());
-          setMesa("");
-          setOrdenId(null);
-          setCabeceraConfirmada(false);
+          // Cargar comanda abierta de la fecha de trabajo actual para editar o adicionar productos
+          setOrdenId(comanda.OpeIdInOrdenPedido);
+          setNumPersonas(comanda.OpeInNumPersonas || 1);
+          if (comanda.OpeIdStVendedor) {
+            const waiterInfo = {
+              id: comanda.OpeIdStVendedor,
+              nombre: comanda.NombreVendedor || "Mesero",
+              codigo: comanda.CodigoVendedor
+            };
+            setMesero(waiterInfo);
+            const displayVal = waiterInfo.codigo 
+              ? `${waiterInfo.codigo} - ${waiterInfo.nombre.toUpperCase()}`
+              : `${waiterInfo.id} - ${waiterInfo.nombre.toUpperCase()}`;
+            setMeseroBusqueda(displayVal);
+          }
+
+          const itemsFormateados = (comanda.productos || []).map((p: any) => {
+            const adicionales = (p.adicionales || []).map((ad: any) => ({
+              ApmIdInProducto: ad.ApmIdInProducto,
+              ProStDescripcion: ad.ProStDescripcion,
+              precioVenta: ad.precioVenta,
+              cantidad: ad.cantidad || 1
+            }));
+
+            const sidesKey = adicionales.map((ad: any) => ad.ApmIdInProducto).sort().join(",");
+            const idUnicoCart = `${p.ProIdInProducto}_${sidesKey}_imp_${p.MopInItem || Math.random()}`;
+            const descCompleta = p.ProStDescripcion || "";
+            const parts = descCompleta.split(" - ");
+            const nombreOriginal = parts[0];
+            const observacion = parts.slice(1).join(" - ");
+
+            return {
+              idUnicoCart,
+              ProIdInProducto: p.ProIdInProducto,
+              ProStDescripcion: nombreOriginal,
+              precioVenta: p.valor,
+              cantidad: p.cantidad,
+              ProIdInUnidadVenta: p.MopIdInUnidadVenta || 1,
+              ProInCosto: p.MopInCosto || 0,
+              ProInIvaVenta: p.MopInPorIva || 0,
+              ProInPorcentajeImpoconsumo: p.MopInPorcentajeImpoconsumo || 0,
+              ProStIvaIncluido: p.MopInPorIva > 0 || p.MopInPorcentajeImpoconsumo > 0 ? "1" : "0",
+              MopStImpreso: String(p.MopStImpreso || '0'),
+              ImpNombre1: p.ImpNombre1 || "Comanda General",
+              adicionales,
+              observacion: observacion || ""
+            };
+          });
+
+          setCarrito(itemsFormateados);
+          setCabeceraConfirmada(true);
+          setVistaMovil("productos");
 
           Swal.fire({
-            icon: "warning",
-            title: "Mesa Ocupada",
-            text: `La mesa "${comanda.OpeStMesa || mesa.trim()}" ya tiene una comanda abierta (Orden #${comanda.OpeIdStDocumento}). Para modificarla, búsquela en "Comandas Abiertas" o ingrese un nombre de mesa diferente.`,
-            confirmButtonColor: "#e31b23",
-            confirmButtonText: "Entendido"
+            icon: "info",
+            title: `Mesa ${mesa.trim()}`,
+            text: `Orden #${comanda.OpeIdStDocumento} cargada. Puede adicionar productos.`,
+            timer: 2500,
+            showConfirmButton: false,
+            toast: true,
+            position: "top-end"
           });
         }
-      } else if (resp.status === 404) {
+      } else {
         // La mesa está libre
         setOrdenId(null);
         setCabeceraConfirmada(true);
@@ -1323,6 +1399,28 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
 
 
 
+  const deshacerOrdenImpresion = async (nroOrden: string | number) => {
+    try {
+      await fetch(`${API_BASE_URL}/ordenes/${nroOrden}`, {
+        method: "DELETE",
+        headers
+      });
+    } catch (e) {
+      console.error("Error al deshacer orden:", e);
+    }
+    clearForm(true);
+    liberarMesaActual(mesa);
+    localStorage.removeItem("comanda_draft_cart");
+    if (onClearInitial) onClearInitial();
+
+    Swal.fire({
+      icon: "info",
+      title: "Pedido Cancelado",
+      text: "La impresión es obligatoria y no se pudo completar, por lo que el pedido fue cancelado y no se guardó en el sistema.",
+      confirmButtonColor: "#e31b23"
+    });
+  };
+
   const reintentarImpresionManual = async (nroOrden: string | number) => {
     Swal.fire({
       title: "Reintentando impresión...",
@@ -1360,15 +1458,14 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
           text: resData.mensaje || resData.body?.error || "La impresora no respondió. Revisa la conexión e intenta de nuevo.",
           showCancelButton: true,
           confirmButtonText: "🔄 Reintentar nuevamente",
-          cancelButtonText: "Continuar sin imprimir",
+          cancelButtonText: "Cancelar / Deshacer pedido",
           confirmButtonColor: "#eab308",
           cancelButtonColor: "#64748b"
         }).then((r) => {
           if (r.isConfirmed) {
             reintentarImpresionManual(nroOrden);
           } else {
-            clearForm(true);
-            if (onClearInitial) onClearInitial();
+            deshacerOrdenImpresion(nroOrden);
           }
         });
       }
@@ -1380,16 +1477,20 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
         text: "No se pudo comunicar con el servicio de impresión.",
         showCancelButton: true,
         confirmButtonText: "🔄 Reintentar",
-        cancelButtonText: "Cancelar",
+        cancelButtonText: "Cancelar / Deshacer pedido",
         confirmButtonColor: "#eab308",
         cancelButtonColor: "#64748b"
       }).then((r) => {
         if (r.isConfirmed) {
           reintentarImpresionManual(nroOrden);
+        } else {
+          deshacerOrdenImpresion(nroOrden);
         }
       });
     }
   };
+
+
 
   // Guardar/Actualizar la orden en la base de datos
   const guardarComanda = async () => {
@@ -1484,18 +1585,26 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
 
       Swal.close();
 
-      Swal.fire({
-        icon: "success",
-        title: "Pedido guardado",
-        text: `Mesa: ${mesa} - Orden: #${resData?.body?.nro_orden || ordenId || ''}`,
-        timer: 1500,
-        showConfirmButton: false
-      });
+      const nroGuardado = resData?.body?.nro_orden || ordenId;
+      const obligatorioImprimir = isMandatoryPrintEnabled();
 
-      clearForm(true);
-      liberarMesaActual(mesa);
-      localStorage.removeItem("comanda_draft_cart");
-      if (onClearInitial) onClearInitial();
+      if (obligatorioImprimir && nroGuardado) {
+        reintentarImpresionManual(nroGuardado);
+      } else {
+        Swal.fire({
+          icon: "success",
+          title: "Pedido guardado",
+          text: `Mesa: ${mesa} - Orden: #${nroGuardado || ''}`,
+          timer: 1500,
+          showConfirmButton: false
+        });
+
+        clearForm(true);
+        liberarMesaActual(mesa);
+        localStorage.removeItem("comanda_draft_cart");
+        if (onClearInitial) onClearInitial();
+      }
+
     } catch (err) {
       Swal.close();
       const msg = err instanceof Error ? err.message : "Error al guardar";
@@ -2490,7 +2599,8 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
                   cursor: comanderaBloqueada ? "not-allowed" : "pointer"
                 }}
               >
-                {comanderaBloqueada ? "COMANDERA BLOQUEADA" : "GUARDAR"}
+                {comanderaBloqueada ? "COMANDERA BLOQUEADA" : mandatoryPrint ? "ENVIAR E IMPRIMIR" : "SOLO GUARDAR"}
+
               </button>
             </div>
           </div>

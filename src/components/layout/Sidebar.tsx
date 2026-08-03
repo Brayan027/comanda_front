@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { FiHome, FiLogOut, FiMenu, FiLayers, FiList } from "react-icons/fi";
+import { FiHome, FiLogOut, FiMenu, FiLayers, FiList, FiClock } from "react-icons/fi";
 import logoReporte from "../../assets/LogoReportes.png";
+import { isMandatoryPrintEnabled, isMobileOrTabletDevice } from "../../config/api";
 
-export type MenuKey = "home" | "comanda" | "ordenes";
+
+export type MenuKey = "home" | "comanda" | "ordenes" | "pendientes";
 type SidebarProps = {
     activo: MenuKey;
     onCambiar: (menu: MenuKey) => void;
@@ -11,21 +13,38 @@ type SidebarProps = {
     puntoNombre?: string;
     fechaActual?: string;
     terminal?: string;
+    cantPendientes?: number;
 };
 
-export default function Sidebar({ activo, onCambiar, onSalir, empresaNombre, puntoNombre, fechaActual, terminal }: SidebarProps) {
+export default function Sidebar({ activo, onCambiar, onSalir, empresaNombre, puntoNombre, fechaActual, terminal, cantPendientes = 0 }: SidebarProps) {
     const [abierto, setAbierto] = useState(false);
 
-    const opciones = [
-        { key: "home", label: "Inicio", icon: FiHome },
-        { key: "comanda", label: "Crear órdenes", icon: FiLayers },
-        { key: "ordenes", label: "Órdenes abiertas", icon: FiList },
-    ] as const;
+    const esObligatorio = isMandatoryPrintEnabled();
+    const esMovilOTablet = isMobileOrTabletDevice();
+    const usarInterfazClasica = esObligatorio || esMovilOTablet;
+
+    const opciones = usarInterfazClasica
+      ? [
+          { key: "home" as const, label: "Inicio", icon: FiHome },
+          { key: "comanda" as const, label: "Crear órdenes", icon: FiLayers },
+          { key: "ordenes" as const, label: "Órdenes abiertas", icon: FiList },
+        ]
+      : [
+          { key: "home" as const, label: "Inicio", icon: FiHome },
+          { key: "comanda" as const, label: "Crear órdenes", icon: FiLayers },
+          { key: "pendientes" as const, label: "Pedidos pendientes", icon: FiClock },
+        ];
+
+
+
+
+
 
     function seleccionar(menu: MenuKey) {
         onCambiar(menu);
         setAbierto(false);
     }
+
 
     return (
         <>
@@ -167,6 +186,15 @@ export default function Sidebar({ activo, onCambiar, onSalir, empresaNombre, pun
                                             <Icon size={18} />
                                         </div>
                                         <span style={{ flex: 1, textAlign: 'left' }}>{op.label}</span>
+                                        {op.key === "pendientes" && cantPendientes > 0 && (
+                                            <span 
+                                                className="badge rounded-pill bg-danger text-white me-2 px-2 py-1 fw-bold badge-latido"
+                                                style={{ fontSize: '0.7rem', boxShadow: '0 2px 4px rgba(239, 68, 68, 0.3)' }}
+                                            >
+                                                {cantPendientes}
+                                            </span>
+                                        )}
+
                                         {esActivo && (
                                             <div className="animate__animated animate__fadeInRight" style={{ width: '4px', height: '18px', background: '#ef4444', borderRadius: '2px' }}></div>
                                         )}
