@@ -629,21 +629,75 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
         const comanda = resData.body;
         
         if (comanda) {
-          // Si la mesa ya tiene una comanda abierta, rechazar la recuperación automática
-          // y exigir al usuario elegir otro nombre o usar Comandas Abiertas
-          await liberarMesaActual(mesa.trim());
-          setMesa("");
-          setOrdenId(null);
-          setCabeceraConfirmada(false);
+          // Cargar comanda existente de la fecha de trabajo actual
+          setMesa(comanda.OpeStMesa || mesa.trim());
+          setOrdenId(comanda.OpeIdInOrdenPedido);
+          setNumPersonas(comanda.OpeInNumPersonas || 1);
+
+          if (comanda.OpeIdStVendedor) {
+            const waiterInfo = {
+              id: comanda.OpeIdStVendedor,
+              nombre: comanda.NombreVendedor || "Mesero Cargado",
+              codigo: comanda.CodigoVendedor
+            };
+            setMesero(waiterInfo);
+            const displayVal = waiterInfo.codigo 
+              ? `${waiterInfo.codigo} - ${waiterInfo.nombre.toUpperCase()}`
+              : `${waiterInfo.id} - ${waiterInfo.nombre.toUpperCase()}`;
+            setMeseroBusqueda(displayVal);
+          }
+
+          const itemsFormateados = (comanda.productos || []).map((p: any) => {
+            const adicionales = (p.adicionales || []).map((ad: any) => ({
+              ApmIdInProducto: ad.ApmIdInProducto,
+              ProStDescripcion: ad.ProStDescripcion,
+              precioVenta: ad.precioVenta,
+              cantidad: ad.cantidad || 1
+            }));
+
+            const sidesKey = adicionales
+              .map((ad: any) => ad.ApmIdInProducto)
+              .sort()
+              .join(",");
+            const idUnicoCart = `${p.ProIdInProducto}_${sidesKey}_imp_${p.MopInItem || Math.random()}`;
+            const descCompleta = p.ProStDescripcion || "";
+            const parts = descCompleta.split(" - ");
+            const nombreOriginal = parts[0];
+            const observacion = parts.slice(1).join(" - ");
+
+            return {
+              idUnicoCart,
+              ProIdInProducto: p.ProIdInProducto,
+              ProStDescripcion: nombreOriginal,
+              precioVenta: p.valor,
+              cantidad: p.cantidad,
+              ProIdInUnidadVenta: p.MopIdInUnidadVenta || 1,
+              ProInCosto: p.MopInCosto || 0,
+              ProInIvaVenta: p.MopInPorIva || 0,
+              ProInPorcentajeImpoconsumo: p.MopInPorcentajeImpoconsumo || 0,
+              ProStIvaIncluido: p.MopInPorIva > 0 || p.MopInPorcentajeImpoconsumo > 0 ? "1" : "0",
+              MopStImpreso: String(p.MopStImpreso || '0'),
+              ImpNombre1: p.ImpNombre1 || "Comanda General",
+              adicionales,
+              observacion: observacion || ""
+            };
+          });
+
+          setCarrito(itemsFormateados);
+          setCabeceraConfirmada(true);
+          setVistaMovil("productos");
 
           Swal.fire({
-            icon: "warning",
-            title: "Mesa Ocupada",
-            text: `La mesa "${comanda.OpeStMesa || mesa.trim()}" ya tiene una comanda abierta (Orden #${comanda.OpeIdStDocumento}). Para modificarla, búsquela en "Comandas Abiertas" o ingrese un nombre de mesa diferente.`,
-            confirmButtonColor: "#e31b23",
-            confirmButtonText: "Entendido"
+            icon: "info",
+            title: "Comanda Cargada",
+            text: `Se cargó el pedido abierto de la Mesa ${comanda.OpeStMesa || mesa.trim()} (Orden #${comanda.OpeIdStDocumento})`,
+            timer: 2000,
+            showConfirmButton: false,
+            toast: true,
+            position: "top-end"
           });
         }
+
       } else if (resp.status === 404) {
         // La mesa está libre
         setOrdenId(null);
