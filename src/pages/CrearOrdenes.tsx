@@ -1420,23 +1420,8 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
       return;
     }
 
-    // Verificar si hay productos nuevos por imprimir o cancelaciones de impresos
-    const hayNuevosSinImprimir = carrito.some(item => String(item.MopStImpreso || '0') !== '1' && !item.esEliminado);
-    const hayEliminadosPreviamenteImpresos = carrito.some(item => Boolean(item.esEliminado) && String(item.MopStImpreso || '0') === '1');
-
-    if (ordenId && !hayNuevosSinImprimir && !hayEliminadosPreviamenteImpresos) {
-      Swal.fire({
-        icon: "info",
-        title: "No hay productos nuevos para imprimir",
-        text: "Todos los productos de este pedido ya fueron enviados e impresos en comanda anteriormente.",
-        confirmButtonColor: "#e31b23",
-        confirmButtonText: "Entendido"
-      });
-      return;
-    }
-
     Swal.fire({
-      title: ordenId ? "Actualizando Pedido" : "Procesando Pedido",
+      title: ordenId ? "Actualizando Pedido" : "Guardando Pedido",
       text: "Por favor espera un momento...",
       allowOutsideClick: false,
       didOpen: () => {
@@ -1488,33 +1473,6 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
         resData = null;
       }
 
-      // Si el backend retorna 503 = fallo de impresión + rollback ya hecho
-      if (resp.status === 503 && resData?.printFailed) {
-        Swal.close();
-        const errorImp = resData.mensaje || 'No se pudo conectar con la impresora.';
-
-        Swal.fire({
-          icon: 'error',
-          title: '⚠️ Error de Impresión',
-          html: `<b>No se pudo imprimir la comanda.</b><br/><br/>
-                 <span style="color:#64748b;font-size:0.9rem;">${errorImp}</span><br/><br/>
-                 <span style="color:#dc2626;font-weight:700;">⚠️ No se guardó ningún cambio en el sistema.</span><br/>
-                 <span style="font-size:0.85rem;">Puedes reintentar o cancelar la operación.</span>`,
-          showCancelButton: true,
-          confirmButtonText: '🔄 Reintentar',
-          cancelButtonText: 'Cancelar operación',
-          confirmButtonColor: '#eab308',
-          cancelButtonColor: '#64748b'
-        }).then(async (result) => {
-          if (result.isConfirmed) {
-            // Volver a intentar guardar e imprimir
-            await guardarComanda();
-          }
-          // Si cancela → no hace nada, el carrito queda intacto para que el usuario edite
-        });
-        return;
-      }
-
       if (!resp.ok || resData?.error) {
         const errorMsg = resData?.mensaje 
           || resData?.body?.message 
@@ -1526,36 +1484,10 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
 
       Swal.close();
 
-      const impStatus = resData?.body?.impresion;
-      const falloImpresion = impStatus && impStatus.success === false;
-
-      if (falloImpresion) {
-        const ordenActualId = resData.body.nro_orden;
-
-        Swal.fire({
-          icon: "warning",
-          title: "Orden Guardada en Sistema",
-          html: `La orden para la <b>Mesa ${mesa}</b> (#${ordenActualId}) <b>se guardó correctamente</b>.<br/><br/><span style="color: #ef4444; font-weight: 700;">⚠️ Advertencia de Impresión:</span><br/>${impStatus.error || "La impresora no respondió."}<br/><br/>¿Qué deseas hacer con la comanda?`,
-          showCancelButton: true,
-          confirmButtonText: "🔄 Reintentar Impresión",
-          cancelButtonText: "Continuar sin imprimir",
-          confirmButtonColor: "#eab308",
-          cancelButtonColor: "#64748b"
-        }).then(async (result) => {
-          if (result.isConfirmed) {
-            reintentarImpresionManual(ordenActualId);
-          } else {
-            clearForm(true);
-            if (onClearInitial) onClearInitial();
-          }
-        });
-        return;
-      }
-
       Swal.fire({
         icon: "success",
-        title: ordenId ? "Pedido Enviado e Impreso" : "Pedido Registrado e Impreso",
-        text: `Mesa: ${mesa} - Orden: #${resData.body.nro_orden}`,
+        title: "Pedido guardado",
+        text: `Mesa: ${mesa} - Orden: #${resData?.body?.nro_orden || ordenId || ''}`,
         timer: 1500,
         showConfirmButton: false
       });
@@ -2558,7 +2490,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
                   cursor: comanderaBloqueada ? "not-allowed" : "pointer"
                 }}
               >
-                {comanderaBloqueada ? "COMANDERA BLOQUEADA" : "ENVIAR E IMPRIMIR PEDIDO"}
+                {comanderaBloqueada ? "COMANDERA BLOQUEADA" : "GUARDAR"}
               </button>
             </div>
           </div>
