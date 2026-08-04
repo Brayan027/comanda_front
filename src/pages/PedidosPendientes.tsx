@@ -351,11 +351,6 @@ export default function PedidosPendientes({ onEditarMesa, onVolver, onUpdateCant
   };
 
   const handleConfirmar = async (orden: PendingOrder) => {
-
-
-    const ok = await verificarBloqueoMesa(orden);
-    if (!ok) return;
-
     const targetId = orden.OpeIdInOrdenPedido;
     setProcesandoId(targetId);
 
@@ -411,9 +406,6 @@ export default function PedidosPendientes({ onEditarMesa, onVolver, onUpdateCant
   };
 
   const handleImprimir = async (orden: PendingOrder) => {
-    const ok = await verificarBloqueoMesa(orden);
-    if (!ok) return;
-
     const targetId = orden.OpeIdInOrdenPedido;
     setProcesandoId(targetId);
 
