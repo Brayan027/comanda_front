@@ -306,6 +306,7 @@ export default function App() {
     window.addEventListener("beforeunload", handleSendBeaconGlobal);
 
     return () => {
+      clearInterval(pollingInterval);
       socket.off("fecha_trabajo_actualizada", handleFechaTrabajoActualizada);
       socket.off("ordenes_actualizadas", handleOrdenesActualizadas);
       window.removeEventListener("pagehide", handleSendBeaconGlobal);
