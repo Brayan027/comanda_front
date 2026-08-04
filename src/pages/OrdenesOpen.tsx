@@ -17,7 +17,6 @@ interface ActiveOrder {
   CodigoVendedor: string;
   OpeStMesaAbierta?: string | number;
   OpeStTerminal?: string;
-  OpeStEstadoRegistro?: string;
 }
 
 interface OrdenesOpenProps {
@@ -330,7 +329,7 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
               {/* Vista Móvil: Tarjetas Nativas Bien Melas */}
               <div className="d-block d-md-none">
                 {ordenesPaginadas.map((o) => {
-                  const estaAbiertaEnOtraTerminal = (String(o.OpeStMesaAbierta) === '1' || o.OpeStEstadoRegistro === 'W') && 
+                  const estaAbiertaEnOtraTerminal = String(o.OpeStMesaAbierta) === '1' && 
                     Boolean(o.OpeStTerminal) && !isSameTerminal(o.OpeStTerminal, terminalActual);
 
                   const estaVerificando = mesaVerificando === o.OpeStMesa;
@@ -424,7 +423,7 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
                   </thead>
                   <tbody>
                     {ordenesPaginadas.map((o) => {
-                      const estaAbiertaEnOtraTerminal = (String(o.OpeStMesaAbierta) === '1' || o.OpeStEstadoRegistro === 'W') && 
+                      const estaAbiertaEnOtraTerminal = String(o.OpeStMesaAbierta) === '1' && 
                         Boolean(o.OpeStTerminal) && !isSameTerminal(o.OpeStTerminal, terminalActual);
 
                       const estaVerificando = mesaVerificando === o.OpeStMesa;

@@ -54,7 +54,6 @@ interface PendingOrder {
   totalSinImprimir: number;
   OpeStMesaAbierta?: string | number;
   OpeStTerminal?: string;
-  OpeStEstadoRegistro?: string;
 }
 
 interface PedidosPendientesProps {
@@ -301,7 +300,7 @@ export default function PedidosPendientes({ onEditarMesa, onVolver, onUpdateCant
 
   const verificarBloqueoMesa = async (orden: PendingOrder): Promise<boolean> => {
     const mesaId = orden.OpeStMesa;
-    const estaBloqueadaPorOtro = (String(orden.OpeStMesaAbierta) === '1' || orden.OpeStEstadoRegistro === 'W') && Boolean(orden.OpeStTerminal) && !isSameTerminal(orden.OpeStTerminal, terminalActual);
+    const estaBloqueadaPorOtro = String(orden.OpeStMesaAbierta) === '1' && Boolean(orden.OpeStTerminal) && !isSameTerminal(orden.OpeStTerminal, terminalActual);
 
     if (estaBloqueadaPorOtro) {
       Swal.fire({
@@ -630,7 +629,7 @@ export default function PedidosPendientes({ onEditarMesa, onVolver, onUpdateCant
                   const estaProcesando = procesandoId === o.OpeIdInOrdenPedido;
                   const tienePendientes = (o.totalSinImprimir || 0) > 0;
                   const esNuevo = nuevosIds.has(o.OpeIdInOrdenPedido) || tienePendientes;
-                  const estaBloqueadaPorOtro = (String(o.OpeStMesaAbierta) === '1' || o.OpeStEstadoRegistro === 'W') && Boolean(o.OpeStTerminal) && !isSameTerminal(o.OpeStTerminal, terminalActual);
+                  const estaBloqueadaPorOtro = String(o.OpeStMesaAbierta) === '1' && Boolean(o.OpeStTerminal) && !isSameTerminal(o.OpeStTerminal, terminalActual);
                   const nombreMesaFormateado = formatMesaName(o.OpeStMesa);
 
                   return (
@@ -776,7 +775,7 @@ export default function PedidosPendientes({ onEditarMesa, onVolver, onUpdateCant
                       const estaProcesando = procesandoId === o.OpeIdInOrdenPedido;
                       const tienePendientes = (o.totalSinImprimir || 0) > 0;
                       const esNuevo = nuevosIds.has(o.OpeIdInOrdenPedido) || tienePendientes;
-                      const estaBloqueadaPorOtro = (String(o.OpeStMesaAbierta) === '1' || o.OpeStEstadoRegistro === 'W') && Boolean(o.OpeStTerminal) && !isSameTerminal(o.OpeStTerminal, terminalActual);
+                      const estaBloqueadaPorOtro = String(o.OpeStMesaAbierta) === '1' && Boolean(o.OpeStTerminal) && !isSameTerminal(o.OpeStTerminal, terminalActual);
                       const nombreMesaFormateado = formatMesaName(o.OpeStMesa);
 
                       return (
