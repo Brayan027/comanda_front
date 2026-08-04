@@ -204,12 +204,13 @@ export default function PedidosPendientes({ onEditarMesa, onVolver }: PedidosPen
       });
 
       setOrdenes(prev => {
-        const prevMap = new Map(prev.map(p => [p.OpeIdInOrdenPedido, p.totalSinImprimir]));
+        const prevMap = new Map(prev.map(p => [String(p.OpeIdInOrdenPedido).trim(), p.totalSinImprimir]));
         const recienLlegados: (string | number)[] = [];
 
         ordenesCombinadas.forEach(o => {
           if (o.totalSinImprimir > 0) {
-            const prevSinImp = prevMap.get(o.OpeIdInOrdenPedido);
+            const keyStr = String(o.OpeIdInOrdenPedido).trim();
+            const prevSinImp = prevMap.get(keyStr);
             if (prevSinImp === undefined || o.totalSinImprimir > prevSinImp) {
               recienLlegados.push(o.OpeIdInOrdenPedido);
             }
@@ -236,6 +237,11 @@ export default function PedidosPendientes({ onEditarMesa, onVolver }: PedidosPen
   useEffect(() => {
     cargarPendientes(true);
 
+    // Polling cada 4 segundos para detectar compras/facturaciones hechas desde Dianasis Desktop
+    const pollingInterval = setInterval(() => {
+      cargarPendientes(false);
+    }, 4000);
+
     const onActualizar = () => {
       cargarPendientes(false);
     };
@@ -260,6 +266,7 @@ export default function PedidosPendientes({ onEditarMesa, onVolver }: PedidosPen
     socket.on("mesa_bloqueada", onMesaBloqueada);
 
     return () => {
+      clearInterval(pollingInterval);
       socket.off("ordenes_actualizadas", onActualizar);
       socket.off("nuevo_pedido_pendiente", onActualizar);
       socket.off("mesa_bloqueada", onMesaBloqueada);
