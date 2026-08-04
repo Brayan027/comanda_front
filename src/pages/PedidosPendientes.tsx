@@ -59,10 +59,11 @@ interface PendingOrder {
 interface PedidosPendientesProps {
   onEditarMesa?: (id: string | number) => void;
   onVolver?: () => void;
+  onUpdateCantPendientes?: (cant: number) => void;
 }
 
 
-export default function PedidosPendientes({ onEditarMesa, onVolver }: PedidosPendientesProps) {
+export default function PedidosPendientes({ onEditarMesa, onVolver, onUpdateCantPendientes }: PedidosPendientesProps) {
 
 
 
@@ -222,6 +223,11 @@ export default function PedidosPendientes({ onEditarMesa, onVolver }: PedidosPen
             playNewOrderSound();
           }
           marcarNuevosYRemover(recienLlegados);
+        }
+
+        if (onUpdateCantPendientes) {
+          const realPendingCount = ordenesCombinadas.filter(o => (o.totalSinImprimir || 0) > 0).length;
+          onUpdateCantPendientes(realPendingCount);
         }
 
         return ordenesCombinadas;

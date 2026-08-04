@@ -205,7 +205,9 @@ export default function App() {
         .then(res => res.json())
         .then(data => {
           if (data && data.body) {
-            const count = Array.isArray(data.body) ? data.body.length : 0;
+            const count = Array.isArray(data.body) 
+              ? data.body.filter((p: any) => (p.totalSinImprimir || 0) > 0).length 
+              : 0;
             setCantPendientes(prev => {
               if (count > prev && prev > 0) {
                 const soundOn = localStorage.getItem("sonidoPendientesHabilitado") !== "false";
@@ -693,6 +695,7 @@ export default function App() {
               setMenuActivo("ordenes");
             }}
             onVolver={() => setMenuActivo("home")}
+            onUpdateCantPendientes={(cant) => setCantPendientes(cant)}
           />
         ) : null}
       </section>
