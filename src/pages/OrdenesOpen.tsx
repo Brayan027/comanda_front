@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { FiLayers, FiSearch, FiEdit3, FiChevronLeft, FiChevronRight, FiLock, FiArrowLeft, FiUser } from "react-icons/fi";
 import { Spinner, Badge } from "react-bootstrap";
 import Swal from "sweetalert2";
-import { API_BASE_URL, socket, getTerminalId, formatTerminalName } from "../config/api";
+import { API_BASE_URL, socket, getTerminalId, formatTerminalName, formatMesaName } from "../config/api";
 
 import "../styles/crear-ordenes.css";
 
@@ -312,9 +312,7 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
 
                   const estaVerificando = mesaVerificando === o.OpeStMesa;
 
-                  const nombreMesaFormateado = o.OpeStMesa?.trim().toLowerCase().startsWith("mesa") 
-                    ? o.OpeStMesa.trim() 
-                    : `Mesa ${o.OpeStMesa.trim()}`;
+                  const nombreMesaFormateado = formatMesaName(o.OpeStMesa);
 
                   return (
                     <div
@@ -424,7 +422,7 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
                         >
                           <td style={{ padding: "14px 16px", fontWeight: "600", color: "#334155" }}>
                             <div className="d-flex align-items-center gap-2">
-                              <span>{o.OpeStMesa}</span>
+                              <span>{formatMesaName(o.OpeStMesa)}</span>
                               {estaAbiertaEnOtraTerminal && (
                                 <Badge bg="warning" className="text-dark d-inline-flex align-items-center gap-1" style={{ fontSize: "0.68rem", fontWeight: "700" }}>
                                   <FiLock size={10} />

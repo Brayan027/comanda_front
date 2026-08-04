@@ -177,3 +177,12 @@ export function formatTerminalName(terminalStr?: string): string {
   if (!terminalStr) return "";
   return terminalStr.replace(/\s*\(.*?\)/g, "").trim();
 }
+
+/**
+ * Formatea el nombre de la mesa removiendo el prefijo "Mesa" o "MESA".
+ * Ejemplo: "Mesa 2323" -> "2323", "Mesa WE" -> "WE", "MESA 12" -> "12"
+ */
+export function formatMesaName(mesaStr?: string): string {
+  if (!mesaStr) return "";
+  return mesaStr.trim().replace(/^mesa\s+/i, "").trim();
+}

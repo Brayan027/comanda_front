@@ -16,7 +16,7 @@ import {
 
 import { Spinner, Badge, Modal, Button } from "react-bootstrap";
 import Swal from "sweetalert2";
-import { API_BASE_URL, socket, getTerminalId, isMandatoryPrintEnabled, isMobileOrTabletDevice, formatTerminalName } from "../config/api";
+import { API_BASE_URL, socket, getTerminalId, isMandatoryPrintEnabled, isMobileOrTabletDevice, formatTerminalName, formatMesaName } from "../config/api";
 
 
 import { playNewOrderSound } from "../utils/audioAlert";
@@ -638,9 +638,7 @@ export default function PedidosPendientes({ onEditarMesa, onVolver, onUpdateCant
                   const tienePendientes = (o.totalSinImprimir || 0) > 0;
                   const esNuevo = nuevosIds.has(o.OpeIdInOrdenPedido) || tienePendientes;
                   const estaBloqueadaPorOtro = String(o.OpeStMesaAbierta) === '1' && Boolean(o.OpeStTerminal) && o.OpeStTerminal !== terminalActual;
-                  const nombreMesaFormateado = o.OpeStMesa?.trim().toLowerCase().startsWith("mesa") 
-                    ? o.OpeStMesa.trim() 
-                    : `Mesa ${o.OpeStMesa.trim()}`;
+                  const nombreMesaFormateado = formatMesaName(o.OpeStMesa);
 
                   return (
                     <div
@@ -786,9 +784,7 @@ export default function PedidosPendientes({ onEditarMesa, onVolver, onUpdateCant
                       const tienePendientes = (o.totalSinImprimir || 0) > 0;
                       const esNuevo = nuevosIds.has(o.OpeIdInOrdenPedido) || tienePendientes;
                       const estaBloqueadaPorOtro = String(o.OpeStMesaAbierta) === '1' && Boolean(o.OpeStTerminal) && o.OpeStTerminal !== terminalActual;
-                      const nombreMesaFormateado = o.OpeStMesa?.trim().toLowerCase().startsWith("mesa") 
-                        ? o.OpeStMesa.trim() 
-                        : `Mesa ${o.OpeStMesa.trim()}`;
+                      const nombreMesaFormateado = formatMesaName(o.OpeStMesa);
 
                       return (
                         <tr 
@@ -977,10 +973,7 @@ export default function PedidosPendientes({ onEditarMesa, onVolver, onUpdateCant
       >
         <Modal.Header closeButton style={{ background: "#f8fafc", borderColor: "#e2e8f0" }}>
           <Modal.Title className="fw-bold text-dark" style={{ fontSize: "1.1rem" }}>
-            Detalle del Pedido - {(() => {
-              const m = selectedOrder?.OpeStMesa?.trim() || "";
-              return m.toLowerCase().startsWith("mesa") ? m : `Mesa ${m}`;
-            })()}
+            Detalle del Pedido - {formatMesaName(selectedOrder?.OpeStMesa)}
           </Modal.Title>
         </Modal.Header>
         <Modal.Body className="p-3 p-md-4">
