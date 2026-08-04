@@ -234,6 +234,11 @@ export default function App() {
     fetchFechaTrabajo();
     fetchPendientesCount();
 
+    // Polling cada 4 segundos para actualizar el contador de pendientes cuando Dianasis Desktop factura un pedido
+    const pollingInterval = setInterval(() => {
+      fetchPendientesCount();
+    }, 4000);
+
     // Listener de socket para recibir actualización de fecha de trabajo en tiempo real
     const handleFechaTrabajoActualizada = (data: { fecha?: string; bloqueada?: boolean; obligatorioImprimir?: boolean }) => {
       if (data?.fecha) {
