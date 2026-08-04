@@ -120,11 +120,28 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
         return;
       }
 
+      // Verificar que la orden aún exista y tenga ítems activos en la base de datos (no facturada en caja)
+      const checkResp = await fetch(`${API_BASE_URL}/ordenes/${orden.OpeIdInOrdenPedido}`, { headers });
+      if (checkResp.ok) {
+        const checkData = await checkResp.json();
+        const productos = checkData.body?.productos || [];
+        if (productos.length === 0) {
+          Swal.fire({
+            icon: "info",
+            title: "Mesa Facturada",
+            text: `La Mesa ${formatMesaName(orden.OpeStMesa)} ya fue facturada o vaciada desde la caja.`,
+            timer: 2200,
+            showConfirmButton: false
+          });
+          cargarOrdenes(false);
+          return;
+        }
+      }
+
       // Acceso concedido → navegar al editor
       onEditar(orden.OpeIdInOrdenPedido);
     } catch (e) {
       console.error("Error al verificar/bloquear mesa:", e);
-      // En caso de error de red, permitir acceso para no bloquear la operación
       onEditar(orden.OpeIdInOrdenPedido);
     } finally {
       setMesaVerificando(null);
@@ -135,6 +152,11 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
   useEffect(() => {
     cargarOrdenes(true);
 
+    // Polling automático cada 3.5 segundos para reflejar mesas facturadas desde Dianasis Desktop
+    const interval = setInterval(() => {
+      cargarOrdenes(false);
+    }, 3500);
+
     const onActualizar = () => {
       cargarOrdenes(false);
     };
@@ -143,7 +165,6 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
     socket.on("ordenes_actualizadas", onActualizar);
 
     // Escuchar evento específico de bloqueo/desbloqueo de mesa
-    // Actualiza solo la orden afectada sin recargar toda la lista → instantáneo
     const onMesaBloqueada = (data: { mesa: string; terminal: string | null; bloqueada: boolean; evento: string }) => {
       if (!data?.mesa) return;
       const mesaEvento = data.mesa.trim().toUpperCase();
@@ -162,6 +183,7 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
     socket.on("mesa_bloqueada", onMesaBloqueada);
 
     return () => {
+      clearInterval(interval);
       socket.off("ordenes_actualizadas", onActualizar);
       socket.off("mesa_bloqueada", onMesaBloqueada);
     };
