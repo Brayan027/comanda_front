@@ -193,8 +193,5 @@ export function formatMesaName(mesaStr?: string): string {
  */
 export function isSameTerminal(t1?: string, t2?: string): boolean {
   if (!t1 || !t2) return false;
-  const c1 = formatTerminalName(t1).toUpperCase();
-  const c2 = formatTerminalName(t2).toUpperCase();
-  if (!c1 || !c2) return false;
-  return c1 === c2 || c1.endsWith(c2) || c2.endsWith(c1);
+  return t1.trim().toUpperCase() === t2.trim().toUpperCase();
 }

@@ -639,8 +639,8 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
       if (!abrirResp.ok || abrirData.locked) {
         Swal.fire({
           icon: "warning",
-          title: "Mesa Ocupada",
-          text: abrirData.mensaje || "La mesa ya se encuentra abierta en otro dispositivo",
+          title: "🔒 Mesa Ocupada",
+          text: "La mesa ya se encuentra abierta en otro dispositivo.",
           confirmButtonColor: "#ef4444"
         });
         setCargandoComanda(false);

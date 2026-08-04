@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { FiLayers, FiSearch, FiEdit3, FiChevronLeft, FiChevronRight, FiLock, FiArrowLeft, FiUser } from "react-icons/fi";
 import { Spinner, Badge } from "react-bootstrap";
 import Swal from "sweetalert2";
-import { API_BASE_URL, socket, getTerminalId, formatTerminalName, formatMesaName, isSameTerminal } from "../config/api";
+import { API_BASE_URL, socket, getTerminalId, formatMesaName, isSameTerminal } from "../config/api";
 
 import "../styles/crear-ordenes.css";
 
@@ -109,11 +109,10 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
 
       const resData = await resp.json();
       if (!resp.ok || resData.locked) {
-        const terminalBloqueo = resData.terminal || "otro dispositivo";
         Swal.fire({
           icon: "warning",
           title: "🔒 Mesa Ocupada",
-          html: `La mesa ya está siendo editada por <b>${terminalBloqueo}</b>.<br/>No puedes editarla al mismo tiempo.`,
+          html: `La mesa ya está siendo editada en otro dispositivo.<br/>No puedes editarla al mismo tiempo.`,
           confirmButtonColor: "#e31b23",
           confirmButtonText: "Entendido"
         });
@@ -364,7 +363,7 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
                           {estaAbiertaEnOtraTerminal && (
                             <Badge bg="warning" className="text-dark d-inline-flex align-items-center gap-1" style={{ fontSize: "0.65rem", padding: "4px 6px" }}>
                               <FiLock size={10} />
-                              {formatTerminalName(o.OpeStTerminal)}
+                              Bloqueado
                             </Badge>
                           )}
                         </div>
@@ -448,7 +447,7 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
                               {estaAbiertaEnOtraTerminal && (
                                 <Badge bg="warning" className="text-dark d-inline-flex align-items-center gap-1" style={{ fontSize: "0.68rem", fontWeight: "700" }}>
                                   <FiLock size={10} />
-                                  En edición ({formatTerminalName(o.OpeStTerminal)})
+                                  Bloqueado
                                 </Badge>
                               )}
                             </div>

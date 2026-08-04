@@ -16,7 +16,7 @@ import {
 
 import { Spinner, Badge, Modal, Button } from "react-bootstrap";
 import Swal from "sweetalert2";
-import { API_BASE_URL, socket, getTerminalId, isMandatoryPrintEnabled, isMobileOrTabletDevice, formatTerminalName, formatMesaName, isSameTerminal } from "../config/api";
+import { API_BASE_URL, socket, getTerminalId, isMandatoryPrintEnabled, isMobileOrTabletDevice, formatMesaName, isSameTerminal } from "../config/api";
 
 
 import { playNewOrderSound } from "../utils/audioAlert";
@@ -306,7 +306,7 @@ export default function PedidosPendientes({ onEditarMesa, onVolver, onUpdateCant
       Swal.fire({
         icon: "warning",
         title: "🔒 Mesa Ocupada",
-        html: `La <b>Mesa ${mesaId}</b> está siendo editada en este momento por <b>${formatTerminalName(orden.OpeStTerminal)}</b>.<br/>No puedes modificarla ni procesarla al mismo tiempo.`,
+        html: `La <b>Mesa ${mesaId}</b> está siendo editada en otro dispositivo.<br/>No puedes modificarla ni procesarla al mismo tiempo.`,
         confirmButtonColor: "#e31b23",
         confirmButtonText: "Entendido"
       });
@@ -326,11 +326,10 @@ export default function PedidosPendientes({ onEditarMesa, onVolver, onUpdateCant
       if (!resp.ok) {
         const resData = await resp.json().catch(() => null);
         if (resData?.locked) {
-          const term = resData.terminal || "otro dispositivo";
           Swal.fire({
             icon: "warning",
             title: "🔒 Mesa Ocupada",
-            html: `La <b>Mesa ${mesaId}</b> está siendo editada en este momento por <b>${term}</b>.<br/>No puedes modificarla ni procesarla al mismo tiempo.`,
+            html: `La <b>Mesa ${mesaId}</b> está siendo editada en otro dispositivo.<br/>No puedes modificarla ni procesarla al mismo tiempo.`,
             confirmButtonColor: "#e31b23",
             confirmButtonText: "Entendido"
           });
@@ -649,7 +648,7 @@ export default function PedidosPendientes({ onEditarMesa, onVolver, onUpdateCant
                           </span>
                           {estaBloqueadaPorOtro ? (
                             <Badge bg="dark" className="text-white fw-bold flex-shrink-0" style={{ fontSize: "0.68rem", background: "#334155" }}>
-                              🔒 EN USO POR {formatTerminalName(o.OpeStTerminal)}
+                              🔒 BLOQUEADO
                             </Badge>
                           ) : tienePendientes ? (
                             <Badge bg="danger" className="text-white fw-bold badge-tintineo" style={{ fontSize: "0.68rem" }}>
@@ -791,8 +790,8 @@ export default function PedidosPendientes({ onEditarMesa, onVolver, onUpdateCant
                                 {nombreMesaFormateado}
                               </span>
                               {estaBloqueadaPorOtro ? (
-                                <Badge bg="dark" className="text-white fw-bold flex-shrink-0" style={{ fontSize: "0.68rem", minWidth: "115px", textAlign: "center", display: "inline-block", padding: "5px 8px", background: "#334155" }} title={`Editando por ${formatTerminalName(o.OpeStTerminal)}`}>
-                                  🔒 {formatTerminalName(o.OpeStTerminal)}
+                                <Badge bg="dark" className="text-white fw-bold flex-shrink-0" style={{ fontSize: "0.68rem", minWidth: "115px", textAlign: "center", display: "inline-block", padding: "5px 8px", background: "#334155" }} title="Bloqueado">
+                                  🔒 BLOQUEADO
                                 </Badge>
                               ) : tienePendientes ? (
                                 <Badge bg="danger" className="text-white fw-bold badge-tintineo flex-shrink-0" style={{ fontSize: "0.68rem", minWidth: "115px", textAlign: "center", display: "inline-block", padding: "5px 8px" }}>
