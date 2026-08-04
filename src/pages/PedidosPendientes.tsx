@@ -16,7 +16,7 @@ import {
 
 import { Spinner, Badge, Modal, Button } from "react-bootstrap";
 import Swal from "sweetalert2";
-import { API_BASE_URL, socket, getTerminalId, isMandatoryPrintEnabled, isMobileOrTabletDevice, formatTerminalName, formatMesaName } from "../config/api";
+import { API_BASE_URL, socket, getTerminalId, isMandatoryPrintEnabled, isMobileOrTabletDevice, formatTerminalName, formatMesaName, isSameTerminal } from "../config/api";
 
 
 import { playNewOrderSound } from "../utils/audioAlert";
@@ -300,7 +300,7 @@ export default function PedidosPendientes({ onEditarMesa, onVolver, onUpdateCant
 
   const verificarBloqueoMesa = async (orden: PendingOrder): Promise<boolean> => {
     const mesaId = orden.OpeStMesa;
-    const estaBloqueadaPorOtro = String(orden.OpeStMesaAbierta) === '1' && Boolean(orden.OpeStTerminal) && orden.OpeStTerminal !== terminalActual;
+    const estaBloqueadaPorOtro = String(orden.OpeStMesaAbierta) === '1' && Boolean(orden.OpeStTerminal) && !isSameTerminal(orden.OpeStTerminal, terminalActual);
 
     if (estaBloqueadaPorOtro) {
       Swal.fire({
@@ -637,7 +637,7 @@ export default function PedidosPendientes({ onEditarMesa, onVolver, onUpdateCant
                   const estaProcesando = procesandoId === o.OpeIdInOrdenPedido;
                   const tienePendientes = (o.totalSinImprimir || 0) > 0;
                   const esNuevo = nuevosIds.has(o.OpeIdInOrdenPedido) || tienePendientes;
-                  const estaBloqueadaPorOtro = String(o.OpeStMesaAbierta) === '1' && Boolean(o.OpeStTerminal) && o.OpeStTerminal !== terminalActual;
+                  const estaBloqueadaPorOtro = String(o.OpeStMesaAbierta) === '1' && Boolean(o.OpeStTerminal) && !isSameTerminal(o.OpeStTerminal, terminalActual);
                   const nombreMesaFormateado = formatMesaName(o.OpeStMesa);
 
                   return (
@@ -783,7 +783,7 @@ export default function PedidosPendientes({ onEditarMesa, onVolver, onUpdateCant
                       const estaProcesando = procesandoId === o.OpeIdInOrdenPedido;
                       const tienePendientes = (o.totalSinImprimir || 0) > 0;
                       const esNuevo = nuevosIds.has(o.OpeIdInOrdenPedido) || tienePendientes;
-                      const estaBloqueadaPorOtro = String(o.OpeStMesaAbierta) === '1' && Boolean(o.OpeStTerminal) && o.OpeStTerminal !== terminalActual;
+                      const estaBloqueadaPorOtro = String(o.OpeStMesaAbierta) === '1' && Boolean(o.OpeStTerminal) && !isSameTerminal(o.OpeStTerminal, terminalActual);
                       const nombreMesaFormateado = formatMesaName(o.OpeStMesa);
 
                       return (

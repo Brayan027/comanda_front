@@ -186,3 +186,15 @@ export function formatMesaName(mesaStr?: string): string {
   if (!mesaStr) return "";
   return mesaStr.trim().replace(/^mesa\s+/i, "").trim();
 }
+
+/**
+ * Compara dos nombres de terminales para determinar si se trata del mismo dispositivo/equipo,
+ * ignorando etiquetas entre paréntesis o variaciones de prefijo ("1" vs "TERMINAL 1").
+ */
+export function isSameTerminal(t1?: string, t2?: string): boolean {
+  if (!t1 || !t2) return false;
+  const c1 = formatTerminalName(t1).toUpperCase();
+  const c2 = formatTerminalName(t2).toUpperCase();
+  if (!c1 || !c2) return false;
+  return c1 === c2 || c1.endsWith(c2) || c2.endsWith(c1);
+}

@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { FiLayers, FiSearch, FiEdit3, FiChevronLeft, FiChevronRight, FiLock, FiArrowLeft, FiUser } from "react-icons/fi";
 import { Spinner, Badge } from "react-bootstrap";
 import Swal from "sweetalert2";
-import { API_BASE_URL, socket, getTerminalId, formatTerminalName, formatMesaName } from "../config/api";
+import { API_BASE_URL, socket, getTerminalId, formatTerminalName, formatMesaName, isSameTerminal } from "../config/api";
 
 import "../styles/crear-ordenes.css";
 
@@ -330,7 +330,7 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
               <div className="d-block d-md-none">
                 {ordenesPaginadas.map((o) => {
                   const estaAbiertaEnOtraTerminal = String(o.OpeStMesaAbierta) === '1' && 
-                    (!o.OpeStTerminal || o.OpeStTerminal.trim().toUpperCase() !== terminalActual.trim().toUpperCase());
+                    Boolean(o.OpeStTerminal) && !isSameTerminal(o.OpeStTerminal, terminalActual);
 
                   const estaVerificando = mesaVerificando === o.OpeStMesa;
 
@@ -424,7 +424,7 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
                   <tbody>
                     {ordenesPaginadas.map((o) => {
                       const estaAbiertaEnOtraTerminal = String(o.OpeStMesaAbierta) === '1' && 
-                        (!o.OpeStTerminal || o.OpeStTerminal.trim().toUpperCase() !== terminalActual.trim().toUpperCase());
+                        Boolean(o.OpeStTerminal) && !isSameTerminal(o.OpeStTerminal, terminalActual);
 
                       const estaVerificando = mesaVerificando === o.OpeStMesa;
 
