@@ -1,9 +1,14 @@
-// Utilidad de audio usando Web Audio API nativo del navegador
-// Genera una secuencia de beeps agradables de notificación
+import { isMobileOrTabletDevice, isMandatoryPrintEnabled } from "../config/api";
 
 let audioCtx: AudioContext | null = null;
 
 export function playNewOrderSound() {
+  // El sonido NUNCA debe sonar en dispositivos móviles/tablets
+  // Y SOLO se debe escuchar cuando NO es obligatorio imprimir (OBLIGATORIO_IMPRIMIR = "NO")
+  if (isMobileOrTabletDevice() || isMandatoryPrintEnabled()) {
+    return;
+  }
+
   try {
     const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
     if (!AudioContextClass) return;

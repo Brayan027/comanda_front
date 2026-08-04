@@ -26,6 +26,7 @@ export default function App() {
   const [fechaTrabajoRaw, setFechaTrabajoRaw] = useState<string | null>(null);
   const [cantPendientes, setCantPendientes] = useState(0);
   const [esMovilOTablet, setEsMovilOTablet] = useState(() => isMobileOrTabletDevice());
+  const [esObligatorioState, setEsObligatorioState] = useState(() => isMandatoryPrintEnabled());
 
   useEffect(() => {
     const handleResize = () => setEsMovilOTablet(isMobileOrTabletDevice());
@@ -33,25 +34,19 @@ export default function App() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Redirección segura de menús: En Móvil/Tablet o si esObligatorio siempre usa 'ordenes' (Órdenes abiertas)
+  // Redirección de seguridad: Si la pestaña activa es 'pendientes' pero estamos en móvil o la impresión es obligatoria, cambiar a 'ordenes'
   useEffect(() => {
-    if (isMandatoryPrintEnabled() || esMovilOTablet) {
-      if (menuActivo === "pendientes") {
-        setMenuActivo("ordenes");
-      }
-    } else {
-      if (menuActivo === "ordenes") {
-        setMenuActivo("pendientes");
-      }
+    if ((esObligatorioState || esMovilOTablet) && menuActivo === "pendientes") {
+      setMenuActivo("ordenes");
     }
-  }, [esMovilOTablet, menuActivo]);
+  }, [esMovilOTablet, menuActivo, esObligatorioState]);
 
 
 
 
-  // Alarma sonora continua mientras existan pedidos sin procesar
+  // Alarma sonora continua mientras existan pedidos sin procesar (SOLO en PC y cuando NO es obligatorio imprimir)
   useEffect(() => {
-    if (!logueado || cantPendientes <= 0) return;
+    if (!logueado || cantPendientes <= 0 || esMovilOTablet || isMandatoryPrintEnabled()) return;
 
     const soundOn = localStorage.getItem("sonidoPendientesHabilitado") !== "false";
     if (soundOn) {
@@ -66,7 +61,7 @@ export default function App() {
     }, 3500);
 
     return () => clearInterval(intervalId);
-  }, [logueado, cantPendientes]);
+  }, [logueado, cantPendientes, esMovilOTablet]);
 
   const navCheckRef = useRef<((() => Promise<boolean>)) | null>(null);
 
@@ -159,6 +154,7 @@ export default function App() {
         .then(data => {
           if (data && data.body && data.body.obligatorioImprimir) {
             localStorage.setItem("obligatorioImprimir", String(data.body.obligatorioImprimir));
+            setEsObligatorioState(isMandatoryPrintEnabled());
           }
         })
         .catch(err => console.error("Error al obtener config-app:", err));
@@ -194,6 +190,7 @@ export default function App() {
             }
             if (data.body.obligatorioImprimir !== undefined) {
               localStorage.setItem("obligatorioImprimir", String(data.body.obligatorioImprimir));
+              setEsObligatorioState(isMandatoryPrintEnabled());
             }
 
           }
@@ -259,6 +256,7 @@ export default function App() {
       }
       if (data?.obligatorioImprimir !== undefined) {
         localStorage.setItem("obligatorioImprimir", String(data.obligatorioImprimir));
+        setEsObligatorioState(isMandatoryPrintEnabled());
       }
     };
 
@@ -383,6 +381,7 @@ export default function App() {
     <div className="app-container">
       <Sidebar
         activo={menuActivo}
+        esObligatorioImprimir={esObligatorioState}
         onCambiar={async (menu) => {
           if (menu === "comanda") {
             handleNavCrearOrdenes();

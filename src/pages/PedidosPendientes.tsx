@@ -16,7 +16,7 @@ import {
 
 import { Spinner, Badge, Modal, Button } from "react-bootstrap";
 import Swal from "sweetalert2";
-import { API_BASE_URL, socket, getTerminalId, isMandatoryPrintEnabled } from "../config/api";
+import { API_BASE_URL, socket, getTerminalId, isMandatoryPrintEnabled, isMobileOrTabletDevice } from "../config/api";
 
 
 import { playNewOrderSound } from "../utils/audioAlert";
@@ -66,6 +66,8 @@ export default function PedidosPendientes({ onEditarMesa, onVolver }: PedidosPen
 
 
 
+  const esMovil = useMemo(() => isMobileOrTabletDevice(), []);
+
   const [ordenes, setOrdenes] = useState<PendingOrder[]>([]);
   const [cargando, setCargando] = useState(true);
   const [busqueda, setBusqueda] = useState("");
@@ -106,11 +108,13 @@ export default function PedidosPendientes({ onEditarMesa, onVolver }: PedidosPen
   }), [token, infoPuntoVenta, terminalActual]);
 
   const toggleSound = () => {
+    // Solo permitir toggle en PC
+    if (esMovil) return;
     setSoundEnabled(prev => {
       const nextVal = !prev;
       localStorage.setItem("sonidoPendientesHabilitado", String(nextVal));
       if (nextVal) {
-        playNewOrderSound();
+        playNewOrderSound(); // audioAlert.ts ya tiene la guarda interna de PC
       }
       return nextVal;
     });
@@ -540,7 +544,8 @@ export default function PedidosPendientes({ onEditarMesa, onVolver }: PedidosPen
 
 
           <div className="d-flex align-items-center gap-2">
-            {/* Toggle de Alerta Sonora */}
+            {/* Toggle de Alerta Sonora - SOLO visible en PC */}
+            {!esMovil && (
             <button
               type="button"
               onClick={toggleSound}
@@ -556,6 +561,7 @@ export default function PedidosPendientes({ onEditarMesa, onVolver }: PedidosPen
               {soundEnabled ? <FiVolume2 size={16} className="text-danger" /> : <FiVolumeX size={16} />}
               <span>{soundEnabled ? "Sonido ON" : "Sonido OFF"}</span>
             </button>
+            )}
 
             {onVolver && (
               <button
@@ -1052,25 +1058,51 @@ export default function PedidosPendientes({ onEditarMesa, onVolver }: PedidosPen
           )}
         </Modal.Body>
         <Modal.Footer style={{ background: "#f8fafc", borderColor: "#e2e8f0" }}>
-          {selectedOrder && (
-            <div className="d-flex align-items-center gap-2 w-100 justify-content-end">
-              <Button
-                variant="outline-success"
-                className="fw-bold rounded-3"
-                onClick={() => handleConfirmar(selectedOrder)}
-              >
-                <FiCheckCircle className="me-1" /> Confirmar (Guardar)
-              </Button>
-              <Button
-                variant="danger"
-                className="fw-bold rounded-3"
-                style={{ background: "#e31b23" }}
-                onClick={() => handleImprimir(selectedOrder)}
-              >
-                <FiPrinter className="me-1" /> Imprimir
-              </Button>
-            </div>
-          )}
+          {selectedOrder && (() => {
+            const haySinImprimir = orderDetails.some(item => String(item.MopStImpreso || '0') !== '1');
+            const estaProcesando = procesandoId === selectedOrder.OpeIdInOrdenPedido;
+
+            if (!haySinImprimir) {
+              return (
+                <div className="d-flex align-items-center justify-content-between w-100">
+                  <span className="text-success fw-bold small d-flex align-items-center gap-1">
+                    <FiCheckCircle /> Todos los productos de este pedido ya están impresos.
+                  </span>
+                  <Button
+                    variant="secondary"
+                    className="fw-bold rounded-3"
+                    onClick={() => setSelectedOrder(null)}
+                  >
+                    Cerrar
+                  </Button>
+                </div>
+              );
+            }
+
+            return (
+              <div className="d-flex align-items-center gap-2 w-100 justify-content-end">
+                {!isMandatoryPrintEnabled() && (
+                  <Button
+                    variant="outline-success"
+                    className="fw-bold rounded-3"
+                    disabled={estaProcesando}
+                    onClick={() => handleConfirmar(selectedOrder)}
+                  >
+                    <FiCheckCircle className="me-1" /> Confirmar (Guardar)
+                  </Button>
+                )}
+                <Button
+                  variant="danger"
+                  className="fw-bold rounded-3"
+                  style={{ background: "#e31b23" }}
+                  disabled={estaProcesando}
+                  onClick={() => handleImprimir(selectedOrder)}
+                >
+                  <FiPrinter className="me-1" /> Imprimir
+                </Button>
+              </div>
+            );
+          })()}
         </Modal.Footer>
       </Modal>
 

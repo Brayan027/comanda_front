@@ -137,14 +137,34 @@ export function isMandatoryPrintEnabled(): boolean {
     const clean = String(envVal).trim().toUpperCase();
     return clean === "SI" || clean === "TRUE" || clean === "1" || clean === "YES";
   }
-  return true;
+  return false;
 }
 
 
 /**
  * Detecta si el dispositivo actual es Móvil o Tablet.
+ * Permite que cualquier PC (Windows, Mac, Linux) con pantalla >= 1024px sea detectado como PC,
+ * mientras que celulares y tablets se detectan como móvil incluso en modo "Sitio para PC".
  */
 export function isMobileOrTabletDevice(): boolean {
   if (typeof window === "undefined") return false;
-  return window.innerWidth < 1024 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+  const ua = navigator.userAgent || "";
+  const platform = navigator.platform || "";
+
+  // 1. Detección explícita de SO de Escritorio (Windows / Mac)
+  const isDesktopOS = /Win32|Win64|Windows|Macintosh|MacIntel/i.test(ua) || /Win32|Win64|Windows|Mac/i.test(platform);
+  const maxScreenDim = Math.max(window.screen.width, window.screen.height);
+  const isMobileOS = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+
+  // Si es un computador (Windows / Mac) con pantalla de al menos 1024px, ES UN PC
+  if (isDesktopOS && maxScreenDim >= 1024 && !isMobileOS) {
+    return false;
+  }
+
+  // 2. Para móviles y tablets:
+  const isMobileScreenSize = Math.min(window.screen.width, window.screen.height) <= 600;
+  const isSmallViewport = window.innerWidth < 1024;
+
+  return isMobileOS || isMobileScreenSize || isSmallViewport;
 }

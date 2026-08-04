@@ -14,12 +14,13 @@ type SidebarProps = {
     fechaActual?: string;
     terminal?: string;
     cantPendientes?: number;
+    esObligatorioImprimir?: boolean;
 };
 
-export default function Sidebar({ activo, onCambiar, onSalir, empresaNombre, puntoNombre, fechaActual, terminal, cantPendientes = 0 }: SidebarProps) {
+export default function Sidebar({ activo, onCambiar, onSalir, empresaNombre, puntoNombre, fechaActual, terminal, cantPendientes = 0, esObligatorioImprimir }: SidebarProps) {
     const [abierto, setAbierto] = useState(false);
 
-    const esObligatorio = isMandatoryPrintEnabled();
+    const esObligatorio = esObligatorioImprimir !== undefined ? esObligatorioImprimir : isMandatoryPrintEnabled();
     const esMovilOTablet = isMobileOrTabletDevice();
     const usarInterfazClasica = esObligatorio || esMovilOTablet;
 
