@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { FiLayers, FiSearch, FiEdit3, FiChevronLeft, FiChevronRight, FiLock, FiArrowLeft, FiUser } from "react-icons/fi";
 import { Spinner, Badge } from "react-bootstrap";
 import Swal from "sweetalert2";
-import { API_BASE_URL, socket, getTerminalId } from "../config/api";
+import { API_BASE_URL, socket, getTerminalId, formatTerminalName } from "../config/api";
 
 import "../styles/crear-ordenes.css";
 
@@ -344,7 +344,7 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
                           {estaAbiertaEnOtraTerminal && (
                             <Badge bg="warning" className="text-dark d-inline-flex align-items-center gap-1" style={{ fontSize: "0.65rem", padding: "4px 6px" }}>
                               <FiLock size={10} />
-                              {o.OpeStTerminal}
+                              {formatTerminalName(o.OpeStTerminal)}
                             </Badge>
                           )}
                         </div>
@@ -428,7 +428,7 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
                               {estaAbiertaEnOtraTerminal && (
                                 <Badge bg="warning" className="text-dark d-inline-flex align-items-center gap-1" style={{ fontSize: "0.68rem", fontWeight: "700" }}>
                                   <FiLock size={10} />
-                                  En edición ({o.OpeStTerminal})
+                                  En edición ({formatTerminalName(o.OpeStTerminal)})
                                 </Badge>
                               )}
                             </div>

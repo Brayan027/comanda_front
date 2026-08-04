@@ -168,3 +168,12 @@ export function isMobileOrTabletDevice(): boolean {
 
   return isMobileOS || isMobileScreenSize || isSmallViewport;
 }
+
+/**
+ * Formatea el nombre de la terminal quitando el nombre de PC entre paréntesis.
+ * Ejemplo: "TERMINAL 66 (MOV_MSDH-PMM5)" -> "TERMINAL 66"
+ */
+export function formatTerminalName(terminalStr?: string): string {
+  if (!terminalStr) return "";
+  return terminalStr.replace(/\s*\(.*?\)/g, "").trim();
+}
