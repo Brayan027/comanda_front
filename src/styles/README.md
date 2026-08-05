@@ -10,11 +10,13 @@ Este directorio contiene las hojas de estilo principales de la aplicación Front
 
 ## 📱 Gestión del Desplazamiento y Scroll Táctil (`crear-ordenes.css`)
 
-### 1. Ajuste Dinámico al Desplegar Teclado Móvil (`.search-active`)
+### 1. Ajuste Dinámico y Auto-Scroll al Enfocar Buscador (`.search-active`)
 Para garantizar una experiencia óptima en tablets y dispositivos móviles cuando el mesero utiliza la barra de búsqueda de productos:
-* **Colapso de Cabecera:** Al enfocar el buscador, la clase `.search-active` se activa en la página principal y oculta la cabecera (`.co-header { display: none !important; }`).
+* **Desplazamiento Automático Hacia Arriba (Auto-Scroll smooth):** Al enfocar el input de búsqueda (`onFocus`), se dispara `tabsNavbarRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })` tras un breve retardo (80ms), desplazando automáticamente la vista hacia arriba para centrar la zona de trabajo.
+* **Colapso de Cabecera:** Al enfocar el buscador, la clase `.search-active` se activa en la página principal y oculta la cabecera (`.co-header { display: none !important; }`), ganando espacio vertical significativo.
 * **Recálculo de Altura Útil:** El contenedor de productos (`.co-products-scroll`) ajusta automáticamente su altura disponible a `max-height: calc(100vh - 110px) !important;`.
-* **Beneficio:** Permite al usuario desplazarse por el catálogo de productos con la pantalla visible optimizada sin que el teclado virtual tape los resultados ni distorsione el layout.
+* **Beneficio:** Evita que el teclado táctil de Android/iOS oculte la caja de búsqueda o la lista de resultados, manteniendo el catálogo totalmente visible y desplazable al escribir.
+
 
 ### 2. Personalización de Barras de Scroll (Scrollbars Discretas)
 Para mantener una apariencia estética limpia y moderna:
