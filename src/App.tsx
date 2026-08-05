@@ -482,16 +482,13 @@ export default function App() {
       <section className="app-content">
         {menuActivo === "home" ? (
           <section
-            className="premium-home-panel pt-3"
+            className="premium-home-panel px-1 px-md-3 pt-0"
             aria-label="Pantalla de inicio"
-            style={{ background: "#f8fafc", minHeight: "100vh", paddingBottom: "60px", paddingLeft: "2px", paddingRight: "2px" }}
+            style={{ background: "#f8fafc", minHeight: "100vh", paddingBottom: "60px" }}
           >
-            <div className="w-100 m-0 p-0">
+            <div className="container-fluid pt-2 px-1 px-md-2">
               {/* Header Premium Limpio en Texto con Usuario Logueado */}
-              <header
-                className="bg-white py-2 mb-3 mt-0 rounded-3 border d-flex align-items-center justify-content-between flex-nowrap gap-2 w-100 overflow-hidden"
-                style={{ borderColor: "#e2e8f0", minHeight: "52px", boxShadow: "0 1px 3px rgba(15, 23, 42, 0.02)", paddingLeft: "10px", paddingRight: "12px" }}
-              >
+              <header className="co-header d-flex align-items-center justify-content-between">
                 {/* Lado izquierdo: Icono Red Home y Título separados */}
                 <div className="d-flex align-items-center gap-3 flex-shrink-0" style={{ gap: "12px" }}>
                   {/* Icono Red Home Solido */}

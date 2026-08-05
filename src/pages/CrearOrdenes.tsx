@@ -1646,7 +1646,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
   };
 
   return (
-    <section className={`crear-ordenes-page px-0 px-md-3 ${searchFocused ? "search-active" : ""}`} aria-label="Crear Órdenes">
+    <section className={`crear-ordenes-page px-1 px-md-3 pt-0 ${searchFocused ? "search-active" : ""}`} aria-label="Crear Órdenes">
       {cargandoComanda && (
         <div 
           style={{

@@ -1,9 +1,13 @@
 /* Crear Ordenes Module - Minimalist & Dianasis Red Brand Palette System */
 
-.crear-ordenes-page {
+.crear-ordenes-page,
+.premium-home-panel,
+.ordenes-page,
+.pedidos-page {
   min-height: calc(100vh - 20px);
-  max-width: 1240px;
-  margin: 0 auto;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
   padding: 0 0 20px 0;
   font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);

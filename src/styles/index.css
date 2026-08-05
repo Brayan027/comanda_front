@@ -409,10 +409,10 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 
 /* --- PREMIUM HOME --- */
 .premium-home-panel {
+  width: 100%;
   max-width: 100%;
   margin: 0;
-  padding: 10px 0px 10px 10px;
-  /* Quitamos padding izquierdo */
+  padding: 0;
   animation: fadeIn 0.4s ease-out;
 }
 
