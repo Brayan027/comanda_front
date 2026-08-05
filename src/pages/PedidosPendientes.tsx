@@ -550,15 +550,18 @@ export default function PedidosPendientes({ onEditarMesa, onVolver, onUpdateCant
 
             <div className="d-flex align-items-center gap-2 flex-wrap ms-auto">
               {/* Buscador de Mesas/Meseros Integrado en Header */}
-              <div className="position-relative" style={{ width: "220px", maxWidth: "100%" }}>
-                <FiSearch className="position-absolute text-muted" style={{ left: "10px", top: "9px", pointerEvents: "none" }} size={14} />
+              <div 
+                className="d-flex align-items-center gap-2 px-2 bg-white rounded-3 border" 
+                style={{ borderColor: "#cbd5e1", height: "32px", width: "230px", maxWidth: "100%" }}
+              >
+                <FiSearch className="text-muted flex-shrink-0" size={14} />
                 <input
                   type="text"
-                  className="form-control form-control-sm shadow-none"
+                  className="border-0 bg-transparent p-0 shadow-none w-100 fw-medium"
                   placeholder="Filtrar por mesa o mesero..."
                   value={busqueda}
                   onChange={(e) => { setBusqueda(e.target.value); setPagina(1); }}
-                  style={{ borderRadius: "8px", border: "1px solid #cbd5e1", height: "32px", fontSize: "0.78rem", paddingLeft: "30px", paddingRight: "10px" }}
+                  style={{ fontSize: "0.78rem", outline: "none", color: "#1e293b" }}
                 />
               </div>
 
