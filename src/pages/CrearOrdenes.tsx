@@ -1008,9 +1008,27 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
 
   // Realizar la inserción en el carrito
   const executeAddToCart = (p: Product, sides: CartItem["adicionales"], customQty: number) => {
-    const sidesKey = sides.map(s => s.ApmIdInProducto).sort().join(",");
+    const sidesKey = (sides || []).map(s => s.ApmIdInProducto).sort().join(",");
 
     setCarrito(prev => {
+      // Buscar si ya existe un ítem NO impreso y NO eliminado idéntico para sumar cantidad
+      const existingIdx = prev.findIndex(x => 
+        !x.esEliminado && 
+        x.MopStImpreso !== '1' && 
+        x.ProIdInProducto === p.ProIdInProducto && 
+        (x.adicionales || []).map(s => s.ApmIdInProducto).sort().join(",") === sidesKey &&
+        !(x.observacion || "").trim()
+      );
+
+      if (existingIdx !== -1) {
+        const newCart = [...prev];
+        newCart[existingIdx] = {
+          ...newCart[existingIdx],
+          cantidad: newCart[existingIdx].cantidad + customQty
+        };
+        return newCart;
+      }
+
       const newUnprintedId = `${p.ProIdInProducto}_${sidesKey}_new_${Date.now()}_${Math.random()}`;
       return [
         ...prev,
@@ -1027,7 +1045,8 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
           ProStIvaIncluido: p.ProStIvaIncluido !== undefined ? p.ProStIvaIncluido : '1',
           MopStImpreso: '0',
           ImpNombre1: p.ImpNombre1 || "Comanda General",
-          adicionales: sides
+          adicionales: sides,
+          observacion: ""
         }
       ];
     });

@@ -10,7 +10,8 @@ import {
   FiPrinter, 
   FiVolume2, 
   FiVolumeX,
-  FiEdit3
+  FiEdit3,
+  FiLock
 } from "react-icons/fi";
 
 
@@ -1077,6 +1078,27 @@ export default function PedidosPendientes({ onEditarMesa, onVolver, onUpdateCant
           {selectedOrder && (() => {
             const haySinImprimir = orderDetails.some(item => String(item.MopStImpreso || '0') !== '1');
             const estaProcesando = procesandoId === selectedOrder.OpeIdInOrdenPedido;
+            const estaBloqueadaPorOtro = String(selectedOrder.OpeStMesaAbierta) === '1' && Boolean(selectedOrder.OpeStTerminal) && !isSameTerminal(selectedOrder.OpeStTerminal, terminalActual);
+
+            if (estaBloqueadaPorOtro) {
+              return (
+                <div className="d-flex flex-column gap-2 w-100">
+                  <div className="alert alert-dark m-0 py-2 px-3 fw-bold small text-center shadow-sm d-flex align-items-center justify-content-center gap-2" style={{ background: "#1e293b", color: "#ffffff", border: "none", borderRadius: "8px" }}>
+                    <FiLock size={15} />
+                    <span>ESTA MESA ESTÁ SIENDO EDITADA EN OTRO DISPOSITIVO ({selectedOrder.OpeStTerminal?.toUpperCase() || 'MÓVIL'}). NO SE PUEDE MODIFICAR HASTA QUE SE LIBERE.</span>
+                  </div>
+                  <div className="d-flex justify-content-end w-100">
+                    <Button
+                      variant="secondary"
+                      className="fw-bold rounded-3"
+                      onClick={() => setSelectedOrder(null)}
+                    >
+                      Cerrar
+                    </Button>
+                  </div>
+                </div>
+              );
+            }
 
             if (!haySinImprimir) {
               return (
@@ -1101,7 +1123,7 @@ export default function PedidosPendientes({ onEditarMesa, onVolver, onUpdateCant
                   <Button
                     variant="outline-success"
                     className="fw-bold rounded-3"
-                    disabled={estaProcesando}
+                    disabled={estaProcesando || estaBloqueadaPorOtro}
                     onClick={() => handleConfirmar(selectedOrder)}
                   >
                     <FiCheckCircle className="me-1" /> Confirmar (Guardar)
