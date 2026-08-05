@@ -255,62 +255,66 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
               </div>
             </div>
 
-            {onVolver && (
-              <button
-                type="button"
-                title="Volver a inicio"
-                onClick={onVolver}
-                className="btn btn-sm d-flex align-items-center gap-1 fw-bold"
-                style={{
-                  border: "1.5px solid #cbd5e1",
-                  borderRadius: "6px",
-                  background: "#ffffff",
-                  color: "#334155",
-                  padding: "3px 8px",
-                  height: "28px",
-                  cursor: "pointer",
-                  flexShrink: 0,
-                  fontSize: "0.75rem",
-                  boxShadow: "0 1px 3px rgba(0, 0, 0, 0.04)",
-                  transition: "all 0.15s ease"
-                }}
-                onMouseEnter={(e) => {
-                  const btn = e.currentTarget as HTMLButtonElement;
-                  btn.style.background = "#e31b23";
-                  btn.style.color = "#ffffff";
-                  btn.style.borderColor = "#e31b23";
-                }}
-                onMouseLeave={(e) => {
-                  const btn = e.currentTarget as HTMLButtonElement;
-                  btn.style.background = "#ffffff";
-                  btn.style.color = "#334155";
-                  btn.style.borderColor = "#cbd5e1";
-                }}
-              >
-                <FiArrowLeft size={16} />
-                <span>Volver</span>
-              </button>
-            )}
-          </header>
-
-          <div className="co-panel-body p-3 p-md-4">
-          
-          {/* Controls bar superior: SOLO el filtro de búsqueda */}
-          <div className="d-flex justify-content-end align-items-center mb-3">
-            <div className="d-flex align-items-center gap-2 w-100 w-sm-auto" style={{ maxWidth: "340px" }}>
-              <span className="fw-semibold text-secondary" style={{ fontSize: "0.85rem", whiteSpace: "nowrap" }}>Buscar:</span>
-              <div className="position-relative w-100">
+            <div className="d-flex align-items-center gap-2 flex-wrap ms-auto">
+              {/* Buscador de Mesas/Meseros Integrado en Header */}
+              <div className="position-relative" style={{ width: "220px", maxWidth: "100%" }}>
                 <input
                   type="text"
                   className="form-control form-control-sm pe-4 shadow-none"
                   placeholder="Filtrar mesa o mesero..."
                   value={busqueda}
                   onChange={(e) => { setBusqueda(e.target.value); setPagina(1); }}
-                  style={{ borderRadius: "8px", border: "1px solid #cbd5e1", height: "36px", fontSize: "0.85rem", paddingLeft: "12px" }}
+                  style={{ borderRadius: "8px", border: "1px solid #cbd5e1", height: "32px", fontSize: "0.78rem", paddingLeft: "10px" }}
                 />
-                <FiSearch className="position-absolute text-muted" style={{ right: "12px", top: "11px" }} size={14} />
+                <FiSearch className="position-absolute text-muted" style={{ right: "10px", top: "9px" }} size={13} />
               </div>
+
+              {onVolver && (
+                <button
+                  type="button"
+                  title="Volver a inicio"
+                  onClick={onVolver}
+                  className="btn btn-sm d-flex align-items-center gap-1 fw-bold"
+                  style={{
+                    border: "1.5px solid #cbd5e1",
+                    borderRadius: "6px",
+                    background: "#ffffff",
+                    color: "#334155",
+                    padding: "3px 8px",
+                    height: "28px",
+                    cursor: "pointer",
+                    flexShrink: 0,
+                    fontSize: "0.75rem",
+                    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.04)",
+                    transition: "all 0.15s ease"
+                  }}
+                  onMouseEnter={(e) => {
+                    const btn = e.currentTarget as HTMLButtonElement;
+                    btn.style.background = "#e31b23";
+                    btn.style.color = "#ffffff";
+                    btn.style.borderColor = "#e31b23";
+                  }}
+                  onMouseLeave={(e) => {
+                    const btn = e.currentTarget as HTMLButtonElement;
+                    btn.style.background = "#ffffff";
+                    btn.style.color = "#334155";
+                    btn.style.borderColor = "#cbd5e1";
+                  }}
+                >
+                  <FiArrowLeft size={16} />
+                  <span>Volver</span>
+                </button>
+              )}
             </div>
+          </header>
+
+          <div className="co-panel-body p-3 p-md-4">
+          
+          {/* Sub-bar informativo compacto */}
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <span className="fw-bold text-uppercase text-secondary" style={{ fontSize: "0.72rem", letterSpacing: "0.05em" }}>
+              Comandas activas ({ordenesPaginadas.length} de {ordenes.length})
+            </span>
           </div>
 
           {/* Table content */}

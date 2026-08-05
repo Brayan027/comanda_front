@@ -548,7 +548,20 @@ export default function PedidosPendientes({ onEditarMesa, onVolver, onUpdateCant
             </div>
 
 
-            <div className="d-flex align-items-center gap-2">
+            <div className="d-flex align-items-center gap-2 flex-wrap ms-auto">
+              {/* Buscador de Mesas/Meseros Integrado en Header */}
+              <div className="position-relative" style={{ width: "220px", maxWidth: "100%" }}>
+                <input
+                  type="text"
+                  className="form-control form-control-sm pe-4 shadow-none"
+                  placeholder="Filtrar por mesa o mesero..."
+                  value={busqueda}
+                  onChange={(e) => { setBusqueda(e.target.value); setPagina(1); }}
+                  style={{ borderRadius: "8px", border: "1px solid #cbd5e1", height: "32px", fontSize: "0.78rem", paddingLeft: "10px" }}
+                />
+                <FiSearch className="position-absolute text-muted" style={{ right: "10px", top: "9px" }} size={13} />
+              </div>
+
               {/* Toggle de Alerta Sonora - SOLO visible en PC */}
               {!esMovil && (
               <button
@@ -557,13 +570,13 @@ export default function PedidosPendientes({ onEditarMesa, onVolver, onUpdateCant
                 className={`btn btn-sm d-flex align-items-center gap-1.5 fw-bold ${soundEnabled ? "btn-outline-danger" : "btn-outline-secondary"}`}
                 style={{
                   borderRadius: "8px",
-                  height: "36px",
-                  fontSize: "0.8rem",
-                  padding: "5px 12px"
+                  height: "32px",
+                  fontSize: "0.76rem",
+                  padding: "3px 10px"
                 }}
                 title={soundEnabled ? "Desactivar sonido de notificación" : "Activar sonido de notificación"}
               >
-                {soundEnabled ? <FiVolume2 size={16} className="text-danger" /> : <FiVolumeX size={16} />}
+                {soundEnabled ? <FiVolume2 size={14} className="text-danger" /> : <FiVolumeX size={14} />}
                 <span>{soundEnabled ? "Sonido ON" : "Sonido OFF"}</span>
               </button>
               )}
@@ -596,22 +609,11 @@ export default function PedidosPendientes({ onEditarMesa, onVolver, onUpdateCant
 
           <div className="co-panel-body p-3 p-md-4">
           
-          {/* Controls bar superior: Filtro de búsqueda */}
-          <div className="d-flex justify-content-end align-items-center mb-3">
-            <div className="d-flex align-items-center gap-2 w-100 w-sm-auto" style={{ maxWidth: "340px" }}>
-              <span className="fw-semibold text-secondary" style={{ fontSize: "0.85rem", whiteSpace: "nowrap" }}>Buscar:</span>
-              <div className="position-relative w-100">
-                <input
-                  type="text"
-                  className="form-control form-control-sm pe-4 shadow-none"
-                  placeholder="Filtrar por mesa o mesero..."
-                  value={busqueda}
-                  onChange={(e) => { setBusqueda(e.target.value); setPagina(1); }}
-                  style={{ borderRadius: "8px", border: "1px solid #cbd5e1", height: "36px", fontSize: "0.85rem", paddingLeft: "12px" }}
-                />
-                <FiSearch className="position-absolute text-muted" style={{ right: "12px", top: "11px" }} size={14} />
-              </div>
-            </div>
+          {/* Sub-bar informativo compacto */}
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <span className="fw-bold text-uppercase text-secondary" style={{ fontSize: "0.72rem", letterSpacing: "0.05em" }}>
+              Comandas registradas ({ordenesPaginadas.length} de {ordenes.length})
+            </span>
           </div>
 
           {/* Table content */}
