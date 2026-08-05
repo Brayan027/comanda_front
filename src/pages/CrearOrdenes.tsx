@@ -1678,8 +1678,9 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
             <div className="fw-bold">La comandera se encuentra bloqueada por el sistema. No se pueden registrar ni modificar pedidos.</div>
           </div>
         )}
-        {/* Header Strip Unificado */}
-        <header className="co-header d-flex flex-column gap-1">
+        {/* Header Strip y Secciones Unificadas en un Solo Card Blanco */}
+        <div className="co-unified-main-card">
+          <header className="co-header d-flex flex-column gap-1">
           <div className="d-flex align-items-center justify-content-between w-100">
             <div className="d-flex align-items-center gap-2">
               <div
@@ -2640,6 +2641,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
             </div>
           </div>
         </section>
+        </div>
         </div>
       </div>
 

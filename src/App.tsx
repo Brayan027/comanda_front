@@ -491,64 +491,65 @@ export default function App() {
             style={{ background: "#f8fafc", minHeight: "100vh", paddingBottom: "60px" }}
           >
             <div className="container-fluid pt-2 px-1 px-md-2">
-              {/* Header Premium Limpio en Texto con Usuario Logueado */}
-              <header className="co-header d-flex align-items-center justify-content-between">
-                {/* Lado izquierdo: Icono Red Home y Título separados */}
-                <div className="d-flex align-items-center gap-3 flex-shrink-0" style={{ gap: "12px" }}>
-                  {/* Icono Red Home Solido */}
-                  <div
-                    className="premium-icon-box flex-shrink-0"
-                    style={{
-                      width: "32px",
-                      height: "32px",
-                      background: "#e31b23",
-                      color: "#ffffff",
-                      borderRadius: "8px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      boxShadow: "0 2px 6px rgba(227, 27, 35, 0.25)"
-                    }}
-                  >
-                    <FiHome size={16} />
+              {/* Header Premium y Panel Unificados en un Solo Card Blanco Sin Cortes */}
+              <div className="co-unified-main-card" style={{ minHeight: "calc(100vh - 160px)" }}>
+                <header className="co-header d-flex align-items-center justify-content-between">
+                  {/* Lado izquierdo: Icono Red Home y Título separados */}
+                  <div className="d-flex align-items-center gap-3 flex-shrink-0" style={{ gap: "12px" }}>
+                    {/* Icono Red Home Solido */}
+                    <div
+                      className="premium-icon-box flex-shrink-0"
+                      style={{
+                        width: "32px",
+                        height: "32px",
+                        background: "#e31b23",
+                        color: "#ffffff",
+                        borderRadius: "8px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        boxShadow: "0 2px 6px rgba(227, 27, 35, 0.25)"
+                      }}
+                    >
+                      <FiHome size={16} />
+                    </div>
+
+                    {/* Título de la sección */}
+                    <div className="d-flex flex-column ms-1">
+                      <span className="text-uppercase fw-bold mb-0" style={{ fontSize: "0.6rem", letterSpacing: "0.08em", color: "#64748b" }}>
+                        Comanda
+                      </span>
+                      <h1 className="m-0 text-uppercase fw-bold" style={{ fontSize: "1.05rem", color: "#1e293b", letterSpacing: "-0.01em", lineHeight: 1.1 }}>
+                        Inicio
+                      </h1>
+                    </div>
                   </div>
 
-                  {/* Título de la sección */}
-                  <div className="d-flex flex-column ms-1">
-                    <span className="text-uppercase fw-bold mb-0" style={{ fontSize: "0.6rem", letterSpacing: "0.08em", color: "#64748b" }}>
-                      Comanda
+                  {/* Lado derecho: Nombre de Usuario Limpio sin tarjeta ni etiqueta VENDEDOR */}
+                  <div className="d-flex align-items-center gap-2 ms-auto overflow-hidden flex-shrink-0" style={{ maxWidth: "60%" }}>
+                    <span 
+                      className="fw-bold text-uppercase text-dark text-truncate" 
+                      style={{ fontSize: "0.78rem", letterSpacing: "0.01em", maxWidth: "160px" }}
+                      title={vendedorInfo}
+                    >
+                      {vendedorInfo}
                     </span>
-                    <h1 className="m-0 text-uppercase fw-bold" style={{ fontSize: "1.05rem", color: "#1e293b", letterSpacing: "-0.01em", lineHeight: 1.1 }}>
-                      Inicio
-                    </h1>
+                    <div
+                      className="rounded-circle d-flex align-items-center justify-content-center fw-bold text-white flex-shrink-0"
+                      style={{
+                        width: "28px",
+                        height: "28px",
+                        background: "#e31b23",
+                        fontSize: "0.72rem",
+                        boxShadow: "0 2px 4px rgba(227, 27, 35, 0.25)"
+                      }}
+                    >
+                      {getInitials(vendedorInfo)}
+                    </div>
                   </div>
-                </div>
+                </header>
 
-                {/* Lado derecho: Nombre de Usuario Limpio sin tarjeta ni etiqueta VENDEDOR */}
-                <div className="d-flex align-items-center gap-2 ms-auto overflow-hidden flex-shrink-0" style={{ maxWidth: "60%" }}>
-                  <span 
-                    className="fw-bold text-uppercase text-dark text-truncate" 
-                    style={{ fontSize: "0.78rem", letterSpacing: "0.01em", maxWidth: "160px" }}
-                    title={vendedorInfo}
-                  >
-                    {vendedorInfo}
-                  </span>
-                  <div
-                    className="rounded-circle d-flex align-items-center justify-content-center fw-bold text-white flex-shrink-0"
-                    style={{
-                      width: "28px",
-                      height: "28px",
-                      background: "#e31b23",
-                      fontSize: "0.72rem",
-                      boxShadow: "0 2px 4px rgba(227, 27, 35, 0.25)"
-                    }}
-                  >
-                    {getInitials(vendedorInfo)}
-                  </div>
-                </div>
-              </header>
-
-              <main className="bg-white rounded-4 shadow-sm p-3 p-md-4 border w-100" style={{ borderColor: "#e2e8f0", minHeight: "calc(100vh - 160px)" }}>
+                <main className="co-panel-body p-3 p-md-4 w-100">
                 <div className="row g-3 m-0 w-100 align-items-stretch">
                   {/* Tarjeta 1: Nuevo Pedido */}
                   <div className="col-12 col-md-6 p-0 px-md-1 mb-2">
@@ -737,6 +738,7 @@ export default function App() {
 
                 </div>
               </main>
+            </div>
             </div>
           </section>
         ) : menuActivo === "comanda" ? (

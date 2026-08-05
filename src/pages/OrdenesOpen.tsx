@@ -229,71 +229,71 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
   return (
     <section className="ordenes-page px-1 px-md-3 pt-0" style={{ background: "#f8fafc", minHeight: "100vh", paddingBottom: "60px" }}>
       <div className="container-fluid pt-2 px-1 px-md-2">
-        
-        <header className="co-header d-flex align-items-center justify-content-between">
-          <div className="d-flex align-items-center gap-3">
-            <div
-              style={{
-                width: "28px",
-                height: "28px",
-                background: "#e31b23",
-                color: "#fff",
-                borderRadius: "7px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-                boxShadow: "0 2px 6px rgba(227, 27, 35, 0.25)",
-              }}
-            >
-              <FiLayers size={14} />
+        {/* Datatable Card container Unificado Sin Cortes */}
+        <div className="co-unified-main-card">
+          <header className="co-header d-flex align-items-center justify-content-between">
+            <div className="d-flex align-items-center gap-3">
+              <div
+                style={{
+                  width: "28px",
+                  height: "28px",
+                  background: "#e31b23",
+                  color: "#fff",
+                  borderRadius: "7px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  boxShadow: "0 2px 6px rgba(227, 27, 35, 0.25)",
+                }}
+              >
+                <FiLayers size={14} />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div className="co-header-subtitle">Comandas Activas</div>
+                <h1 className="co-header-title">Órdenes Abiertas</h1>
+              </div>
             </div>
-            <div style={{ minWidth: 0 }}>
-              <div className="co-header-subtitle">Comandas Activas</div>
-              <h1 className="co-header-title">Órdenes Abiertas</h1>
-            </div>
-          </div>
 
-          {onVolver && (
-            <button
-              type="button"
-              title="Volver a inicio"
-              onClick={onVolver}
-              className="btn btn-sm d-flex align-items-center gap-1 fw-bold"
-              style={{
-                border: "1.5px solid #cbd5e1",
-                borderRadius: "6px",
-                background: "#ffffff",
-                color: "#334155",
-                padding: "3px 8px",
-                height: "28px",
-                cursor: "pointer",
-                flexShrink: 0,
-                fontSize: "0.75rem",
-                boxShadow: "0 1px 3px rgba(0, 0, 0, 0.04)",
-                transition: "all 0.15s ease"
-              }}
-              onMouseEnter={(e) => {
-                const btn = e.currentTarget as HTMLButtonElement;
-                btn.style.background = "#e31b23";
-                btn.style.color = "#ffffff";
-                btn.style.borderColor = "#e31b23";
-              }}
-              onMouseLeave={(e) => {
-                const btn = e.currentTarget as HTMLButtonElement;
-                btn.style.background = "#ffffff";
-                btn.style.color = "#334155";
-                btn.style.borderColor = "#cbd5e1";
-              }}
-            >
-              <FiArrowLeft size={16} />
-              <span>Volver</span>
-            </button>
-          )}
-        </header>
+            {onVolver && (
+              <button
+                type="button"
+                title="Volver a inicio"
+                onClick={onVolver}
+                className="btn btn-sm d-flex align-items-center gap-1 fw-bold"
+                style={{
+                  border: "1.5px solid #cbd5e1",
+                  borderRadius: "6px",
+                  background: "#ffffff",
+                  color: "#334155",
+                  padding: "3px 8px",
+                  height: "28px",
+                  cursor: "pointer",
+                  flexShrink: 0,
+                  fontSize: "0.75rem",
+                  boxShadow: "0 1px 3px rgba(0, 0, 0, 0.04)",
+                  transition: "all 0.15s ease"
+                }}
+                onMouseEnter={(e) => {
+                  const btn = e.currentTarget as HTMLButtonElement;
+                  btn.style.background = "#e31b23";
+                  btn.style.color = "#ffffff";
+                  btn.style.borderColor = "#e31b23";
+                }}
+                onMouseLeave={(e) => {
+                  const btn = e.currentTarget as HTMLButtonElement;
+                  btn.style.background = "#ffffff";
+                  btn.style.color = "#334155";
+                  btn.style.borderColor = "#cbd5e1";
+                }}
+              >
+                <FiArrowLeft size={16} />
+                <span>Volver</span>
+              </button>
+            )}
+          </header>
 
-        {/* Datatable Card container */}
-        <div className="bg-white rounded-4 shadow-sm p-3 p-md-4 border" style={{ borderColor: "#e2e8f0" }}>
+          <div className="co-panel-body p-3 p-md-4">
           
           {/* Controls bar superior: SOLO el filtro de búsqueda */}
           <div className="d-flex justify-content-end align-items-center mb-3">
@@ -541,6 +541,7 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
             </div>
           )}
 
+        </div>
         </div>
       </div>
     </section>

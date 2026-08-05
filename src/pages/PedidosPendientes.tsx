@@ -510,91 +510,91 @@ export default function PedidosPendientes({ onEditarMesa, onVolver, onUpdateCant
     <section className="ordenes-page px-1 px-md-3 pt-0" style={{ background: "#f8fafc", minHeight: "100vh", paddingBottom: "60px" }}>
       <div className="container-fluid pt-2 px-1 px-md-2">
         
-        {/* Header de la vista */}
-        <header className="co-header d-flex align-items-center justify-content-between flex-wrap gap-2">
-          <div className="d-flex align-items-center gap-3">
-            <div
-              style={{
-                width: "28px",
-                height: "28px",
-                background: "#e31b23",
-                color: "#fff",
-                borderRadius: "7px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-                boxShadow: "0 2px 6px rgba(227, 27, 35, 0.25)",
-              }}
-            >
-              <FiClock size={14} />
-            </div>
-            <div style={{ minWidth: 0 }}>
-              <div className="co-header-subtitle">Comandas sin Confirmar</div>
-              <h1 className="co-header-title d-flex align-items-center gap-2">
-                <span>PEDIDOS PENDIENTES</span>
-                {cantSinImprimir > 0 ? (
-                  <Badge bg="danger" className="rounded-pill px-2.5 py-1 badge-tintineo" style={{ fontSize: "0.75rem" }}>
-                    {cantSinImprimir} PENDIENTE{cantSinImprimir > 1 ? "S" : ""}
-                  </Badge>
-                ) : (
-                  <Badge bg="success" className="rounded-pill px-2.5 py-1" style={{ fontSize: "0.75rem" }}>
-                    ✓ AL DÍA
-                  </Badge>
-                )}
-              </h1>
-            </div>
-          </div>
-
-
-          <div className="d-flex align-items-center gap-2">
-            {/* Toggle de Alerta Sonora - SOLO visible en PC */}
-            {!esMovil && (
-            <button
-              type="button"
-              onClick={toggleSound}
-              className={`btn btn-sm d-flex align-items-center gap-1.5 fw-bold ${soundEnabled ? "btn-outline-danger" : "btn-outline-secondary"}`}
-              style={{
-                borderRadius: "8px",
-                height: "36px",
-                fontSize: "0.8rem",
-                padding: "5px 12px"
-              }}
-              title={soundEnabled ? "Desactivar sonido de notificación" : "Activar sonido de notificación"}
-            >
-              {soundEnabled ? <FiVolume2 size={16} className="text-danger" /> : <FiVolumeX size={16} />}
-              <span>{soundEnabled ? "Sonido ON" : "Sonido OFF"}</span>
-            </button>
-            )}
-
-            {onVolver && (
-              <button
-                type="button"
-                onClick={onVolver}
-                className="btn btn-sm d-flex align-items-center gap-1 fw-bold"
+        {/* Datatable Card container Unificado Sin Cortes */}
+        <div className="co-unified-main-card">
+          <header className="co-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div className="d-flex align-items-center gap-3">
+              <div
                 style={{
-                  border: "1.5px solid #cbd5e1",
-                  borderRadius: "6px",
-                  background: "#ffffff",
-                  color: "#334155",
-                  padding: "3px 8px",
+                  width: "28px",
                   height: "28px",
-                  fontSize: "0.75rem",
-                  cursor: "pointer",
+                  background: "#e31b23",
+                  color: "#fff",
+                  borderRadius: "7px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                   flexShrink: 0,
-                  boxShadow: "0 1px 3px rgba(0, 0, 0, 0.04)",
-                  transition: "all 0.15s ease"
+                  boxShadow: "0 2px 6px rgba(227, 27, 35, 0.25)",
                 }}
               >
-                <FiArrowLeft size={14} />
-                <span>Volver</span>
-              </button>
-            )}
-          </div>
-        </header>
+                <FiClock size={14} />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div className="co-header-subtitle">Comandas sin Confirmar</div>
+                <h1 className="co-header-title d-flex align-items-center gap-2">
+                  <span>PEDIDOS PENDIENTES</span>
+                  {cantSinImprimir > 0 ? (
+                    <Badge bg="danger" className="rounded-pill px-2.5 py-1 badge-tintineo" style={{ fontSize: "0.75rem" }}>
+                      {cantSinImprimir} PENDIENTE{cantSinImprimir > 1 ? "S" : ""}
+                    </Badge>
+                  ) : (
+                    <Badge bg="success" className="rounded-pill px-2.5 py-1" style={{ fontSize: "0.75rem" }}>
+                      ✓ AL DÍA
+                    </Badge>
+                  )}
+                </h1>
+              </div>
+            </div>
 
-        {/* Datatable Card container */}
-        <div className="bg-white rounded-4 shadow-sm p-3 p-md-4 border" style={{ borderColor: "#e2e8f0" }}>
+
+            <div className="d-flex align-items-center gap-2">
+              {/* Toggle de Alerta Sonora - SOLO visible en PC */}
+              {!esMovil && (
+              <button
+                type="button"
+                onClick={toggleSound}
+                className={`btn btn-sm d-flex align-items-center gap-1.5 fw-bold ${soundEnabled ? "btn-outline-danger" : "btn-outline-secondary"}`}
+                style={{
+                  borderRadius: "8px",
+                  height: "36px",
+                  fontSize: "0.8rem",
+                  padding: "5px 12px"
+                }}
+                title={soundEnabled ? "Desactivar sonido de notificación" : "Activar sonido de notificación"}
+              >
+                {soundEnabled ? <FiVolume2 size={16} className="text-danger" /> : <FiVolumeX size={16} />}
+                <span>{soundEnabled ? "Sonido ON" : "Sonido OFF"}</span>
+              </button>
+              )}
+
+              {onVolver && (
+                <button
+                  type="button"
+                  onClick={onVolver}
+                  className="btn btn-sm d-flex align-items-center gap-1 fw-bold"
+                  style={{
+                    border: "1.5px solid #cbd5e1",
+                    borderRadius: "6px",
+                    background: "#ffffff",
+                    color: "#334155",
+                    padding: "3px 8px",
+                    height: "28px",
+                    fontSize: "0.75rem",
+                    cursor: "pointer",
+                    flexShrink: 0,
+                    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.04)",
+                    transition: "all 0.15s ease"
+                  }}
+                >
+                  <FiArrowLeft size={14} />
+                  <span>Volver</span>
+                </button>
+              )}
+            </div>
+          </header>
+
+          <div className="co-panel-body p-3 p-md-4">
           
           {/* Controls bar superior: Filtro de búsqueda */}
           <div className="d-flex justify-content-end align-items-center mb-3">
@@ -957,6 +957,7 @@ export default function PedidosPendientes({ onEditarMesa, onVolver, onUpdateCant
               )}
             </>
           )}
+        </div>
         </div>
       </div>
 

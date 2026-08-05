@@ -82,4 +82,6 @@ Para consultar la documentación técnica completa de estilos y comportamiento d
 
 2. **Scrollbars Personalizadas y Discretas:** Implementadas en `.co-products-grid`, `.co-cart-scroll` y modales con un ancho estilizado de 6px y animación en hover.
 3. **Aislamiento de Scroll (Containment):** Scroll independiente por columna para prevenir desplazamientos elásticos indeseados en la pantalla completa.
+4. **Diseño de Tarjeta Unificada Sin Cortes (`.co-unified-main-card`):** Estructura visual homogénea en `Inicio`, `Crear Órdenes`, `Órdenes Abiertas` y `Pedidos Pendientes` que integra cabecera y contenidos en una sola tarjeta blanca con separadores finos (`border-bottom`), eliminando cortes intermedios y saltos de alineación entre pestañas.
+
 

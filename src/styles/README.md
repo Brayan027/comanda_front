@@ -32,6 +32,13 @@ Para mantener una apariencia estética limpia y moderna:
 * Cada columna de la vista (Catálogo, Carrito y Factura) posee su propio contenedor con `overflow-y: auto`.
 * Se evita el scroll global de la ventana (`body` o `window`), impidiendo rebotes elásticos indeseados en iOS/Android y asegurando que las listas largas mantengan el encabezado visible mientras se desplaza el contenido.
 
+### 4. Tarjeta Unificada Continua Sin Cortes (`.co-unified-main-card`)
+Para lograr una estética visual homogénea, limpia y moderna en todos los módulos (`Inicio`, `Crear Órdenes`, `Órdenes Abiertas` y `Pedidos Pendientes`):
+* **Contenedor Único Continuo:** Se envuelven la cabecera (`.co-header`), los filtros (`.co-filters-strip`), las pestañas (`.co-tabs-navbar`) y el cuerpo principal en una sola tarjeta contenedora blanca (`.co-unified-main-card`).
+* **Eliminación de Cortes Grises:** Se suprimen los bordes exteriores individuales y los espacios en blanco/gris entre secciones, integrándolas con líneas divisorias finas internas (`border-bottom: 1px solid #e2e8f0`).
+* **Consistencia Visual:** Evita saltos horizontales o desplazamientos de píxeles al navegar entre pestañas, manteniendo exactamente la misma grilla y márgenes en toda la app.
+
+
 ---
 
 ## 🎨 Principios de Diseño
