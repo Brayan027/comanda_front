@@ -2626,7 +2626,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
                   cursor: comanderaBloqueada ? "not-allowed" : "pointer"
                 }}
               >
-                {comanderaBloqueada ? "COMANDERA BLOQUEADA" : mandatoryPrint ? "ENVIAR E IMPRIMIR" : "SOLO GUARDAR"}
+                {comanderaBloqueada ? "COMANDERA BLOQUEADA" : mandatoryPrint ? "IMPRIMIR" : "SOLO GUARDAR"}
 
               </button>
             </div>

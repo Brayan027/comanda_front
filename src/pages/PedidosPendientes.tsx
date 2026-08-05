@@ -751,7 +751,7 @@ export default function PedidosPendientes({ onEditarMesa, onVolver, onUpdateCant
                             }}
                           >
                             <FiPrinter size={14} />
-                            <span>ENVIAR E IMPRIMIR</span>
+                            <span>IMPRIMIR</span>
                           </button>
                         )}
                       </div>
@@ -912,7 +912,7 @@ export default function PedidosPendientes({ onEditarMesa, onVolver, onUpdateCant
                                     }}
                                   >
                                     <FiPrinter size={13} />
-                                    <span>ENVIAR E IMPRIMIR</span>
+                                    <span>IMPRIMIR</span>
                                   </button>
                                 )}
                               </div>
