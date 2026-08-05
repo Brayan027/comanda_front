@@ -1399,32 +1399,10 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
 
 
 
-  const deshacerOrdenImpresion = async (nroOrden: string | number) => {
-    try {
-      await fetch(`${API_BASE_URL}/ordenes/${nroOrden}`, {
-        method: "DELETE",
-        headers
-      });
-    } catch (e) {
-      console.error("Error al deshacer orden:", e);
-    }
-    clearForm(true);
-    liberarMesaActual(mesa);
-    localStorage.removeItem("comanda_draft_cart");
-    if (onClearInitial) onClearInitial();
-
-    Swal.fire({
-      icon: "info",
-      title: "Pedido Cancelado",
-      text: "La impresión es obligatoria y no se pudo completar, por lo que el pedido fue cancelado y no se guardó en el sistema.",
-      confirmButtonColor: "#e31b23"
-    });
-  };
-
   const reintentarImpresionManual = async (nroOrden: string | number) => {
     Swal.fire({
-      title: "Reintentando impresión...",
-      text: "Conectando con la impresora...",
+      title: "Enviando a impresora...",
+      text: "Por favor espere un momento...",
       allowOutsideClick: false,
       didOpen: () => {
         Swal.showLoading();
@@ -1445,28 +1423,29 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
         Swal.fire({
           icon: "success",
           title: "Impresión exitosa",
-          text: `Comanda #${nroOrden} enviada a la impresora.`,
+          text: `Comanda #${nroOrden} enviada correctamente.`,
           timer: 1500,
           showConfirmButton: false
         });
         clearForm(true);
         if (onClearInitial) onClearInitial();
       } else {
+        const errorText = resData.mensaje || resData.body?.error || resData.error || "La impresora no respondió. Revisa la conexión.";
+
         Swal.fire({
           icon: "warning",
           title: "No se pudo imprimir",
-          text: resData.mensaje || resData.body?.error || "La impresora no respondió. Revisa la conexión e intenta de nuevo.",
+          text: errorText,
           showCancelButton: true,
-          confirmButtonText: "🔄 Reintentar nuevamente",
-          cancelButtonText: "Cancelar / Deshacer pedido",
+          confirmButtonText: "🔄 Reintentar",
+          cancelButtonText: "Cerrar",
           confirmButtonColor: "#eab308",
           cancelButtonColor: "#64748b"
         }).then((r) => {
           if (r.isConfirmed) {
             reintentarImpresionManual(nroOrden);
-          } else {
-            deshacerOrdenImpresion(nroOrden);
           }
+          // Al cerrar, no se hace nada: la orden permanece guardada en el sistema de forma segura.
         });
       }
     } catch (e) {
@@ -1477,15 +1456,14 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
         text: "No se pudo comunicar con el servicio de impresión.",
         showCancelButton: true,
         confirmButtonText: "🔄 Reintentar",
-        cancelButtonText: "Cancelar / Deshacer pedido",
+        cancelButtonText: "Cerrar",
         confirmButtonColor: "#eab308",
         cancelButtonColor: "#64748b"
       }).then((r) => {
         if (r.isConfirmed) {
           reintentarImpresionManual(nroOrden);
-        } else {
-          deshacerOrdenImpresion(nroOrden);
         }
+        // Al cerrar, no se hace nada: la orden permanece guardada en el sistema de forma segura.
       });
     }
   };

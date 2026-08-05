@@ -212,7 +212,7 @@ export default function Sidebar({ activo, onCambiar, onSalir, empresaNombre, pun
                         <span>Cerrar Sesión</span>
                     </button>
                     <div className="text-center mt-3" style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
-                        v1.1 • DIANASIS
+                        v1.2 • DIANASIS
                     </div>
                 </div>
             </aside>
