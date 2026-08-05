@@ -50,8 +50,8 @@ export default function Sidebar({ activo, onCambiar, onSalir, empresaNombre, pun
     return (
         <>
             {/* HEADER MÓVIL (Solo se ve en móvil) */}
-            <header className="mobile-header d-lg-none d-flex align-items-center justify-content-between w-100" style={{ paddingLeft: '8px', paddingRight: '8px', paddingTop: '4px', paddingBottom: '4px', gap: '8px', minHeight: '40px' }}>
-                <div className="d-flex align-items-center flex-shrink-0" style={{ gap: '4px' }}>
+            <header className="mobile-header d-lg-none d-flex align-items-center justify-content-between w-100" style={{ paddingLeft: '8px', paddingRight: '8px', paddingTop: '3px', paddingBottom: '3px', gap: '8px', minHeight: '48px' }}>
+                <div className="d-flex align-items-center flex-shrink-0" style={{ gap: '6px' }}>
                     <button 
                       className="mobile-menu-btn m-0 flex-shrink-0" 
                       onClick={() => setAbierto(true)} 
@@ -80,7 +80,7 @@ export default function Sidebar({ activo, onCambiar, onSalir, empresaNombre, pun
                         <img 
                           src={logoReporte} 
                           alt="Logo Dianasis" 
-                          style={{ height: '36px', width: 'auto', display: 'block', cursor: 'pointer' }} 
+                          style={{ height: '48px', maxHeight: '48px', width: 'auto', display: 'block', cursor: 'pointer' }} 
                           onClick={() => setAbierto(false)} 
                         />
                     </div>
