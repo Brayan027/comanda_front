@@ -547,7 +547,7 @@ export default function App() {
                 </div>
               </header>
 
-              <main className="pt-1 px-0 w-100">
+              <main className="bg-white rounded-4 shadow-sm p-3 p-md-4 border w-100" style={{ borderColor: "#e2e8f0", minHeight: "calc(100vh - 160px)" }}>
                 <div className="row g-3 m-0 w-100 align-items-stretch">
                   {/* Tarjeta 1: Nuevo Pedido */}
                   <div className="col-12 col-md-6 p-0 px-md-1 mb-2">
