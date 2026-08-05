@@ -10,7 +10,6 @@ import {
   FiX,
   FiList,
   FiCheck,
-  FiInfo,
   FiEdit,
   FiArrowLeft
 } from "react-icons/fi";
@@ -186,7 +185,6 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
   const [carrito, setCarrito] = useState<CartItem[]>([]);
   
   const [cabeceraConfirmada, setCabeceraConfirmada] = useState(false);
-  const infoSuperiorCompleta = cabeceraConfirmada;
   
   // Selectores de cantidad rápida por tarjeta de producto
   const [cantidadesRapidas, setCantidadesRapidas] = useState<Record<number, number | string>>({});
@@ -793,6 +791,30 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
 
   // Agregar un producto (verifica los modificadores primero)
   const addProductToCart = async (p: Product) => {
+    if (comanderaBloqueada) return;
+
+    if (!cabeceraConfirmada) {
+      if (!mesa.trim()) {
+        Swal.fire({
+          icon: "warning",
+          title: "Mesa Requerida",
+          text: "Por favor digite el número de mesa antes de agregar productos.",
+          confirmButtonColor: "#e31b23"
+        });
+        return;
+      }
+      if (!mesero) {
+        Swal.fire({
+          icon: "warning",
+          title: "Mesero Requerido",
+          text: "Por favor seleccione el mesero responsable antes de agregar productos.",
+          confirmButtonColor: "#e31b23"
+        });
+        return;
+      }
+      await verificarMesa();
+    }
+
     const rawQty = cantidadesRapidas[p.ProIdInProducto];
     const customQty = (rawQty === "" || rawQty === undefined) ? 1 : Math.max(1, Number(rawQty) || 1);
 
@@ -2024,34 +2046,32 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
         {/* Panel 1: Productos */}
         <section className={`co-panel ${vistaMovil === "productos" ? "active" : ""}`}>
           
-          {infoSuperiorCompleta && (
-            <div className="d-flex gap-2 mb-2 mt-3 justify-content-start" style={{ margin: '0 12px' }}>
-              <button
-                type="button"
-                className={`btn d-flex align-items-center justify-content-center gap-1 py-1 px-3 fw-bold ${subTabProductos === "productos" ? "btn-dark text-white" : "bg-white text-muted"}`}
-                style={{ borderRadius: '6px', fontSize: '0.72rem', minHeight: '30px', border: subTabProductos === "productos" ? "none" : "1px solid #e2e8f0", backgroundColor: subTabProductos === "productos" ? "#1e293b" : "#ffffff" }}
-                onClick={() => {
-                  setSubTabProductos("productos");
-                  setLineaSeleccionada(null);
-                }}
-              >
-                <FiGrid size={13} /> PRODUCTOS
-              </button>
-              <button
-                type="button"
-                className={`btn d-flex align-items-center justify-content-center gap-1 py-1 px-3 fw-bold ${subTabProductos === "categorias" ? "btn-dark text-white" : "bg-white text-muted"}`}
-                style={{ borderRadius: '6px', fontSize: '0.72rem', minHeight: '30px', border: subTabProductos === "categorias" ? "none" : "1px solid #e2e8f0", backgroundColor: subTabProductos === "categorias" ? "#1e293b" : "#ffffff" }}
-                onClick={() => {
-                  setSubTabProductos("categorias");
-                  setLineaSeleccionada(null);
-                }}
-              >
-                <FiLayers size={13} /> CATEGORÍAS
-              </button>
-            </div>
-          )}
+          <div className="d-flex gap-2 mb-2 mt-3 justify-content-start" style={{ margin: '0 12px' }}>
+            <button
+              type="button"
+              className={`btn d-flex align-items-center justify-content-center gap-1 py-1 px-3 fw-bold ${subTabProductos === "productos" ? "btn-dark text-white" : "bg-white text-muted"}`}
+              style={{ borderRadius: '6px', fontSize: '0.72rem', minHeight: '30px', border: subTabProductos === "productos" ? "none" : "1px solid #e2e8f0", backgroundColor: subTabProductos === "productos" ? "#1e293b" : "#ffffff" }}
+              onClick={() => {
+                setSubTabProductos("productos");
+                setLineaSeleccionada(null);
+              }}
+            >
+              <FiGrid size={13} /> PRODUCTOS
+            </button>
+            <button
+              type="button"
+              className={`btn d-flex align-items-center justify-content-center gap-1 py-1 px-3 fw-bold ${subTabProductos === "categorias" ? "btn-dark text-white" : "bg-white text-muted"}`}
+              style={{ borderRadius: '6px', fontSize: '0.72rem', minHeight: '30px', border: subTabProductos === "categorias" ? "none" : "1px solid #e2e8f0", backgroundColor: subTabProductos === "categorias" ? "#1e293b" : "#ffffff" }}
+              onClick={() => {
+                setSubTabProductos("categorias");
+                setLineaSeleccionada(null);
+              }}
+            >
+              <FiLayers size={13} /> CATEGORÍAS
+            </button>
+          </div>
 
-          {subTabProductos === "categorias" && lineaSeleccionada === null && infoSuperiorCompleta ? (
+          {subTabProductos === "categorias" && lineaSeleccionada === null ? (
             <div 
               className="co-categories-grid mb-3" 
               style={{ 
@@ -2100,7 +2120,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
             </div>
           ) : (
             <>
-              <div className="co-search-bar mb-2" style={{ opacity: infoSuperiorCompleta ? 1 : 0.6 }}>
+              <div className="co-search-bar mb-2">
                 <FiSearch size={18} />
                 <input
                   ref={searchInputRef}
@@ -2117,11 +2137,10 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
                     setTimeout(() => setSearchFocused(false), 250);
                   }}
                   placeholder="BUSCAR PRODUCTO O CODIGO"
-                  disabled={!infoSuperiorCompleta}
                 />
               </div>
 
-              {infoSuperiorCompleta && lineaSeleccionada !== null && (
+              {lineaSeleccionada !== null && (
                 <div 
                   className="alert alert-info py-2 px-3 mb-2 d-flex align-items-center justify-content-between" 
                   style={{ 
@@ -2165,39 +2184,8 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
             </>
           )}
 
-          <div className="co-products-scroll" style={{ display: (subTabProductos === "categorias" && lineaSeleccionada === null && infoSuperiorCompleta) ? "none" : "block" }}>
-            {!infoSuperiorCompleta ? (
-              <div 
-                className="d-flex flex-column align-items-center justify-content-center text-center py-5 px-3"
-                style={{
-                  background: "#fdf2f2",
-                  borderRadius: "12px",
-                  border: "1px dashed #fca5a5",
-                  marginTop: "20px",
-                  minHeight: "180px"
-                }}
-              >
-                <div 
-                  style={{
-                    width: "48px",
-                    height: "48px",
-                    borderRadius: "50%",
-                    background: "#fee2e2",
-                    color: "#ef4444",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    marginBottom: "12px"
-                  }}
-                >
-                  <FiInfo size={24} />
-                </div>
-                <h5 className="fw-bold text-danger mb-1" style={{ fontFamily: "'Outfit', sans-serif" }}>Información Requerida</h5>
-                <p className="text-muted small m-0" style={{ maxWidth: "280px" }}>
-                  Por favor, digite la mesa y seleccione el mesero responsable para comenzar a agregar productos.
-                </p>
-              </div>
-            ) : cargandoProductos && productos.length === 0 ? (
+          <div className="co-products-scroll" style={{ display: (subTabProductos === "categorias" && lineaSeleccionada === null) ? "none" : "block" }}>
+            {cargandoProductos && productos.length === 0 ? (
               <div className="text-center py-5 text-muted">Buscando productos...</div>
             ) : productos.length === 0 ? (
               <div className="text-center py-5 text-muted">No hay productos para mostrar</div>
