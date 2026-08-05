@@ -551,15 +551,15 @@ export default function PedidosPendientes({ onEditarMesa, onVolver, onUpdateCant
             <div className="d-flex align-items-center gap-2 flex-wrap ms-auto">
               {/* Buscador de Mesas/Meseros Integrado en Header */}
               <div className="position-relative" style={{ width: "220px", maxWidth: "100%" }}>
+                <FiSearch className="position-absolute text-muted" style={{ left: "10px", top: "9px", pointerEvents: "none" }} size={14} />
                 <input
                   type="text"
-                  className="form-control form-control-sm pe-4 shadow-none"
+                  className="form-control form-control-sm shadow-none"
                   placeholder="Filtrar por mesa o mesero..."
                   value={busqueda}
                   onChange={(e) => { setBusqueda(e.target.value); setPagina(1); }}
-                  style={{ borderRadius: "8px", border: "1px solid #cbd5e1", height: "32px", fontSize: "0.78rem", paddingLeft: "10px" }}
+                  style={{ borderRadius: "8px", border: "1px solid #cbd5e1", height: "32px", fontSize: "0.78rem", paddingLeft: "30px", paddingRight: "10px" }}
                 />
-                <FiSearch className="position-absolute text-muted" style={{ right: "10px", top: "9px" }} size={13} />
               </div>
 
               {/* Toggle de Alerta Sonora - SOLO visible en PC */}
@@ -608,13 +608,6 @@ export default function PedidosPendientes({ onEditarMesa, onVolver, onUpdateCant
           </header>
 
           <div className="co-panel-body p-3 p-md-4">
-          
-          {/* Sub-bar informativo compacto */}
-          <div className="d-flex justify-content-between align-items-center mb-3">
-            <span className="fw-bold text-uppercase text-secondary" style={{ fontSize: "0.72rem", letterSpacing: "0.05em" }}>
-              Comandas registradas ({ordenesPaginadas.length} de {ordenes.length})
-            </span>
-          </div>
 
           {/* Table content */}
           {cargando ? (
@@ -930,14 +923,13 @@ export default function PedidosPendientes({ onEditarMesa, onVolver, onUpdateCant
               </div>
 
 
-              {/* Paginador */}
+              {/* Footer Informativo y Paginador */}
+              <div className="d-flex align-items-center justify-content-between pt-3 border-top mt-3" style={{ borderColor: "#f1f5f9" }}>
+                <span className="text-muted small fw-medium">
+                  Comandas registradas: <strong>{ordenesPaginadas.length} de {ordenes.length}</strong> {cantSinImprimir > 0 ? `(${cantSinImprimir} pendientes)` : ""}
+                </span>
 
-              {totalPaginas > 1 && (
-                <div className="d-flex align-items-center justify-content-between pt-3 border-top mt-3" style={{ borderColor: "#f1f5f9" }}>
-                  <span className="text-muted small">
-                    Mostrando {startIndex + 1} a {endIndex} de {total} órdenes abiertas ({cantSinImprimir} pendientes)
-
-                  </span>
+                {totalPaginas > 1 && (
                   <div className="d-flex align-items-center gap-1">
                     <button
                       className="btn btn-sm btn-outline-secondary p-1 px-2"
@@ -955,8 +947,8 @@ export default function PedidosPendientes({ onEditarMesa, onVolver, onUpdateCant
                       <FiChevronRight size={16} />
                     </button>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </>
           )}
         </div>
