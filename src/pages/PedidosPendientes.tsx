@@ -813,7 +813,7 @@ export default function PedidosPendientes({ onEditarMesa, onVolver, onUpdateCant
                           {/* Columna Personas */}
                           <td style={{ padding: "12px 16px" }}>
                             <span className="fw-semibold text-secondary" style={{ fontSize: "0.88rem" }}>
-                              {o.OpeInNumPersonas || 1} pers.
+                              {o.OpeInNumPersonas || 1}
                             </span>
                           </td>
 
