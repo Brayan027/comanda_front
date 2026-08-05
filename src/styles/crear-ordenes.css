@@ -323,11 +323,20 @@
   gap: 6px;
   letter-spacing: 0.02em;
   border-bottom: 3px solid transparent;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.co-tab-item-btn:hover:not(.active) {
-  color: #e31b23;
-  background: #ffffff;
+.co-tab-item-btn:not(.active) {
+  color: #64748b !important;
+  background: #ffffff !important;
+  border-bottom: 3px solid transparent !important;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .co-tab-item-btn:hover:not(.active) {
+    color: #e31b23 !important;
+    background: #ffffff !important;
+  }
 }
 
 .co-tab-item-btn.active {
@@ -1015,6 +1024,12 @@
     font-size: 0.68rem !important;
     padding: 2px 4px !important;
     border-radius: 5px 5px 0 0 !important;
+    border-bottom: 2.5px solid transparent !important;
+  }
+
+  .co-tab-item-btn:not(.active) {
+    color: #64748b !important;
+    background: #ffffff !important;
     border-bottom: 2.5px solid transparent !important;
   }
 

@@ -224,8 +224,8 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
     const diffX = currentX - touchStartX.current;
     const diffY = currentY - touchStartY.current;
 
-    // Cambiar de pestaña al instante al mover el dedo solo 25px horizontalmente
-    if (Math.abs(diffX) > 25 && Math.abs(diffX) > Math.abs(diffY)) {
+    // Cambiar de pestaña al deslizar horizontalmente (mínimo 60px y movimiento horizontal puro)
+    if (Math.abs(diffX) > 60 && Math.abs(diffX) > Math.abs(diffY) * 2.5) {
       touchSwiped.current = true;
       if (diffX < 0) {
         // Deslizar hacia la izquierda -> Siguiente pestaña (PRODUCTOS -> CARRITO -> PEDIDO)
@@ -2028,8 +2028,8 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
             <div className="d-flex gap-2 mb-2 mt-3 justify-content-start" style={{ margin: '0 12px' }}>
               <button
                 type="button"
-                className={`btn d-flex align-items-center justify-content-center gap-1 py-1 px-3 fw-bold ${subTabProductos === "productos" ? "btn-danger text-white" : "bg-white text-muted"}`}
-                style={{ borderRadius: '6px', fontSize: '0.72rem', minHeight: '30px', border: subTabProductos === "productos" ? "none" : "1px solid #e2e8f0", backgroundColor: subTabProductos === "productos" ? "#dc2626" : "#ffffff" }}
+                className={`btn d-flex align-items-center justify-content-center gap-1 py-1 px-3 fw-bold ${subTabProductos === "productos" ? "btn-dark text-white" : "bg-white text-muted"}`}
+                style={{ borderRadius: '6px', fontSize: '0.72rem', minHeight: '30px', border: subTabProductos === "productos" ? "none" : "1px solid #e2e8f0", backgroundColor: subTabProductos === "productos" ? "#1e293b" : "#ffffff" }}
                 onClick={() => {
                   setSubTabProductos("productos");
                   setLineaSeleccionada(null);
@@ -2039,8 +2039,8 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
               </button>
               <button
                 type="button"
-                className={`btn d-flex align-items-center justify-content-center gap-1 py-1 px-3 fw-bold ${subTabProductos === "categorias" ? "btn-danger text-white" : "bg-white text-muted"}`}
-                style={{ borderRadius: '6px', fontSize: '0.72rem', minHeight: '30px', border: subTabProductos === "categorias" ? "none" : "1px solid #e2e8f0", backgroundColor: subTabProductos === "categorias" ? "#dc2626" : "#ffffff" }}
+                className={`btn d-flex align-items-center justify-content-center gap-1 py-1 px-3 fw-bold ${subTabProductos === "categorias" ? "btn-dark text-white" : "bg-white text-muted"}`}
+                style={{ borderRadius: '6px', fontSize: '0.72rem', minHeight: '30px', border: subTabProductos === "categorias" ? "none" : "1px solid #e2e8f0", backgroundColor: subTabProductos === "categorias" ? "#1e293b" : "#ffffff" }}
                 onClick={() => {
                   setSubTabProductos("categorias");
                   setLineaSeleccionada(null);
