@@ -259,18 +259,18 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
               type="button"
               title="Volver a inicio"
               onClick={onVolver}
-              className="btn btn-sm d-flex align-items-center gap-1.5 fw-bold"
+              className="btn btn-sm d-flex align-items-center gap-1 fw-bold"
               style={{
                 border: "1.5px solid #cbd5e1",
-                borderRadius: "8px",
+                borderRadius: "6px",
                 background: "#ffffff",
                 color: "#334155",
-                padding: "5px 12px",
-                height: "36px",
+                padding: "3px 8px",
+                height: "28px",
                 cursor: "pointer",
                 flexShrink: 0,
-                fontSize: "0.82rem",
-                boxShadow: "0 2px 5px rgba(0, 0, 0, 0.04)",
+                fontSize: "0.75rem",
+                boxShadow: "0 1px 3px rgba(0, 0, 0, 0.04)",
                 transition: "all 0.15s ease"
               }}
               onMouseEnter={(e) => {

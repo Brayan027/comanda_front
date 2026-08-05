@@ -50,7 +50,7 @@ export default function Sidebar({ activo, onCambiar, onSalir, empresaNombre, pun
     return (
         <>
             {/* HEADER MÓVIL (Solo se ve en móvil) */}
-            <header className="mobile-header d-lg-none d-flex align-items-center justify-content-between w-100" style={{ paddingLeft: '6px', paddingRight: '8px', paddingTop: '4px', paddingBottom: '4px', gap: '8px', minHeight: '40px' }}>
+            <header className="mobile-header d-lg-none d-flex align-items-center justify-content-between w-100" style={{ paddingLeft: '8px', paddingRight: '8px', paddingTop: '4px', paddingBottom: '4px', gap: '8px', minHeight: '40px' }}>
                 <div className="d-flex align-items-center flex-shrink-0" style={{ gap: '4px' }}>
                     <button 
                       className="mobile-menu-btn m-0 flex-shrink-0" 

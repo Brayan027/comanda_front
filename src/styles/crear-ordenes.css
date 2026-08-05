@@ -893,15 +893,24 @@
 
 /* Reglas Móviles */
 @media (max-width: 767px) {
-  .crear-ordenes-page {
-    padding: 0 2px 6px 2px !important;
+  .crear-ordenes-page,
+  .ordenes-page,
+  .pedidos-page {
+    padding: 0 4px 6px 4px !important;
   }
 
-  /* Header principal ultracompacto y alineado */
+  .crear-ordenes-page .container-fluid,
+  .ordenes-page .container-fluid,
+  .pedidos-page .container-fluid {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  /* Header principal ultracompacto y perfectamente alineado */
   .co-header {
-    padding: 4px 6px !important;
-    margin-left: 2px !important;
-    margin-right: 2px !important;
+    padding: 4px 4px !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
     margin-bottom: 4px !important;
     border-radius: 8px !important;
     gap: 6px !important;
@@ -934,9 +943,9 @@
 
   /* Strip de filtros / Mesa abierta ultra compacto */
   .co-filters-strip {
-    padding: 4px 8px !important;
-    margin-left: 2px !important;
-    margin-right: 2px !important;
+    padding: 4px 6px !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
     margin-bottom: 4px !important;
     border-radius: 8px !important;
   }
@@ -944,8 +953,8 @@
   /* Navbar de pestañas táctil compacto en móvil */
   .co-tabs-navbar {
     margin-top: 4px !important;
-    margin-left: 2px !important;
-    margin-right: 2px !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
     margin-bottom: 4px !important;
     padding: 2px 2px 0 2px !important;
     border-radius: 8px !important;
@@ -968,8 +977,8 @@
 
   .co-panel {
     border-radius: 8px !important;
-    margin-left: 2px !important;
-    margin-right: 2px !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
     margin-bottom: 4px !important;
   }
 
