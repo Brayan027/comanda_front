@@ -738,14 +738,15 @@ export default function PedidosPendientes({ onEditarMesa, onVolver, onUpdateCant
                           <button
                             type="button"
                             disabled={estaProcesando}
-                            className="btn btn-sm btn-danger fw-bold shadow-sm"
+                            className="btn btn-sm fw-bold shadow-sm"
                             onClick={() => handleImprimir(o)}
                             style={{
                               height: "36px",
                               fontSize: "0.78rem",
-                              borderRadius: "7px",
-                              background: "#e31b23",
-                              border: "none",
+                              borderRadius: "8px",
+                              background: "#ffffff",
+                              border: "1.5px solid #1e293b",
+                              color: "#1e293b",
                               flex: 1,
                               gap: "4px",
                               opacity: estaBloqueadaPorOtro ? 0.6 : 1
@@ -905,28 +906,27 @@ export default function PedidosPendientes({ onEditarMesa, onVolver, onUpdateCant
                                 </button>
                               )}
 
-                              {/* Botón 3: IMPRIMIR */}
+                              {/* Botón 3: IMPRIMIR (Contorneado Gris Oscuro Slate) */}
                               {tienePendientes && (
                                 <button
                                   type="button"
                                   disabled={estaProcesando}
-                                  className="btn btn-sm fw-bold shadow-sm flex-shrink-0"
+                                  className="btn btn-sm fw-bold flex-shrink-0"
                                   onClick={() => handleImprimir(o)}
                                   style={{
                                     height: "34px",
-                                    padding: "0 16px",
+                                    padding: "0 14px",
                                     fontSize: "0.78rem",
                                     borderRadius: "8px",
-                                    background: "#e31b23",
-                                    border: "none",
-                                    color: "#ffffff",
+                                    border: "1.5px solid #1e293b",
+                                    background: "#ffffff",
+                                    color: "#1e293b",
                                     whiteSpace: "nowrap",
                                     display: "inline-flex",
                                     alignItems: "center",
                                     justifyContent: "center",
                                     gap: "5px",
-                                    opacity: estaBloqueadaPorOtro ? 0.6 : 1,
-                                    boxShadow: "0 2px 6px rgba(227, 27, 35, 0.2)"
+                                    opacity: estaBloqueadaPorOtro ? 0.6 : 1
                                   }}
                                 >
                                   <FiPrinter size={14} />
@@ -1130,10 +1130,10 @@ export default function PedidosPendientes({ onEditarMesa, onVolver, onUpdateCant
                   </Button>
                 )}
                 <Button
-                  variant="danger"
+                  variant="outline-dark"
                   className="fw-bold rounded-3"
-                  style={{ background: "#e31b23" }}
-                  disabled={estaProcesando}
+                  style={{ borderColor: "#1e293b", color: "#1e293b", background: "#ffffff" }}
+                  disabled={estaProcesando || estaBloqueadaPorOtro}
                   onClick={() => handleImprimir(selectedOrder)}
                 >
                   <FiPrinter className="me-1" /> Imprimir
