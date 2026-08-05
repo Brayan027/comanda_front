@@ -210,21 +210,25 @@ export default function App() {
               : 0;
             setCantPendientes(prev => {
               if (count > prev && prev > 0) {
-                const soundOn = localStorage.getItem("sonidoPendientesHabilitado") !== "false";
-                if (soundOn) {
-                  playNewOrderSound();
-                }
+                const esPcYPendientesHabilitado = !isMobileOrTabletDevice() && !isMandatoryPrintEnabled();
 
-                Swal.fire({
-                  icon: "info",
-                  title: "¡Nuevo pedido recibido!",
-                  text: `Tienes ${count} comanda${count > 1 ? "s" : ""} pendiente${count > 1 ? "s" : ""} por confirmar.`,
-                  toast: true,
-                  position: "top-end",
-                  showConfirmButton: false,
-                  timer: 3500,
-                  timerProgressBar: true
-                });
+                if (esPcYPendientesHabilitado) {
+                  const soundOn = localStorage.getItem("sonidoPendientesHabilitado") !== "false";
+                  if (soundOn) {
+                    playNewOrderSound();
+                  }
+
+                  Swal.fire({
+                    icon: "info",
+                    title: "¡Nuevo pedido recibido!",
+                    text: `Tienes ${count} comanda${count > 1 ? "s" : ""} pendiente${count > 1 ? "s" : ""} por confirmar.`,
+                    toast: true,
+                    position: "top-end",
+                    showConfirmButton: false,
+                    timer: 3500,
+                    timerProgressBar: true
+                  });
+                }
               }
               return count;
             });
