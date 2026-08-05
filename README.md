@@ -72,3 +72,13 @@ export default defineConfig([
 ])
 ```
 # comanda_front
+
+## 🎨 Estilos y Gestión del Desplazamiento (Scroll UI/UX)
+
+Para consultar la documentación técnica completa de estilos y comportamiento de desplazamiento, revisa el archivo [src/styles/README.md](file:///c:/Users/acer/Desktop/TRABAJOS/DIANASIS/comandas/Frontend_comanda/src/styles/README.md).
+
+### Resumen del Comportamiento de Desplazamiento:
+1. **Modo Búsqueda en Móviles (`.search-active`):** Oculta dinámicamente la cabecera principal al enfocar el buscador en pantallas móviles y reajusta la altura útil (`max-height: calc(100vh - 110px)`) para permitir desplazarse cómodamente por los productos sin obstrucción del teclado virtual.
+2. **Scrollbars Personalizadas y Discretas:** Implementadas en `.co-products-grid`, `.co-cart-scroll` y modales con un ancho estilizado de 6px y animación en hover.
+3. **Aislamiento de Scroll (Containment):** Scroll independiente por columna para prevenir desplazamientos elásticos indeseados en la pantalla completa.
+

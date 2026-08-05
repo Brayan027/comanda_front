@@ -205,7 +205,56 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
 
 
 
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
+  const touchSwiped = useRef<boolean>(false);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+    touchSwiped.current = false;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchStartX.current === null || touchStartY.current === null || touchSwiped.current) return;
+
+    const currentX = e.touches[0].clientX;
+    const currentY = e.touches[0].clientY;
+
+    const diffX = currentX - touchStartX.current;
+    const diffY = currentY - touchStartY.current;
+
+    // Cambiar de pestaña al instante al mover el dedo solo 25px horizontalmente
+    if (Math.abs(diffX) > 25 && Math.abs(diffX) > Math.abs(diffY)) {
+      touchSwiped.current = true;
+      if (diffX < 0) {
+        // Deslizar hacia la izquierda -> Siguiente pestaña (PRODUCTOS -> CARRITO -> PEDIDO)
+        setVistaMovil(prev => {
+          if (prev === "productos") return "carrito";
+          if (prev === "carrito") return "factura";
+          return prev;
+        });
+      } else {
+        // Deslizar hacia la derecha -> Pestaña anterior (PEDIDO -> CARRITO -> PRODUCTOS)
+        setVistaMovil(prev => {
+          if (prev === "factura") return "carrito";
+          if (prev === "carrito") return "productos";
+          return prev;
+        });
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    touchStartX.current = null;
+    touchStartY.current = null;
+    touchSwiped.current = false;
+  };
+
   const [guardando, setGuardando] = useState(false);
+  const [searchFocused, setSearchFocused] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const tabsNavbarRef = useRef<HTMLElement>(null);
   const productSearchTimeout = useRef<number | undefined>(undefined);
 
   const fetchObservacionesPredefinidas = async () => {
@@ -1597,7 +1646,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
   };
 
   return (
-    <section className="crear-ordenes-page px-0 px-md-3" aria-label="Crear Órdenes">
+    <section className={`crear-ordenes-page px-0 px-md-3 ${searchFocused ? "search-active" : ""}`} aria-label="Crear Órdenes">
       {cargandoComanda && (
         <div 
           style={{
@@ -1629,129 +1678,124 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
             <div className="fw-bold">La comandera se encuentra bloqueada por el sistema. No se pueden registrar ni modificar pedidos.</div>
           </div>
         )}
-        {/* Header Strip */}
-        <header className="co-header">
-          <div className="d-flex align-items-center gap-3">
-            <div
-              style={{
-                width: "28px",
-                height: "28px",
-                borderRadius: "7px",
-                background: "#e31b23",
-                color: "#ffffff",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-                boxShadow: "0 2px 6px rgba(227, 27, 35, 0.25)"
+        {/* Header Strip Unificado */}
+        <header className="co-header d-flex flex-column gap-1">
+          <div className="d-flex align-items-center justify-content-between w-100">
+            <div className="d-flex align-items-center gap-2">
+              <div
+                style={{
+                  width: "28px",
+                  height: "28px",
+                  borderRadius: "7px",
+                  background: "#e31b23",
+                  color: "#ffffff",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  boxShadow: "0 1px 4px rgba(227, 27, 35, 0.2)"
+                }}
+              >
+                <FiPlus size={14} />
+              </div>
+
+              <div style={{ minWidth: 0 }}>
+                <div className="co-header-subtitle">
+                  {ordenId ? `#${ordenId}` : "Nuevo pedido"}
+                </div>
+                <h1 className="co-header-title">
+                  {ordenId ? "ORDEN ABIERTA" : "PEDIDOS"}
+                </h1>
+              </div>
+            </div>
+
+            <div className="d-flex align-items-center gap-2">
+              <div className="co-total-desktop">
+                <span>Total</span>
+                <strong>{formatMoneda(total)}</strong>
+              </div>
+
+              {onClearInitial && (
+                <button
+                  type="button"
+                  title="Volver a órdenes abiertas"
+                  onClick={() => {
+                    if (sinImprimirCount > 0) {
+                      const text = `Tiene ${sinImprimirCount} ${sinImprimirCount === 1 ? 'producto sin imprimir' : 'productos sin imprimir'}. ¿Desea salir?`;
+                      Swal.fire({
+                        icon: "warning",
+                        title: "Productos sin imprimir",
+                        text,
+                        showCancelButton: true,
+                        confirmButtonColor: "#e31b23",
+                        cancelButtonColor: "#64748b",
+                        confirmButtonText: "Sí, salir",
+                        cancelButtonText: "Cancelar"
+                      }).then((result) => {
+                        if (result.isConfirmed) {
+                          if (mesa) liberarMesaActual(mesa);
+                          localStorage.removeItem("comanda_draft_cart");
+                          onClearInitial();
+                        }
+                      });
+                    } else {
+                      if (mesa) liberarMesaActual(mesa);
+                      localStorage.removeItem("comanda_draft_cart");
+                      onClearInitial();
+                    }
+                  }}
+                  className="btn btn-sm d-flex align-items-center gap-1 fw-bold"
+                  style={{
+                    border: "1.5px solid #cbd5e1",
+                    borderRadius: "6px",
+                    background: "#ffffff",
+                    color: "#334155",
+                    padding: "3px 8px",
+                    height: "28px",
+                    cursor: "pointer",
+                    flexShrink: 0,
+                    fontSize: "0.75rem",
+                    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.04)",
+                    transition: "all 0.15s ease"
+                  }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "#e31b23"; (e.currentTarget as HTMLButtonElement).style.color = "#fff"; (e.currentTarget as HTMLButtonElement).style.borderColor = "#e31b23"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#ffffff"; (e.currentTarget as HTMLButtonElement).style.color = "#334155"; (e.currentTarget as HTMLButtonElement).style.borderColor = "#cbd5e1"; }}
+                >
+                  <FiArrowLeft size={14} />
+                  <span>Volver</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Fila Inferior Integrada en la misma Card: Mesa, Pers, Mesero */}
+          {cabeceraConfirmada && (
+            <div 
+              className="d-flex align-items-center flex-nowrap gap-2 pt-1 mt-1 border-top w-100 overflow-hidden"
+              style={{ 
+                borderColor: "#f1f5f9", 
+                fontFamily: "'Outfit', sans-serif",
+                fontSize: "0.72rem",
+                color: "#0f172a"
               }}
             >
-              <FiPlus size={14} />
+              <span className="text-nowrap fw-bold" style={{ color: "#0f172a" }}>
+                Mesa: {mesa}
+              </span>
+              <span style={{ color: "#cbd5e1" }}>|</span>
+              <span className="text-nowrap fw-bold" style={{ color: "#0f172a" }}>
+                Pers: {numPersonas}
+              </span>
+              <span style={{ color: "#cbd5e1" }}>|</span>
+              <span className="text-truncate text-uppercase fw-bold" style={{ color: "#0f172a" }}>
+                MESERO: {mesero?.nombre || "VENDEDOR"}
+              </span>
             </div>
-
-            <div style={{ minWidth: 0 }}>
-              <div className="co-header-subtitle">
-                {ordenId ? `Comanda #${ordenId}` : "Nuevo pedido"}
-              </div>
-              <h1 className="co-header-title">
-                {ordenId ? "ORDEN ABIERTA" : "PEDIDOS"}
-              </h1>
-            </div>
-          </div>
-
-          <div className="d-flex align-items-center gap-3">
-            <div className="co-total-desktop">
-              <span>Total</span>
-              <strong>{formatMoneda(total)}</strong>
-            </div>
-
-            {onClearInitial && (
-              <button
-                type="button"
-                title="Volver a órdenes abiertas"
-                onClick={() => {
-                  if (sinImprimirCount > 0) {
-                    const text = `Tiene ${sinImprimirCount} ${sinImprimirCount === 1 ? 'producto sin imprimir' : 'productos sin imprimir'}. ¿Desea salir?`;
-                    Swal.fire({
-                      icon: "warning",
-                      title: "Productos sin imprimir",
-                      text,
-                      showCancelButton: true,
-                      confirmButtonColor: "#e31b23",
-                      cancelButtonColor: "#64748b",
-                      confirmButtonText: "Sí, salir",
-                      cancelButtonText: "Cancelar"
-                    }).then((result) => {
-                      if (result.isConfirmed) {
-                        if (mesa) liberarMesaActual(mesa);
-                        localStorage.removeItem("comanda_draft_cart");
-                        onClearInitial();
-                      }
-                    });
-                  } else {
-                    if (mesa) liberarMesaActual(mesa);
-                    localStorage.removeItem("comanda_draft_cart");
-                    onClearInitial();
-                  }
-                }}
-                className="btn btn-sm d-flex align-items-center gap-1.5 fw-bold"
-                style={{
-                  border: "1.5px solid #cbd5e1",
-                  borderRadius: "8px",
-                  background: "#ffffff",
-                  color: "#334155",
-                  padding: "5px 12px",
-                  height: "36px",
-                  cursor: "pointer",
-                  flexShrink: 0,
-                  fontSize: "0.82rem",
-                  boxShadow: "0 2px 5px rgba(0, 0, 0, 0.04)",
-                  transition: "all 0.15s ease"
-                }}
-                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "#e31b23"; (e.currentTarget as HTMLButtonElement).style.color = "#fff"; (e.currentTarget as HTMLButtonElement).style.borderColor = "#e31b23"; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#ffffff"; (e.currentTarget as HTMLButtonElement).style.color = "#334155"; (e.currentTarget as HTMLButtonElement).style.borderColor = "#cbd5e1"; }}
-              >
-                <FiArrowLeft size={16} />
-                <span>Volver</span>
-              </button>
-            )}
-          </div>
+          )}
         </header>
 
-
-        {/* Filters Strip / Compact Header Switcher */}
-        {cabeceraConfirmada ? (
-          <div 
-            className="d-flex align-items-center flex-wrap gap-2 mb-3 p-3 rounded-4 shadow-sm border bg-white"
-            style={{ 
-              borderColor: "#e2e8f0", 
-              fontFamily: "'Outfit', sans-serif"
-            }}
-          >
-            <div className="d-flex flex-column w-100" style={{ fontSize: "0.85rem", fontWeight: "600", color: "#334155", gap: "6px" }}>
-              {/* Fila 1: Mesa y Personas juntas */}
-              <div className="d-flex align-items-center gap-2">
-                <span 
-                  className="badge px-3 py-2 text-uppercase d-inline-flex align-items-center gap-1" 
-                  style={{ fontSize: "0.75rem", borderRadius: "8px", fontWeight: "700", letterSpacing: "0.02em", backgroundColor: "#dc2626", color: "#ffffff" }}
-                >
-                  <FiGrid size={12} /> Mesa: {mesa}
-                </span>
-                <span 
-                  className="badge px-3 py-2 text-uppercase d-inline-flex align-items-center gap-1" 
-                  style={{ fontSize: "0.75rem", borderRadius: "7px", fontWeight: "700", letterSpacing: "0.02em", backgroundColor: "#f1f5f9", color: "#475569", border: "1px solid #cbd5e1" }}
-                >
-                  Personas: {numPersonas}
-                </span>
-              </div>
-              
-              {/* Fila 2: Mesero */}
-              <div className="text-uppercase d-flex align-items-center gap-1 mt-1" style={{ color: "#475569", fontSize: "0.78rem" }}>
-                <strong style={{ color: "#334155" }}>Mesero:</strong> {mesero?.nombre || "VENDEDOR"}
-              </div>
-            </div>
-          </div>
-        ) : (
+        {/* Strip de Selección (Solo cuando no está confirmada la cabecera) */}
+        {!cabeceraConfirmada && (
           <div className="co-filters-strip">
             <div className="row g-2 g-md-3 align-items-end">
               {/* Renglón 1 Móvil: Table / Mesa (col-7) */}
@@ -1762,7 +1806,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
                   <input
                     type="text"
                     value={mesa}
-                    onChange={(e) => setMesa(e.target.value)}
+                    onChange={(e) => setMesa(e.target.value.toUpperCase())}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         if (!mesa.trim()) {
@@ -1947,7 +1991,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
         )}
 
         {/* Tab Navbar Switcher matching screenshots 2 & 3 */}
-        <nav className="co-tabs-navbar">
+        <nav ref={tabsNavbarRef} className="co-tabs-navbar" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
           <button
             type="button"
             className={`co-tab-item-btn ${vistaMovil === "productos" ? "active" : ""}`}
@@ -1970,6 +2014,9 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
             PEDIDO {formatMoneda(total)}
           </button>
         </nav>
+
+        {/* Panels con soporte de gestos táctiles al instante (Swipe izquierda/derecha) */}
+        <div onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
 
         {/* Panels */}
         
@@ -2055,9 +2102,19 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
               <div className="co-search-bar mb-2" style={{ opacity: infoSuperiorCompleta ? 1 : 0.6 }}>
                 <FiSearch size={18} />
                 <input
+                  ref={searchInputRef}
                   type="text"
                   value={busquedaProducto}
                   onChange={(e) => setBusquedaProducto(e.target.value)}
+                  onFocus={() => {
+                    setSearchFocused(true);
+                    setTimeout(() => {
+                      tabsNavbarRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }, 80);
+                  }}
+                  onBlur={() => {
+                    setTimeout(() => setSearchFocused(false), 250);
+                  }}
                   placeholder="BUSCAR PRODUCTO O CODIGO"
                   disabled={!infoSuperiorCompleta}
                 />
@@ -2289,15 +2346,13 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
                       style={{ opacity: 0.82, background: "#f8fafc", borderColor: "#e2e8f0" }}
                     >
                       <div className="d-flex align-items-center justify-content-between gap-2" style={{ minHeight: "24px" }}>
-                        <div className="d-flex align-items-center gap-2" style={{ minWidth: 0, flex: 1 }}>
-                          <span style={{ fontSize: "0.75rem", color: "#475569", textTransform: "uppercase" }}>
-                            {item.ProStDescripcion}
-                          </span>
-                          <span style={{ fontSize: "0.75rem", fontWeight: "700", color: "#16a34a" }}>
-                            {formatMoneda(itemTotal)}
-                          </span>
-                        </div>
-                        <div className="d-flex align-items-center gap-1.5 flex-shrink-0">
+                        <span style={{ flex: 1, minWidth: 0, fontSize: "0.75rem", color: "#334155", textTransform: "uppercase", whiteSpace: "normal", wordBreak: "break-word", lineHeight: "1.2" }}>
+                          {item.ProStDescripcion}
+                        </span>
+                        <span className="text-nowrap text-end ms-auto" style={{ fontSize: "0.75rem", fontWeight: "700", color: "#1e293b", minWidth: "75px" }}>
+                          {formatMoneda(itemTotal)}
+                        </span>
+                        <div className="d-flex align-items-center flex-shrink-0" style={{ gap: "6px" }}>
                           <span 
                             className="badge bg-secondary text-white fw-bold py-1 px-1.5" 
                             style={{ fontSize: "0.6rem", borderRadius: "4px" }}
@@ -2329,38 +2384,46 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
                     }
                   >
                     <div className="d-flex align-items-center justify-content-between gap-2" style={{ minHeight: "26px" }}>
-                      {/* Lado Izquierdo: Nombre del producto y Precio */}
-                      <div className="d-flex align-items-center gap-2" style={{ minWidth: 0, flex: 1 }}>
-                        <span
-                          style={{
-                            fontWeight: "bold",
-                            color: estaEliminado ? "#dc2626" : "#1e293b",
-                            fontSize: "0.78rem",
-                            textTransform: "uppercase",
-                            textDecoration: estaEliminado ? "line-through" : "none"
-                          }}
-                        >
-                          {item.ProStDescripcion}
-                        </span>
-                        <span 
-                          style={{ 
-                            color: estaEliminado ? '#94a3b8' : '#16a34a', 
-                            fontSize: '0.78rem', 
-                            fontWeight: '800', 
-                            textDecoration: estaEliminado ? 'line-through' : 'none' 
-                          }}
-                        >
-                          {estaEliminado ? "$0" : formatMoneda(itemTotal)}
-                        </span>
-                        {estaEliminado && (
-                          <Badge bg="danger" style={{ fontSize: "0.6rem", padding: "2px 4px" }}>
-                            ELIMINADO
-                          </Badge>
-                        )}
-                      </div>
+                      {/* Lado Izquierdo: Nombre del producto (limpio, sin saturación) */}
+                      <span
+                        style={{
+                          flex: 1,
+                          minWidth: 0,
+                          fontWeight: 500,
+                          color: estaEliminado ? "#dc2626" : "#334155",
+                          fontSize: "0.82rem",
+                          textTransform: "uppercase",
+                          whiteSpace: "normal",
+                          wordBreak: "break-word",
+                          lineHeight: "1.25",
+                          textDecoration: estaEliminado ? "line-through" : "none"
+                        }}
+                      >
+                        {item.ProStDescripcion}
+                      </span>
 
-                      {/* Lado Derecho: Todos los controles horizontales a lo largo del espacio (Editar, Stepper, Eliminar) */}
-                      <div className="d-flex align-items-center gap-1.5 flex-shrink-0">
+                      {/* Columna de Precio limpia */}
+                      <span 
+                        className="text-nowrap text-end ms-auto"
+                        style={{ 
+                          color: estaEliminado ? '#94a3b8' : '#1e293b', 
+                          fontSize: '0.84rem', 
+                          fontWeight: '600', 
+                          minWidth: "75px",
+                          textDecoration: estaEliminado ? 'line-through' : 'none' 
+                        }}
+                      >
+                        {estaEliminado ? "$0" : formatMoneda(itemTotal)}
+                      </span>
+
+                      {estaEliminado && (
+                        <Badge bg="danger" style={{ fontSize: "0.6rem", padding: "2px 4px" }}>
+                          ELIMINADO
+                        </Badge>
+                      )}
+
+                      {/* Lado Derecho: Todos los controles horizontales con espacio amplio (Editar, Stepper, Eliminar) */}
+                      <div className="d-flex align-items-center flex-shrink-0" style={{ gap: "6px" }}>
                         {estaEliminado ? (
                           <button
                             type="button"
@@ -2378,37 +2441,37 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
                               type="button"
                               className="btn btn-sm d-flex align-items-center justify-content-center"
                               style={{
-                                width: '22px',
-                                height: '22px',
-                                borderRadius: '4px',
+                                width: '32px',
+                                height: '32px',
+                                borderRadius: '6px',
                                 border: '1.5px solid #06b6d4',
                                 color: '#06b6d4',
-                                background: 'transparent',
+                                background: '#f0fdf4',
                                 padding: 0
                               }}
                               onClick={() => handleEditObservacion(item.idUnicoCart)}
                               title="Editar observaciones"
                             >
-                              <FiEdit size={11} />
+                              <FiEdit size={16} />
                             </button>
 
                             {/* Control de Cantidad stepper +/- */}
-                            <div className="d-flex align-items-center bg-light border rounded px-1" style={{ height: '22px' }}>
+                            <div className="d-flex align-items-center bg-light border rounded px-1.5" style={{ height: '32px', borderRadius: '6px' }}>
                               <button
                                 type="button"
                                 className="btn p-0 d-flex align-items-center justify-content-center fw-bold"
-                                style={{ width: '16px', height: '16px', fontSize: '0.8rem', color: '#64748b' }}
+                                style={{ width: '24px', height: '24px', fontSize: '1.1rem', color: '#475569' }}
                                 onClick={() => handleUpdateQty(item.idUnicoCart, -1)}
                               >
                                 -
                               </button>
-                              <span className="fw-bold px-1 text-dark" style={{ fontSize: '0.75rem', minWidth: '14px', textAlign: 'center' }}>
+                              <span className="fw-bold px-1.5 text-dark" style={{ fontSize: '0.88rem', minWidth: '20px', textAlign: 'center' }}>
                                 {item.cantidad}
                               </span>
                               <button
                                 type="button"
                                 className="btn p-0 d-flex align-items-center justify-content-center fw-bold"
-                                style={{ width: '16px', height: '16px', fontSize: '0.8rem', color: '#64748b' }}
+                                style={{ width: '24px', height: '24px', fontSize: '1.1rem', color: '#475569' }}
                                 onClick={() => handleUpdateQty(item.idUnicoCart, 1)}
                               >
                                 +
@@ -2421,9 +2484,9 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
                               className="co-btn-delete"
                               onClick={() => handleRemoveItem(item.idUnicoCart)}
                               aria-label={`Eliminar ${item.ProStDescripcion}`}
-                              style={{ flexShrink: 0, width: "22px", height: "22px" }}
+                              style={{ flexShrink: 0, width: "32px", height: "32px", borderRadius: "6px" }}
                             >
-                              <FiTrash2 size={12} />
+                              <FiTrash2 size={16} />
                             </button>
                           </>
                         )}
@@ -2461,10 +2524,6 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
 
         {/* Panel 3: Detalle del Pedido */}
         <section className={`co-panel ${vistaMovil === "factura" ? "active" : ""}`}>
-          <div className="co-panel-header" style={{ background: "#1e293b" }}>
-            <h2 style={{ color: "#ffffff" }}>DETALLE DEL PEDIDO</h2>
-          </div>
-
           <div className="co-bill-view">
             {carrito.length === 0 ? (
               <div className="co-bill-empty">Carrito vacío</div>
@@ -2474,7 +2533,6 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
                   <tr>
                     <th style={{ textAlign: "left" }}>CANT</th>
                     <th style={{ textAlign: "left" }}>PRODUCTO</th>
-                    <th style={{ textAlign: "right" }}>PRECIO</th>
                     <th style={{ textAlign: "right" }}>TOTAL</th>
                   </tr>
                 </thead>
@@ -2526,7 +2584,6 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
                             </div>
                           )}
                         </td>
-                        <td className="price-col" style={{ textDecoration: estaEliminado ? "line-through" : "none" }}>{formatMoneda(item.precioVenta)}</td>
                         <td className="total-col" style={{ textDecoration: estaEliminado ? "line-through" : "none", color: estaEliminado ? "#94a3b8" : "inherit" }}>
                           {estaEliminado ? "$0" : formatMoneda(itemTotal)}
                         </td>
@@ -2583,6 +2640,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
             </div>
           </div>
         </section>
+        </div>
       </div>
 
       {/* MODAL: Product Accompaniments modifier selection (Wizard paso a paso) */}

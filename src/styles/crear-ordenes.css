@@ -65,7 +65,7 @@
 }
 
 .co-total-desktop strong {
-  color: #e31b23;
+  color: #0f172a;
   font-size: 1.1rem;
   font-weight: 800;
   white-space: nowrap;
@@ -247,22 +247,23 @@
 .co-tabs-navbar {
   display: flex;
   gap: 4px;
-  margin-bottom: 10px;
-  padding: 4px;
-  background: #f1f5f9;
-  border-radius: 12px;
+  margin-top: 6px;
+  margin-bottom: 8px;
+  padding: 3px 4px 0 4px;
+  background: #ffffff;
+  border-radius: 10px;
   border: 1px solid #e2e8f0;
 }
 
 .co-tab-item-btn {
   flex: 1;
-  min-height: 38px;
+  min-height: 36px;
   border: 0;
-  background: transparent;
+  background: #ffffff;
   color: #64748b;
-  border-radius: 8px;
+  border-radius: 6px 6px 0 0;
   font-weight: 700;
-  font-size: 0.74rem;
+  font-size: 0.76rem;
   cursor: pointer;
   text-transform: uppercase;
   transition: all 0.15s ease-in-out;
@@ -272,18 +273,20 @@
   justify-content: center;
   gap: 6px;
   letter-spacing: 0.02em;
+  border-bottom: 3px solid transparent;
 }
 
 .co-tab-item-btn:hover:not(.active) {
   color: #e31b23;
-  background: rgba(255, 255, 255, 0.6);
+  background: #ffffff;
 }
 
 .co-tab-item-btn.active {
-  background: #e31b23 !important;
-  color: #ffffff !important;
+  background: #ffffff !important;
+  color: #e31b23 !important;
   border: 0 !important;
-  box-shadow: 0 2px 8px rgba(227, 27, 35, 0.25);
+  border-bottom: 3px solid #e31b23 !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
 }
 
 /* Panel Contenedor */
@@ -419,11 +422,11 @@
 }
 
 .co-product-name {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #1e293b;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #334155;
   text-transform: uppercase;
-  line-height: 1.2;
+  line-height: 1.25;
 }
 
 .co-product-meta {
@@ -435,7 +438,7 @@
 .co-meta-code,
 .co-meta-stock {
   font-size: 0.62rem;
-  font-weight: 600;
+  font-weight: 500;
   color: #64748b;
   background: #f1f5f9;
   padding: 2px 6px;
@@ -445,8 +448,8 @@
 .co-price {
   white-space: nowrap;
   color: #1e293b;
-  font-size: 0.88rem;
-  font-weight: 700;
+  font-size: 0.84rem;
+  font-weight: 600;
 }
 
 /* Selector de Cantidad Compacto (- 1 +) */
@@ -528,7 +531,9 @@
 }
 
 .co-cart-item:hover {
-  border-color: #cbd5e1;
+  border-color: #fca5a5;
+  background: #fff5f5;
+  box-shadow: 0 2px 6px rgba(227, 27, 35, 0.06);
 }
 
 .co-cart-item-row-top {
@@ -652,6 +657,14 @@
   color: #1e293b;
   text-transform: uppercase;
   vertical-align: middle;
+}
+
+.co-bill-table tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+.co-bill-table tbody tr:hover {
+  background-color: #fff5f5 !important;
 }
 
 .co-bill-table td.qty-col {
@@ -881,22 +894,99 @@
 /* Reglas Móviles */
 @media (max-width: 767px) {
   .crear-ordenes-page {
-    padding: 0 2px 16px 2px !important;
+    padding: 0 2px 6px 2px !important;
   }
 
-  .co-header, 
-  .co-filters-strip, 
-  .co-panel {
-    border-radius: 10px !important;
+  /* Header principal ultracompacto y alineado */
+  .co-header {
+    padding: 4px 6px !important;
     margin-left: 2px !important;
     margin-right: 2px !important;
-    margin-bottom: 8px !important;
+    margin-bottom: 4px !important;
+    border-radius: 8px !important;
+    gap: 6px !important;
   }
 
+  .co-header-title {
+    font-size: 0.95rem !important;
+    line-height: 1.15 !important;
+    font-weight: 800 !important;
+  }
+
+  .co-header-subtitle {
+    font-size: 0.68rem !important;
+    line-height: 1.1 !important;
+  }
+
+  .co-total-desktop span {
+    font-size: 0.55rem !important;
+  }
+
+  .co-total-desktop strong {
+    font-size: 0.88rem !important;
+  }
+
+  .co-header button {
+    height: 28px !important;
+    padding: 2px 8px !important;
+    font-size: 0.72rem !important;
+  }
+
+  /* Strip de filtros / Mesa abierta ultra compacto */
+  .co-filters-strip {
+    padding: 4px 8px !important;
+    margin-left: 2px !important;
+    margin-right: 2px !important;
+    margin-bottom: 4px !important;
+    border-radius: 8px !important;
+  }
+
+  /* Navbar de pestañas táctil compacto en móvil */
   .co-tabs-navbar {
+    margin-top: 4px !important;
     margin-left: 2px !important;
     margin-right: 2px !important;
-    margin-bottom: 8px !important;
+    margin-bottom: 4px !important;
+    padding: 2px 2px 0 2px !important;
+    border-radius: 8px !important;
+    background: #ffffff !important;
+  }
+
+  .co-tab-item-btn {
+    min-height: 28px !important;
+    font-size: 0.68rem !important;
+    padding: 2px 4px !important;
+    border-radius: 5px 5px 0 0 !important;
+    border-bottom: 2.5px solid transparent !important;
+  }
+
+  .co-tab-item-btn.active {
+    background: #ffffff !important;
+    color: #e31b23 !important;
+    border-bottom: 2.5px solid #e31b23 !important;
+  }
+
+  .co-panel {
+    border-radius: 8px !important;
+    margin-left: 2px !important;
+    margin-right: 2px !important;
+    margin-bottom: 4px !important;
+  }
+
+  /* Al enfocar el buscador en móviles: Colapsar cabecera y subir productos para ver con el teclado abierto */
+  .crear-ordenes-page.search-active .co-header {
+    display: none !important;
+  }
+  .crear-ordenes-page.search-active .co-tabs-navbar {
+    margin-bottom: 2px !important;
+  }
+  .crear-ordenes-page.search-active .co-search-bar {
+    margin: 2px 4px 4px 4px !important;
+    border-color: #ef4444 !important;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15) !important;
+  }
+  .crear-ordenes-page.search-active .co-products-scroll {
+    max-height: calc(100vh - 110px) !important;
   }
 }
 

@@ -50,8 +50,8 @@ export default function Sidebar({ activo, onCambiar, onSalir, empresaNombre, pun
     return (
         <>
             {/* HEADER MÓVIL (Solo se ve en móvil) */}
-            <header className="mobile-header d-lg-none d-flex align-items-center justify-content-between w-100" style={{ paddingLeft: '24px', paddingRight: '24px', paddingTop: '6px', paddingBottom: '6px', gap: '8px' }}>
-                <div className="d-flex align-items-center flex-shrink-0" style={{ gap: '8px' }}>
+            <header className="mobile-header d-lg-none d-flex align-items-center justify-content-between w-100" style={{ paddingLeft: '6px', paddingRight: '8px', paddingTop: '4px', paddingBottom: '4px', gap: '8px', minHeight: '40px' }}>
+                <div className="d-flex align-items-center flex-shrink-0" style={{ gap: '4px' }}>
                     <button 
                       className="mobile-menu-btn m-0 flex-shrink-0" 
                       onClick={() => setAbierto(true)} 
@@ -76,18 +76,23 @@ export default function Sidebar({ activo, onCambiar, onSalir, empresaNombre, pun
                     >
                         <FiMenu size={14} />
                     </button>
-                    <div className="mobile-brand flex-shrink-0" style={{ display: 'flex', alignItems: 'center' }}>
-                        <img src={logoReporte} alt="Logo Dianasis" style={{ width: '90px', height: 'auto', display: 'block' }} onClick={() => setAbierto(false)} />
+                    <div className="mobile-brand flex-shrink-0 d-flex align-items-center" style={{ margin: 0, padding: 0 }}>
+                        <img 
+                          src={logoReporte} 
+                          alt="Logo Dianasis" 
+                          style={{ height: '36px', width: 'auto', display: 'block', cursor: 'pointer' }} 
+                          onClick={() => setAbierto(false)} 
+                        />
                     </div>
                 </div>
                 
-                {/* Info de sesión compacta a la derecha sin colisión */}
+                {/* Info de sesión compacta a la derecha alineada verticalmente */}
                 {fechaActual && (
-                    <div className="text-end text-muted d-flex flex-column align-items-end justify-content-center flex-grow-1" style={{ minWidth: 0, overflow: 'hidden', paddingLeft: '4px' }}>
-                        <span className="fw-bold text-dark text-truncate w-100" style={{ textTransform: 'uppercase', letterSpacing: '0.01em', fontSize: '0.58rem', lineHeight: '1.2', display: 'block' }}>
+                    <div className="text-end text-muted d-flex flex-column align-items-end justify-content-center flex-grow-1" style={{ minWidth: 0, overflow: 'hidden', paddingLeft: '4px', height: '28px' }}>
+                        <span className="fw-bold text-dark text-truncate w-100" style={{ textTransform: 'uppercase', letterSpacing: '0.01em', fontSize: '0.58rem', lineHeight: '1.1', display: 'block' }}>
                             {empresaNombre} {puntoNombre ? `• ${puntoNombre}` : ''}
                         </span>
-                        <span className="fw-semibold text-secondary text-truncate w-100 animate__animated animate__fadeIn" style={{ fontSize: '0.54rem', marginTop: '1px', display: 'block' }}>
+                        <span className="fw-semibold text-secondary text-truncate w-100 animate__animated animate__fadeIn" style={{ fontSize: '0.54rem', marginTop: '1px', lineHeight: '1.1', display: 'block' }}>
                             {fechaActual} {terminal ? `• ${terminal.toUpperCase()}` : ''}
                         </span>
                     </div>

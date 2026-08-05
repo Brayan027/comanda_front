@@ -385,6 +385,65 @@ export default function App() {
     return <Login onLogin={() => setLogueado(true)} />;
   }
 
+  const vendedorInfo = (() => {
+    const parseCleanName = (val: any): string => {
+      if (!val) return "";
+      if (typeof val === "object") {
+        return (
+          val.CliStNombreCliente ||
+          val.CliNombreCliente ||
+          val.VenStNombre ||
+          val.nombre ||
+          val.UsuStNombre ||
+          val.VenStDescripcion ||
+          val.nombreVendedor ||
+          val.nombre_vendedor ||
+          val.name ||
+          ""
+        );
+      }
+      if (typeof val === "string") {
+        const trimmed = val.trim();
+        if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+          try {
+            const parsed = JSON.parse(trimmed);
+            return parseCleanName(parsed);
+          } catch {
+            // ignore
+          }
+        }
+        if (trimmed.toUpperCase() !== "VENDEDOR") {
+          return trimmed;
+        }
+      }
+      return "";
+    };
+
+    try {
+      const keys = ["vendedor", "infoPuntoVenta", "usuarioLogueado", "usuario", "user", "nombreUsuario", "lastUser"];
+      for (const k of keys) {
+        const item = localStorage.getItem(k);
+        if (item) {
+          const name = parseCleanName(item);
+          if (name) return name;
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+
+    return "ADMINISTRADOR";
+  })();
+
+  const getInitials = (name: string) => {
+    if (!name) return "VD";
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+  };
+
   return (
     <div className="app-container">
       <Sidebar
@@ -425,36 +484,36 @@ export default function App() {
           <section
             className="premium-home-panel pt-3"
             aria-label="Pantalla de inicio"
-            style={{ background: "#f8fafc", minHeight: "100vh", paddingBottom: "60px", paddingLeft: "12px", paddingRight: "12px" }}
+            style={{ background: "#f8fafc", minHeight: "100vh", paddingBottom: "60px", paddingLeft: "2px", paddingRight: "2px" }}
           >
             <div className="w-100 m-0 p-0">
-              {/* Header Premium Limpio en Texto */}
+              {/* Header Premium Limpio en Texto con Usuario Logueado */}
               <header
-                className="bg-white py-2 mb-3 mt-0 rounded-3 border d-flex align-items-center justify-content-between flex-wrap gap-3 w-100"
-                style={{ borderColor: "#e2e8f0", minHeight: "52px", boxShadow: "0 1px 3px rgba(15, 23, 42, 0.02)", paddingLeft: "12px", paddingRight: "12px" }}
+                className="bg-white py-2 mb-3 mt-0 rounded-3 border d-flex align-items-center justify-content-between flex-nowrap gap-2 w-100 overflow-hidden"
+                style={{ borderColor: "#e2e8f0", minHeight: "52px", boxShadow: "0 1px 3px rgba(15, 23, 42, 0.02)", paddingLeft: "10px", paddingRight: "12px" }}
               >
-                {/* Lado izquierdo: Icono y Título alineados */}
-                <div className="d-flex align-items-center gap-3">
-                  {/* Icono Red Home */}
+                {/* Lado izquierdo: Icono Red Home y Título separados */}
+                <div className="d-flex align-items-center gap-3 flex-shrink-0" style={{ gap: "12px" }}>
+                  {/* Icono Red Home Solido */}
                   <div
                     className="premium-icon-box flex-shrink-0"
                     style={{
-                      width: "28px",
-                      height: "28px",
+                      width: "32px",
+                      height: "32px",
                       background: "#e31b23",
                       color: "#ffffff",
-                      borderRadius: "7px",
+                      borderRadius: "8px",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      boxShadow: "0 2px 5px rgba(227, 27, 35, 0.2)",
+                      boxShadow: "0 2px 6px rgba(227, 27, 35, 0.25)"
                     }}
                   >
-                    <FiHome size={14} />
+                    <FiHome size={16} />
                   </div>
 
                   {/* Título de la sección */}
-                  <div className="d-flex flex-column">
+                  <div className="d-flex flex-column ms-1">
                     <span className="text-uppercase fw-bold mb-0" style={{ fontSize: "0.6rem", letterSpacing: "0.08em", color: "#64748b" }}>
                       Comanda
                     </span>
@@ -463,12 +522,35 @@ export default function App() {
                     </h1>
                   </div>
                 </div>
+
+                {/* Lado derecho: Nombre de Usuario Limpio sin tarjeta ni etiqueta VENDEDOR */}
+                <div className="d-flex align-items-center gap-2 ms-auto overflow-hidden flex-shrink-0" style={{ maxWidth: "60%" }}>
+                  <span 
+                    className="fw-bold text-uppercase text-dark text-truncate" 
+                    style={{ fontSize: "0.78rem", letterSpacing: "0.01em", maxWidth: "160px" }}
+                    title={vendedorInfo}
+                  >
+                    {vendedorInfo}
+                  </span>
+                  <div
+                    className="rounded-circle d-flex align-items-center justify-content-center fw-bold text-white flex-shrink-0"
+                    style={{
+                      width: "28px",
+                      height: "28px",
+                      background: "#e31b23",
+                      fontSize: "0.72rem",
+                      boxShadow: "0 2px 4px rgba(227, 27, 35, 0.25)"
+                    }}
+                  >
+                    {getInitials(vendedorInfo)}
+                  </div>
+                </div>
               </header>
 
               <main className="pt-1 px-0 w-100">
                 <div className="row g-3 m-0 w-100 align-items-stretch">
                   {/* Tarjeta 1: Nuevo Pedido */}
-                  <div className="col-12 col-md-6 p-0 px-md-1">
+                  <div className="col-12 col-md-6 p-0 px-md-1 mb-2">
                     <div
                       className="bg-white py-3 rounded-3 border d-flex align-items-center justify-content-between cursor-pointer w-100 h-100"
                       style={{ 
@@ -476,9 +558,9 @@ export default function App() {
                         borderColor: "#e2e8f0",
                         transition: "all 0.15s ease-in-out",
                         boxShadow: "0 1px 3px rgba(15, 23, 42, 0.02)",
-                        paddingLeft: "14px",
-                        paddingRight: "14px",
-                        minHeight: "90px"
+                        paddingLeft: "10px",
+                        paddingRight: "16px",
+                        minHeight: "92px"
                       }}
                       onClick={handleNavCrearOrdenes}
                       onMouseEnter={(e) => {
@@ -496,16 +578,15 @@ export default function App() {
                         <div
                           className="d-flex align-items-center justify-content-center"
                           style={{
-                            width: "28px",
-                            height: "28px",
-                            borderRadius: "7px",
-                            background: "#e31b23",
-                            color: "#ffffff",
-                            flexShrink: 0,
-                            boxShadow: "0 2px 6px rgba(227, 27, 35, 0.25)"
+                            width: "40px",
+                            height: "40px",
+                            borderRadius: "10px",
+                            background: "#fee2e2",
+                            color: "#e31b23",
+                            flexShrink: 0
                           }}
                         >
-                          <FiPlus size={14} />
+                          <FiPlus size={20} />
                         </div>
                         <div className="d-flex flex-column text-start">
                           <h3 className="m-0 fw-bold" style={{ fontSize: "0.98rem", color: "#1e293b" }}>
@@ -524,7 +605,7 @@ export default function App() {
 
                   {/* Tarjeta 2: Órdenes Abiertas (Si es OBLIGATORIO_IMPRIMIR="SI" o si es Móvil/Tablet) */}
                   {(isMandatoryPrintEnabled() || esMovilOTablet) && (
-                    <div className="col-12 col-md-6 p-0 px-md-1">
+                    <div className="col-12 col-md-6 p-0 px-md-1 mb-2">
                       <div
                         className="bg-white py-3 rounded-3 border d-flex align-items-center justify-content-between cursor-pointer w-100 h-100"
                         style={{ 
@@ -532,9 +613,9 @@ export default function App() {
                           borderColor: "#e2e8f0",
                           transition: "all 0.15s ease-in-out",
                           boxShadow: "0 1px 3px rgba(15, 23, 42, 0.02)",
-                          paddingLeft: "14px",
-                          paddingRight: "14px",
-                          minHeight: "90px"
+                          paddingLeft: "10px",
+                          paddingRight: "16px",
+                          minHeight: "92px"
                         }}
                         onClick={async () => {
                           const puedeNavegar = await solicitarConfirmacionNavegacion();
@@ -555,16 +636,15 @@ export default function App() {
                           <div
                             className="d-flex align-items-center justify-content-center"
                             style={{
-                              width: "28px",
-                              height: "28px",
-                              borderRadius: "7px",
-                              background: "#e31b23",
-                              color: "#ffffff",
-                              flexShrink: 0,
-                              boxShadow: "0 2px 6px rgba(227, 27, 35, 0.25)"
+                              width: "40px",
+                              height: "40px",
+                              borderRadius: "10px",
+                              background: "#fef3c7",
+                              color: "#d97706",
+                              flexShrink: 0
                             }}
                           >
-                            <FiLayers size={14} />
+                            <FiLayers size={20} />
                           </div>
                           <div className="d-flex flex-column text-start">
                             <h3 className="m-0 fw-bold" style={{ fontSize: "0.98rem", color: "#1e293b" }}>
@@ -585,7 +665,7 @@ export default function App() {
                   {/* Tarjeta 2: Pedidos Pendientes (Solo en PC cuando OBLIGATORIO_IMPRIMIR="NO") */}
                   {(!isMandatoryPrintEnabled() && !esMovilOTablet) && (
 
-                    <div className="col-12 col-md-6 p-0 px-md-1">
+                    <div className="col-12 col-md-6 p-0 px-md-1 mb-2">
 
 
                       <div
@@ -596,9 +676,9 @@ export default function App() {
                           background: cantPendientes > 0 ? "#fffdf5" : "#ffffff",
                           transition: "all 0.15s ease-in-out",
                           boxShadow: "0 1px 3px rgba(15, 23, 42, 0.02)",
-                          paddingLeft: "14px",
-                          paddingRight: "14px",
-                          minHeight: "90px"
+                          paddingLeft: "10px",
+                          paddingRight: "16px",
+                          minHeight: "92px"
                         }}
                         onClick={async () => {
                           const puedeNavegar = await solicitarConfirmacionNavegacion();
@@ -619,16 +699,15 @@ export default function App() {
                           <div
                             className="d-flex align-items-center justify-content-center"
                             style={{
-                              width: "28px",
-                              height: "28px",
-                              borderRadius: "7px",
-                              background: "#e31b23",
-                              color: "#ffffff",
-                              flexShrink: 0,
-                              boxShadow: "0 2px 6px rgba(227, 27, 35, 0.25)"
+                              width: "40px",
+                              height: "40px",
+                              borderRadius: "10px",
+                              background: "#d1fae5",
+                              color: "#059669",
+                              flexShrink: 0
                             }}
                           >
-                            <FiClock size={14} />
+                            <FiClock size={20} />
                           </div>
                           <div className="d-flex flex-column text-start">
                             <div className="d-flex align-items-center gap-2">
