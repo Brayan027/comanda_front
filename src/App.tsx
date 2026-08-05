@@ -492,7 +492,7 @@ export default function App() {
           >
             <div className="container-fluid pt-2 px-1 px-md-2">
               {/* Header Premium y Panel Unificados en un Solo Card Blanco Sin Cortes */}
-              <div className="co-unified-main-card" style={{ minHeight: "calc(100vh - 160px)" }}>
+              <div className="co-unified-main-card">
                 <header className="co-header d-flex align-items-center justify-content-between">
                   {/* Lado izquierdo: Icono Red Home y Título separados */}
                   <div className="d-flex align-items-center gap-3 flex-shrink-0" style={{ gap: "12px" }}>
