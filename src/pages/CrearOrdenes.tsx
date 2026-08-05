@@ -2014,38 +2014,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
         )}
 
         {/* Pestañas y Catálogo de Productos (Solo visibles tras confirmar Mesa y Mesero) */}
-        {!cabeceraConfirmada ? (
-          <div 
-            className="d-flex flex-column align-items-center justify-content-center text-center p-4 my-3 mx-2"
-            style={{
-              background: "#f8fafc",
-              borderRadius: "12px",
-              border: "1px dashed #cbd5e1",
-              minHeight: "220px"
-            }}
-          >
-            <div 
-              style={{
-                width: "52px",
-                height: "52px",
-                borderRadius: "50%",
-                background: "#fef2f2",
-                color: "#e31b23",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                marginBottom: "12px",
-                boxShadow: "0 2px 8px rgba(227, 27, 35, 0.15)"
-              }}
-            >
-              <FiGrid size={24} />
-            </div>
-            <h5 className="fw-bold text-dark mb-1" style={{ fontFamily: "'Outfit', sans-serif" }}>Seleccionar Mesa y Mesero</h5>
-            <p className="text-muted small m-0" style={{ maxWidth: "340px", lineHeight: "1.4" }}>
-              Por favor, digite el número de mesa, seleccione el mesero responsable y presione <strong className="text-danger">ACEPTAR</strong> para habilitar las pestañas y comenzar a registrar el pedido.
-            </p>
-          </div>
-        ) : (
+        {cabeceraConfirmada && (
           <>
             {/* Tab Navbar Switcher */}
             <nav ref={tabsNavbarRef} className="co-tabs-navbar" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
