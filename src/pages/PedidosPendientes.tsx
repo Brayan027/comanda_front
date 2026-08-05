@@ -832,90 +832,106 @@ export default function PedidosPendientes({ onEditarMesa, onVolver, onUpdateCant
                             </span>
                           </td>
 
-                          {/* Columna Acciones (Alineación perfecta por slots rígidos) */}
+                          {/* Columna Acciones (Alineación impecable idéntica a captura) */}
                           <td style={{ padding: "12px 16px", textAlign: "right" }}>
                             <div className="d-flex align-items-center justify-content-end gap-2">
-                              {/* Slot 1: Ver Pedido */}
+                              {/* Botón 1: Ver Pedido */}
                               <button
                                 type="button"
-                                className="btn btn-sm btn-outline-secondary fw-semibold flex-shrink-0"
+                                className="btn btn-sm fw-semibold flex-shrink-0"
                                 onClick={() => cargarDetallesDeOrden(o)}
                                 style={{
                                   height: "34px",
-                                  width: "92px",
-                                  fontSize: "0.76rem",
-                                  borderRadius: "7px",
+                                  padding: "0 14px",
+                                  fontSize: "0.78rem",
+                                  borderRadius: "8px",
+                                  border: "1.5px solid #94a3b8",
+                                  background: "#ffffff",
+                                  color: "#475569",
                                   whiteSpace: "nowrap",
                                   display: "inline-flex",
                                   alignItems: "center",
-                                  justifyContent: "center",
-                                  padding: "0"
+                                  justifyContent: "center"
                                 }}
                               >
                                 <span>Ver Pedido</span>
                               </button>
 
-                              {tienePendientes ? (
-                                !isMandatoryPrintEnabled() ? (
-                                  <button
-                                    type="button"
-                                    disabled={estaProcesando}
-                                    className="btn btn-sm btn-outline-primary fw-bold flex-shrink-0"
-                                    onClick={() => handleConfirmar(o)}
-                                    style={{
-                                      height: "34px",
-                                      width: "84px",
-                                      fontSize: "0.76rem",
-                                      borderRadius: "7px",
-                                      whiteSpace: "nowrap",
-                                      display: "inline-flex",
-                                      alignItems: "center",
-                                      justifyContent: "center",
-                                      padding: "0",
-                                      opacity: estaBloqueadaPorOtro ? 0.6 : 1
-                                    }}
-                                    title="Guardar y confirmar pedido sin imprimir físicamente"
-                                  >
-                                    <FiCheckCircle size={13} className="me-1" />
-                                    <span>Guardar</span>
-                                  </button>
-                                ) : (
-                                  <div style={{ width: "84px" }} className="flex-shrink-0" />
-                                )
-                              ) : (
-                                <div style={{ width: "84px" }} className="flex-shrink-0" />
+                              {/* Botón 2: Guardar */}
+                              {tienePendientes && !isMandatoryPrintEnabled() && (
+                                <button
+                                  type="button"
+                                  disabled={estaProcesando}
+                                  className="btn btn-sm fw-bold flex-shrink-0"
+                                  onClick={() => handleConfirmar(o)}
+                                  style={{
+                                    height: "34px",
+                                    padding: "0 14px",
+                                    fontSize: "0.78rem",
+                                    borderRadius: "8px",
+                                    border: "1.5px solid #2563eb",
+                                    background: "#ffffff",
+                                    color: "#2563eb",
+                                    whiteSpace: "nowrap",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    gap: "5px",
+                                    opacity: estaBloqueadaPorOtro ? 0.6 : 1
+                                  }}
+                                  title="Guardar y confirmar pedido sin imprimir físicamente"
+                                >
+                                  <FiCheckCircle size={14} />
+                                  <span>Guardar</span>
+                                </button>
                               )}
 
+                              {!tienePendientes && !isMandatoryPrintEnabled() && (
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-outline-primary fw-semibold flex-shrink-0"
+                                  onClick={() => handleEditarMesaAccion(o)}
+                                  style={{
+                                    height: "34px",
+                                    padding: "0 14px",
+                                    fontSize: "0.78rem",
+                                    borderRadius: "8px",
+                                    opacity: estaBloqueadaPorOtro ? 0.6 : 1
+                                  }}
+                                >
+                                  <FiEdit3 size={14} className="me-1" />
+                                  <span>Editar</span>
+                                </button>
+                              )}
 
-
-                              {/* Slot 3: Acción de Impresión (Reserva 152px fijos para alineación impecable) */}
-                              <div style={{ width: "152px" }} className="flex-shrink-0 d-flex justify-content-end">
-                                {tienePendientes && (
-                                  <button
-                                    type="button"
-                                    disabled={estaProcesando}
-                                    className="btn btn-sm btn-danger fw-bold shadow-sm w-100"
-                                    onClick={() => handleImprimir(o)}
-                                    style={{
-                                      height: "34px",
-                                      fontSize: "0.74rem",
-                                      borderRadius: "7px",
-                                      whiteSpace: "nowrap",
-                                      display: "inline-flex",
-                                      alignItems: "center",
-                                      justifyContent: "center",
-                                      background: "#e31b23",
-                                      border: "none",
-                                      gap: "4px",
-                                      padding: "0 6px",
-                                      opacity: estaBloqueadaPorOtro ? 0.6 : 1
-                                    }}
-                                  >
-                                    <FiPrinter size={13} />
-                                    <span>IMPRIMIR</span>
-                                  </button>
-                                )}
-                              </div>
+                              {/* Botón 3: IMPRIMIR */}
+                              {tienePendientes && (
+                                <button
+                                  type="button"
+                                  disabled={estaProcesando}
+                                  className="btn btn-sm fw-bold shadow-sm flex-shrink-0"
+                                  onClick={() => handleImprimir(o)}
+                                  style={{
+                                    height: "34px",
+                                    padding: "0 16px",
+                                    fontSize: "0.78rem",
+                                    borderRadius: "8px",
+                                    background: "#e31b23",
+                                    border: "none",
+                                    color: "#ffffff",
+                                    whiteSpace: "nowrap",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    gap: "5px",
+                                    opacity: estaBloqueadaPorOtro ? 0.6 : 1,
+                                    boxShadow: "0 2px 6px rgba(227, 27, 35, 0.2)"
+                                  }}
+                                >
+                                  <FiPrinter size={14} />
+                                  <span>IMPRIMIR</span>
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
