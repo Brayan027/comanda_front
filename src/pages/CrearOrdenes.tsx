@@ -1794,11 +1794,11 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
           {/* Fila Inferior Integrada en la misma Card: Mesa, Pers, Mesero */}
           {cabeceraConfirmada && (
             <div 
-              className="d-flex align-items-center flex-nowrap gap-2 pt-1 mt-1 border-top w-100 overflow-hidden"
+              className="d-flex align-items-center flex-nowrap gap-2 pt-2 pb-1 mt-2 border-top w-100 overflow-hidden"
               style={{ 
                 borderColor: "#f1f5f9", 
                 fontFamily: "'Outfit', sans-serif",
-                fontSize: "0.72rem",
+                fontSize: "0.74rem",
                 color: "#0f172a"
               }}
             >
