@@ -28,10 +28,19 @@ const getSocketUrl = () => {
 export const socket: Socket = io(getSocketUrl(), {
   path: "/comandaApi/socket.io",
   autoConnect: true,
-  transports: ["polling", "websocket"],
+  transports: ["polling"],
   reconnection: true,
   reconnectionAttempts: Infinity,
-  reconnectionDelay: 1000,
+  reconnectionDelay: 2000,
+});
+
+// Capturar errores de conexión silenciosamente para que no queden expuestos en la consola
+socket.on("connect_error", () => {
+  // Manejador silencioso
+});
+
+socket.on("error", () => {
+  // Manejador silencioso
 });
 
 // Registrar el terminal en el servidor al conectar/reconectar

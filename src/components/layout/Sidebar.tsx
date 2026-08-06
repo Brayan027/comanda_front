@@ -50,19 +50,19 @@ export default function Sidebar({ activo, onCambiar, onSalir, empresaNombre, pun
     return (
         <>
             {/* HEADER MÓVIL (Solo se ve en móvil) */}
-            <header className="mobile-header d-lg-none d-flex align-items-center justify-content-between w-100" style={{ paddingLeft: '8px', paddingRight: '8px', paddingTop: '3px', paddingBottom: '3px', gap: '8px', minHeight: '48px' }}>
+            <header className="mobile-header d-lg-none d-flex align-items-center justify-content-between w-100" style={{ paddingLeft: '12px', paddingRight: '12px', paddingTop: '3px', paddingBottom: '3px', gap: '6px', minHeight: '42px' }}>
                 <div className="d-flex align-items-center flex-shrink-0" style={{ gap: '6px' }}>
                     <button
                         className="mobile-menu-btn m-0 flex-shrink-0"
                         onClick={() => setAbierto(true)}
                         style={{
-                            width: '28px',
-                            height: '28px',
-                            minWidth: '28px',
-                            minHeight: '28px',
-                            maxWidth: '28px',
-                            maxHeight: '28px',
-                            borderRadius: '7px',
+                            width: '26px',
+                            height: '26px',
+                            minWidth: '26px',
+                            minHeight: '26px',
+                            maxWidth: '26px',
+                            maxHeight: '26px',
+                            borderRadius: '6px',
                             background: '#e31b23',
                             border: 'none',
                             color: '#ffffff',

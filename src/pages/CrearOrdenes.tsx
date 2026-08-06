@@ -1722,13 +1722,13 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
         {/* Header Strip y Secciones Unificadas en un Solo Card Blanco */}
         <div className="co-unified-main-card">
           <header className="co-header d-flex flex-column gap-1">
-          <div className="d-flex align-items-center justify-content-between w-100">
-            <div className="d-flex align-items-center gap-2">
+          <div className="d-flex align-items-center justify-content-between flex-nowrap w-100 gap-2">
+            <div className="d-flex align-items-center gap-2 min-w-0">
               <div
                 style={{
                   width: "28px",
                   height: "28px",
-                  borderRadius: "7px",
+                  borderRadius: "8px",
                   background: "#e31b23",
                   color: "#ffffff",
                   display: "flex",
@@ -1740,18 +1740,12 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
               >
                 <FiPlus size={14} />
               </div>
-
-              <div style={{ minWidth: 0 }}>
-                <div className="co-header-subtitle">
-                  {ordenId ? `#${ordenId}` : "Nuevo pedido"}
-                </div>
-                <h1 className="co-header-title">
-                  {ordenId ? "ORDEN ABIERTA" : "PEDIDOS"}
-                </h1>
-              </div>
+              <h1 className="co-header-title text-nowrap" style={{ fontSize: "0.85rem", whiteSpace: "nowrap" }}>
+                {ordenId ? `ORDEN #${ordenId}` : "NUEVO PEDIDO"}
+              </h1>
             </div>
 
-            <div className="d-flex align-items-center gap-2">
+            <div className="d-flex align-items-center gap-2 flex-nowrap ms-auto">
               <div className="co-total-desktop">
                 <span>Total</span>
                 <strong>{formatMoneda(total)}</strong>
@@ -2061,7 +2055,12 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
         </nav>
 
         {/* Panels con soporte de gestos táctiles al instante (Swipe izquierda/derecha) */}
-        <div onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
+        <div 
+          onTouchStart={handleTouchStart} 
+          onTouchMove={handleTouchMove} 
+          onTouchEnd={handleTouchEnd}
+          style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: "calc(100vh - 180px)", touchAction: "pan-y" }}
+        >
 
         {/* Panels */}
         
@@ -2535,7 +2534,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
 
         {/* Panel 3: Detalle del Pedido */}
         <section className={`co-panel ${vistaMovil === "factura" ? "active" : ""}`}>
-          <div className="co-bill-view">
+          <div className="co-bill-view" style={{ flex: 1, minHeight: "calc(100vh - 180px)", overflowY: "auto", touchAction: "pan-y", WebkitOverflowScrolling: "touch" }}>
             {carrito.length === 0 ? (
               <div className="co-bill-empty">Carrito vacío</div>
             ) : (

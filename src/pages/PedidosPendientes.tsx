@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { 
-  FiClock, 
+  FiClock,
   FiSearch, 
   FiChevronLeft, 
   FiChevronRight, 
@@ -10,7 +10,6 @@ import {
   FiPrinter, 
   FiVolume2, 
   FiVolumeX,
-  FiEdit3,
   FiLock
 } from "react-icons/fi";
 
@@ -64,7 +63,7 @@ interface PedidosPendientesProps {
 }
 
 
-export default function PedidosPendientes({ onEditarMesa, onVolver, onUpdateCantPendientes }: PedidosPendientesProps) {
+export default function PedidosPendientes({ onEditarMesa: _onEditarMesa, onVolver, onUpdateCantPendientes }: PedidosPendientesProps) {
 
 
 
@@ -343,14 +342,11 @@ export default function PedidosPendientes({ onEditarMesa, onVolver, onUpdateCant
     }
   };
 
-  const handleEditarMesaAccion = async (orden: PendingOrder) => {
-    if (!onEditarMesa) return;
-    const ok = await verificarBloqueoMesa(orden);
-    if (!ok) return;
-    onEditarMesa(orden.OpeIdInOrdenPedido);
-  };
+
 
   const handleConfirmar = async (orden: PendingOrder) => {
+    const ok = await verificarBloqueoMesa(orden);
+    if (!ok) return;
     const targetId = orden.OpeIdInOrdenPedido;
     setProcesandoId(targetId);
 
@@ -514,25 +510,24 @@ export default function PedidosPendientes({ onEditarMesa, onVolver, onUpdateCant
         {/* Datatable Card container Unificado Sin Cortes */}
         <div className="co-unified-main-card">
           <header className="co-header d-flex align-items-center justify-content-between flex-wrap gap-2">
-            <div className="d-flex align-items-center gap-3">
+            <div className="d-flex align-items-center gap-2">
               <div
                 style={{
                   width: "28px",
                   height: "28px",
+                  borderRadius: "8px",
                   background: "#e31b23",
-                  color: "#fff",
-                  borderRadius: "7px",
+                  color: "#ffffff",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   flexShrink: 0,
-                  boxShadow: "0 2px 6px rgba(227, 27, 35, 0.25)",
+                  boxShadow: "0 1px 4px rgba(227, 27, 35, 0.2)"
                 }}
               >
                 <FiClock size={14} />
               </div>
               <div style={{ minWidth: 0 }}>
-                <div className="co-header-subtitle">Comandas sin Confirmar</div>
                 <h1 className="co-header-title d-flex align-items-center gap-2">
                   <span>PEDIDOS PENDIENTES</span>
                   {cantSinImprimir > 0 ? (
@@ -695,41 +690,23 @@ export default function PedidosPendientes({ onEditarMesa, onVolver, onUpdateCant
                           <span>Ver Pedido</span>
                         </button>
 
-                        {tienePendientes ? (
-                          !isMandatoryPrintEnabled() && (
-                            <button
-                              type="button"
-                              disabled={estaProcesando}
-                              className="btn btn-sm btn-outline-primary fw-bold"
-                              onClick={() => handleConfirmar(o)}
-                              style={{
-                                height: "36px",
-                                fontSize: "0.78rem",
-                                borderRadius: "7px",
-                                flex: 1,
-                                gap: "4px",
-                                opacity: estaBloqueadaPorOtro ? 0.6 : 1
-                              }}
-                            >
-                              <FiCheckCircle size={14} />
-                              <span>Guardar</span>
-                            </button>
-                          )
-                        ) : (
+                        {tienePendientes && !isMandatoryPrintEnabled() && (
                           <button
                             type="button"
-                            className="btn btn-sm btn-outline-primary fw-semibold"
-                            onClick={() => handleEditarMesaAccion(o)}
+                            disabled={estaProcesando}
+                            className="btn btn-sm btn-outline-primary fw-bold"
+                            onClick={() => handleConfirmar(o)}
                             style={{
                               height: "36px",
                               fontSize: "0.78rem",
                               borderRadius: "7px",
                               flex: 1,
+                              gap: "4px",
                               opacity: estaBloqueadaPorOtro ? 0.6 : 1
                             }}
                           >
-                            <FiEdit3 size={14} className="me-1" />
-                            <span>Editar</span>
+                            <FiCheckCircle size={14} />
+                            <span>Guardar</span>
                           </button>
                         )}
 
@@ -888,24 +865,6 @@ export default function PedidosPendientes({ onEditarMesa, onVolver, onUpdateCant
                                 </button>
                               )}
 
-                              {!tienePendientes && !isMandatoryPrintEnabled() && (
-                                <button
-                                  type="button"
-                                  className="btn btn-sm btn-outline-primary fw-semibold flex-shrink-0"
-                                  onClick={() => handleEditarMesaAccion(o)}
-                                  style={{
-                                    height: "34px",
-                                    padding: "0 14px",
-                                    fontSize: "0.78rem",
-                                    borderRadius: "8px",
-                                    opacity: estaBloqueadaPorOtro ? 0.6 : 1
-                                  }}
-                                >
-                                  <FiEdit3 size={14} className="me-1" />
-                                  <span>Editar</span>
-                                </button>
-                              )}
-
                               {/* Botón 3: IMPRIMIR (Contorneado Gris Oscuro Slate) */}
                               {tienePendientes && (
                                 <button
@@ -982,12 +941,23 @@ export default function PedidosPendientes({ onEditarMesa, onVolver, onUpdateCant
         centered
         size="lg"
       >
-        <Modal.Header closeButton style={{ background: "#f8fafc", borderColor: "#e2e8f0" }}>
-          <Modal.Title className="fw-bold text-dark" style={{ fontSize: "1.1rem" }}>
-            Detalle del Pedido - {formatMesaName(selectedOrder?.OpeStMesa)}
+        <Modal.Header closeButton style={{ background: "#f8fafc", borderColor: "#e2e8f0", padding: "10px 16px" }}>
+          <Modal.Title className="fw-bold text-dark d-flex align-items-center justify-content-between w-100 pe-2" style={{ fontSize: "0.95rem" }}>
+            <div className="d-flex align-items-center gap-2 flex-wrap">
+              <span>Detalle del Pedido</span>
+              <span className="badge bg-danger text-white px-2 py-1" style={{ fontSize: "0.82rem" }}>
+                Mesa {formatMesaName(selectedOrder?.OpeStMesa)}
+              </span>
+              <span className="text-secondary fw-medium" style={{ fontSize: "0.82rem" }}>
+                • Mesero: <strong className="text-dark">{selectedOrder?.NombreVendedor?.toUpperCase() || 'MESERO'}</strong>
+              </span>
+            </div>
+            <div className="text-dark fw-bold ms-auto" style={{ fontSize: "0.95rem" }}>
+              Total: <span className="text-danger">{selectedOrder && formatMoneda(selectedOrder.OpeInValor)}</span>
+            </div>
           </Modal.Title>
         </Modal.Header>
-        <Modal.Body className="p-3 p-md-4">
+        <Modal.Body className="p-2 p-md-3">
           {loadingDetails ? (
             <div className="text-center py-4">
               <Spinner animation="border" variant="danger" className="mb-2" />
@@ -995,19 +965,14 @@ export default function PedidosPendientes({ onEditarMesa, onVolver, onUpdateCant
             </div>
           ) : (
             <div>
-              <div className="d-flex align-items-center justify-content-between border-bottom pb-2 mb-3 text-secondary small">
-                <div>Mesero: <strong>{selectedOrder?.NombreVendedor?.toUpperCase() || 'MESERO'}</strong></div>
-                <div>Total: <strong>{selectedOrder && formatMoneda(selectedOrder.OpeInValor)}</strong></div>
-              </div>
-
-              <div className="table-responsive">
-                <table className="table align-middle m-0">
-                  <thead>
-                    <tr className="table-light text-uppercase small text-muted">
-                      <th style={{ width: "10%" }}>CANT.</th>
-                      <th style={{ width: "45%" }}>PRODUCTO</th>
-                      <th style={{ width: "20%" }} className="text-end">PRECIO</th>
-                      <th style={{ width: "25%" }} className="text-end">ESTADO</th>
+              <div className="table-responsive" style={{ maxHeight: "60vh", overflowY: "auto" }}>
+                <table className="table table-sm align-middle m-0" style={{ fontSize: "0.82rem" }}>
+                  <thead style={{ position: "sticky", top: 0, zIndex: 2, background: "#f8fafc" }}>
+                    <tr className="table-light text-uppercase text-muted" style={{ fontSize: "0.72rem" }}>
+                      <th style={{ width: "10%", padding: "6px 8px" }}>CANT.</th>
+                      <th style={{ width: "45%", padding: "6px 8px" }}>PRODUCTO</th>
+                      <th style={{ width: "20%", padding: "6px 8px" }} className="text-end">PRECIO</th>
+                      <th style={{ width: "25%", padding: "6px 8px" }} className="text-end">ESTADO</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1031,36 +996,36 @@ export default function PedidosPendientes({ onEditarMesa, onVolver, onUpdateCant
                             background: esSinImprimir ? "#fefce8" : "transparent"
                           }}
                         >
-                          <td className="fw-bold text-dark">{item.cantidad}</td>
-                          <td>
-                            <div className="fw-bold text-dark text-uppercase" style={{ fontSize: "0.9rem" }}>
+                          <td className="fw-bold text-dark" style={{ padding: "4px 8px" }}>{item.cantidad}</td>
+                          <td style={{ padding: "4px 8px" }}>
+                            <div className="fw-bold text-dark text-uppercase" style={{ fontSize: "0.82rem", lineHeight: "1.2" }}>
                               {descLimpia}
                             </div>
                             {obsTexto && (
-                              <small className="text-danger d-block fw-bold mt-0.5" style={{ fontSize: "0.78rem" }}>
+                              <small className="text-danger d-block fw-bold mt-0.5" style={{ fontSize: "0.72rem" }}>
                                 📌 Obs: {obsTexto}
                               </small>
                             )}
                             {item.adicionales && item.adicionales.length > 0 && (
-                              <div className="ps-2 border-start border-2 border-danger mt-1">
+                              <div className="ps-2 border-start border-2 border-danger mt-0.5">
                                 {item.adicionales.map((ad, sIdx) => (
-                                  <small key={sIdx} className="d-block text-muted">
+                                  <small key={sIdx} className="d-block text-muted" style={{ fontSize: "0.72rem" }}>
                                     + {ad.cantidad} {ad.ProStDescripcion} {ad.precioVenta > 0 ? `(${formatMoneda(ad.precioVenta)})` : ""}
                                   </small>
                                 ))}
                               </div>
                             )}
                           </td>
-                          <td className="text-end fw-semibold text-dark" style={{ fontSize: "0.9rem" }}>
+                          <td className="text-end fw-semibold text-dark" style={{ padding: "4px 8px", fontSize: "0.82rem" }}>
                             {formatMoneda(precioUnitario)}
                           </td>
-                          <td className="text-end">
+                          <td className="text-end" style={{ padding: "4px 8px" }}>
                             {esSinImprimir ? (
-                              <Badge bg="warning" className="text-dark fw-bold px-2 py-1" style={{ fontSize: "0.72rem" }}>
-                                ⚠️ SIN IMPRIMIR / NUEVO
+                              <Badge bg="warning" className="text-dark fw-bold px-1.5 py-0.5" style={{ fontSize: "0.66rem" }}>
+                                ⚠️ SIN IMPRIMIR
                               </Badge>
                             ) : (
-                              <Badge bg="secondary" className="px-2 py-1" style={{ fontSize: "0.72rem" }}>
+                              <Badge bg="secondary" className="px-1.5 py-0.5" style={{ fontSize: "0.66rem" }}>
                                 IMPRESO
                               </Badge>
                             )}

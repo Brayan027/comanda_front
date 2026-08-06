@@ -152,9 +152,14 @@ export default function App() {
       fetch(`${API_BASE_URL}/ordenes/config-app`, { headers })
         .then(res => res.json())
         .then(data => {
-          if (data && data.body && data.body.obligatorioImprimir) {
-            localStorage.setItem("obligatorioImprimir", String(data.body.obligatorioImprimir));
-            setEsObligatorioState(isMandatoryPrintEnabled());
+          if (data && data.body) {
+            if (data.body.obligatorioImprimir) {
+              localStorage.setItem("obligatorioImprimir", String(data.body.obligatorioImprimir));
+              setEsObligatorioState(isMandatoryPrintEnabled());
+            }
+            if (data.body.tipoSonidoPendientes) {
+              localStorage.setItem("config_tipoSonidoPendientes", String(data.body.tipoSonidoPendientes));
+            }
           }
         })
         .catch(err => console.error("Error al obtener config-app:", err));
@@ -500,18 +505,18 @@ export default function App() {
                     <div
                       className="premium-icon-box flex-shrink-0"
                       style={{
-                        width: "32px",
-                        height: "32px",
+                        width: "28px",
+                        height: "28px",
                         background: "#e31b23",
                         color: "#ffffff",
                         borderRadius: "8px",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        boxShadow: "0 2px 6px rgba(227, 27, 35, 0.25)"
+                        boxShadow: "0 1px 4px rgba(227, 27, 35, 0.2)"
                       }}
                     >
-                      <FiHome size={16} />
+                      <FiHome size={14} />
                     </div>
 
                     {/* Título de la sección */}
@@ -549,20 +554,20 @@ export default function App() {
                   </div>
                 </header>
 
-                <main className="co-panel-body p-3 p-md-4 w-100">
+                <main className="co-panel-body p-0 p-md-3 w-100">
                 <div className="row g-3 m-0 w-100 align-items-stretch">
                   {/* Tarjeta 1: Nuevo Pedido */}
-                  <div className="col-12 col-md-6 p-0 px-md-1 mb-2">
+                  <div className="col-12 col-md-6 p-0 pe-md-2 mb-2">
                     <div
-                      className="bg-white py-3 rounded-3 border d-flex align-items-center justify-content-between cursor-pointer w-100 h-100"
+                      className="bg-white py-2.5 rounded-3 border d-flex align-items-center justify-content-between cursor-pointer w-100 h-100"
                       style={{ 
                         cursor: "pointer", 
                         borderColor: "#e2e8f0",
                         transition: "all 0.15s ease-in-out",
                         boxShadow: "0 1px 3px rgba(15, 23, 42, 0.02)",
-                        paddingLeft: "10px",
-                        paddingRight: "16px",
-                        minHeight: "92px"
+                        paddingLeft: "12px",
+                        paddingRight: "12px",
+                        minHeight: "76px"
                       }}
                       onClick={handleNavCrearOrdenes}
                       onMouseEnter={(e) => {
@@ -576,25 +581,25 @@ export default function App() {
                         e.currentTarget.style.boxShadow = "0 1px 3px rgba(15, 23, 42, 0.02)";
                       }}
                     >
-                      <div className="d-flex align-items-center gap-3">
+                      <div className="d-flex align-items-center" style={{ gap: "14px" }}>
                         <div
                           className="d-flex align-items-center justify-content-center"
                           style={{
-                            width: "40px",
-                            height: "40px",
-                            borderRadius: "10px",
+                            width: "36px",
+                            height: "36px",
+                            borderRadius: "8px",
                             background: "#fee2e2",
                             color: "#e31b23",
                             flexShrink: 0
                           }}
                         >
-                          <FiPlus size={20} />
+                          <FiPlus size={18} />
                         </div>
                         <div className="d-flex flex-column text-start">
-                          <h3 className="m-0 fw-bold" style={{ fontSize: "0.98rem", color: "#1e293b" }}>
+                          <h3 className="m-0 fw-bold" style={{ fontSize: "0.92rem", color: "#1e293b" }}>
                             Nuevo Pedido
                           </h3>
-                          <p className="m-0 text-muted" style={{ fontSize: "0.76rem", marginTop: "2px" }}>
+                          <p className="m-0 text-muted" style={{ fontSize: "0.74rem", marginTop: "1px" }}>
                             Crear y registrar un nuevo pedido para un cliente.
                           </p>
                         </div>
@@ -607,17 +612,17 @@ export default function App() {
 
                   {/* Tarjeta 2: Órdenes Abiertas (Si es OBLIGATORIO_IMPRIMIR="SI" o si es Móvil/Tablet) */}
                   {(isMandatoryPrintEnabled() || esMovilOTablet) && (
-                    <div className="col-12 col-md-6 p-0 px-md-1 mb-2">
+                    <div className="col-12 col-md-6 p-0 ps-md-2 mb-2">
                       <div
-                        className="bg-white py-3 rounded-3 border d-flex align-items-center justify-content-between cursor-pointer w-100 h-100"
+                        className="bg-white py-2.5 rounded-3 border d-flex align-items-center justify-content-between cursor-pointer w-100 h-100"
                         style={{ 
                           cursor: "pointer", 
                           borderColor: "#e2e8f0",
                           transition: "all 0.15s ease-in-out",
                           boxShadow: "0 1px 3px rgba(15, 23, 42, 0.02)",
-                          paddingLeft: "10px",
-                          paddingRight: "16px",
-                          minHeight: "92px"
+                          paddingLeft: "12px",
+                          paddingRight: "12px",
+                          minHeight: "76px"
                         }}
                         onClick={async () => {
                           const puedeNavegar = await solicitarConfirmacionNavegacion();
@@ -634,25 +639,25 @@ export default function App() {
                           e.currentTarget.style.boxShadow = "0 1px 3px rgba(15, 23, 42, 0.02)";
                         }}
                       >
-                        <div className="d-flex align-items-center gap-3">
+                        <div className="d-flex align-items-center" style={{ gap: "14px" }}>
                           <div
                             className="d-flex align-items-center justify-content-center"
                             style={{
-                              width: "40px",
-                              height: "40px",
-                              borderRadius: "10px",
+                              width: "36px",
+                              height: "36px",
+                              borderRadius: "8px",
                               background: "#fef3c7",
                               color: "#d97706",
                               flexShrink: 0
                             }}
                           >
-                            <FiLayers size={20} />
+                            <FiLayers size={18} />
                           </div>
                           <div className="d-flex flex-column text-start">
-                            <h3 className="m-0 fw-bold" style={{ fontSize: "0.98rem", color: "#1e293b" }}>
+                            <h3 className="m-0 fw-bold" style={{ fontSize: "0.92rem", color: "#1e293b" }}>
                               Órdenes Abiertas
                             </h3>
-                            <p className="m-0 text-muted" style={{ fontSize: "0.76rem", marginTop: "2px" }}>
+                            <p className="m-0 text-muted" style={{ fontSize: "0.74rem", marginTop: "1px" }}>
                               Visualizar, editar y gestionar pedidos en proceso.
                             </p>
                           </div>
@@ -666,21 +671,18 @@ export default function App() {
 
                   {/* Tarjeta 2: Pedidos Pendientes (Solo en PC cuando OBLIGATORIO_IMPRIMIR="NO") */}
                   {(!isMandatoryPrintEnabled() && !esMovilOTablet) && (
-
-                    <div className="col-12 col-md-6 p-0 px-md-1 mb-2">
-
-
+                    <div className="col-12 col-md-6 p-0 ps-md-2 mb-2">
                       <div
-                        className="bg-white py-3 rounded-3 border d-flex align-items-center justify-content-between cursor-pointer w-100 h-100 position-relative"
+                        className="bg-white py-2.5 rounded-3 border d-flex align-items-center justify-content-between cursor-pointer w-100 h-100 position-relative"
                         style={{ 
                           cursor: "pointer", 
                           borderColor: cantPendientes > 0 ? "#fca5a5" : "#e2e8f0",
                           background: cantPendientes > 0 ? "#fffdf5" : "#ffffff",
                           transition: "all 0.15s ease-in-out",
                           boxShadow: "0 1px 3px rgba(15, 23, 42, 0.02)",
-                          paddingLeft: "10px",
-                          paddingRight: "16px",
-                          minHeight: "92px"
+                          paddingLeft: "12px",
+                          paddingRight: "12px",
+                          minHeight: "76px"
                         }}
                         onClick={async () => {
                           const puedeNavegar = await solicitarConfirmacionNavegacion();
@@ -697,23 +699,23 @@ export default function App() {
                           e.currentTarget.style.boxShadow = "0 1px 3px rgba(15, 23, 42, 0.02)";
                         }}
                       >
-                        <div className="d-flex align-items-center gap-3">
+                        <div className="d-flex align-items-center" style={{ gap: "14px" }}>
                           <div
                             className="d-flex align-items-center justify-content-center"
                             style={{
-                              width: "40px",
-                              height: "40px",
-                              borderRadius: "10px",
+                              width: "36px",
+                              height: "36px",
+                              borderRadius: "8px",
                               background: "#d1fae5",
                               color: "#059669",
                               flexShrink: 0
                             }}
                           >
-                            <FiClock size={20} />
+                            <FiClock size={18} />
                           </div>
                           <div className="d-flex flex-column text-start">
                             <div className="d-flex align-items-center gap-2">
-                              <h3 className="m-0 fw-bold" style={{ fontSize: "0.98rem", color: "#1e293b" }}>
+                              <h3 className="m-0 fw-bold" style={{ fontSize: "0.92rem", color: "#1e293b" }}>
                                 Pedidos Pendientes
                               </h3>
                               {cantPendientes > 0 && (
@@ -721,9 +723,8 @@ export default function App() {
                                   {cantPendientes}
                                 </span>
                               )}
-
                             </div>
-                            <p className="m-0 text-muted" style={{ fontSize: "0.76rem", marginTop: "2px" }}>
+                            <p className="m-0 text-muted" style={{ fontSize: "0.74rem", marginTop: "1px" }}>
                               Comandas recibidas sin confirmar.
                             </p>
                           </div>

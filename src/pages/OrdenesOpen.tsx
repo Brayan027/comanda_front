@@ -231,45 +231,28 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
       <div className="container-fluid pt-2 px-1 px-md-2">
         {/* Datatable Card container Unificado Sin Cortes */}
         <div className="co-unified-main-card">
-          <header className="co-header d-flex align-items-center justify-content-between">
-            <div className="d-flex align-items-center gap-3">
-              <div
-                style={{
-                  width: "28px",
-                  height: "28px",
-                  background: "#e31b23",
-                  color: "#fff",
-                  borderRadius: "7px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                  boxShadow: "0 2px 6px rgba(227, 27, 35, 0.25)",
-                }}
-              >
-                <FiLayers size={14} />
-              </div>
-              <div style={{ minWidth: 0 }}>
-                <div className="co-header-subtitle">Comandas Activas</div>
-                <h1 className="co-header-title">Órdenes Abiertas</h1>
-              </div>
-            </div>
-
-            <div className="d-flex align-items-center gap-2 flex-wrap ms-auto">
-              {/* Buscador de Mesas/Meseros Integrado en Header */}
-              <div 
-                className="d-flex align-items-center gap-2 px-2 bg-white rounded-3 border" 
-                style={{ borderColor: "#cbd5e1", height: "32px", width: "230px", maxWidth: "100%" }}
-              >
-                <FiSearch className="text-muted flex-shrink-0" size={14} />
-                <input
-                  type="text"
-                  className="border-0 bg-transparent p-0 shadow-none w-100 fw-medium"
-                  placeholder="Filtrar mesa o mesero..."
-                  value={busqueda}
-                  onChange={(e) => { setBusqueda(e.target.value); setPagina(1); }}
-                  style={{ fontSize: "0.78rem", outline: "none", color: "#1e293b" }}
-                />
+          <header className="co-header d-flex flex-column gap-2">
+            <div className="d-flex align-items-center justify-content-between w-100">
+              <div className="d-flex align-items-center gap-2">
+                <div
+                  style={{
+                    width: "28px",
+                    height: "28px",
+                    borderRadius: "8px",
+                    background: "#e31b23",
+                    color: "#ffffff",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                    boxShadow: "0 1px 4px rgba(227, 27, 35, 0.2)"
+                  }}
+                >
+                  <FiLayers size={14} />
+                </div>
+                <h1 className="co-header-title text-nowrap" style={{ fontSize: "0.9rem", whiteSpace: "nowrap" }}>
+                  COMANDAS ACTIVAS
+                </h1>
               </div>
 
               {onVolver && (
@@ -277,13 +260,13 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
                   type="button"
                   title="Volver a inicio"
                   onClick={onVolver}
-                  className="btn btn-sm d-flex align-items-center gap-1 fw-bold"
+                  className="btn btn-sm d-flex align-items-center gap-1 fw-bold text-nowrap"
                   style={{
                     border: "1.5px solid #cbd5e1",
                     borderRadius: "6px",
                     background: "#ffffff",
                     color: "#334155",
-                    padding: "3px 8px",
+                    padding: "2px 8px",
                     height: "28px",
                     cursor: "pointer",
                     flexShrink: 0,
@@ -304,10 +287,26 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
                     btn.style.borderColor = "#cbd5e1";
                   }}
                 >
-                  <FiArrowLeft size={16} />
+                  <FiArrowLeft size={14} />
                   <span>Volver</span>
                 </button>
               )}
+            </div>
+
+            {/* Buscador de Mesas/Meseros Ubicado Abajo en Renglón Dedicado */}
+            <div 
+              className="d-flex align-items-center gap-2 px-2.5 bg-white rounded-3 border w-100" 
+              style={{ borderColor: "#cbd5e1", height: "34px" }}
+            >
+              <FiSearch className="text-muted flex-shrink-0" size={14} />
+              <input
+                type="text"
+                className="border-0 bg-transparent p-0 shadow-none w-100 fw-medium"
+                placeholder="Filtrar mesa o mesero..."
+                value={busqueda}
+                onChange={(e) => { setBusqueda(e.target.value); setPagina(1); }}
+                style={{ fontSize: "0.8rem", outline: "none", color: "#1e293b" }}
+              />
             </div>
           </header>
 
