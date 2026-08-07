@@ -10,7 +10,7 @@ import "bootstrap-icons/font/bootstrap-icons.css";
 import { FiHome, FiPlus, FiLayers, FiChevronRight, FiClock } from "react-icons/fi";
 import Swal from "sweetalert2";
 import type { MenuKey } from "./components/layout/Sidebar";
-import { API_BASE_URL, socket, getTerminalId, isMobileOrTabletDevice, isMandatoryPrintEnabled } from "./config/api";
+import { API_BASE_URL, socket, getTerminalId, isMobileOrTabletDevice, isMandatoryPrintEnabled, apiFetch } from "./config/api";
 
 import { playNewOrderSound } from "./utils/audioAlert";
 
@@ -78,7 +78,7 @@ export default function App() {
     try {
       const token = localStorage.getItem("token") || "";
       const info = JSON.parse(localStorage.getItem("infoPuntoVenta") || "{}");
-      await fetch(`${API_BASE_URL}/ordenes/mesa/cerrar`, {
+      await apiFetch(`${API_BASE_URL}/ordenes/mesa/cerrar`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -142,14 +142,14 @@ export default function App() {
     const terminalName = getTerminalId();
     headers["terminal"] = terminalName;
 
-    fetch(`${API_BASE_URL}/ordenes/mesa/cerrar-terminal`, {
+    apiFetch(`${API_BASE_URL}/ordenes/mesa/cerrar-terminal`, {
       method: "POST",
       headers,
       body: JSON.stringify({ terminal: terminalName })
     }).catch(err => console.error("Error al limpiar mesas de terminal:", err));
 
     const fetchConfigApp = () => {
-      fetch(`${API_BASE_URL}/ordenes/config-app`, { headers })
+      apiFetch(`${API_BASE_URL}/ordenes/config-app`, { headers })
         .then(res => res.json())
         .then(data => {
           if (data && data.body) {
@@ -169,7 +169,7 @@ export default function App() {
 
     const fetchFechaTrabajo = () => {
 
-      fetch(`${API_BASE_URL}/ordenes/fecha-trabajo`, { headers })
+      apiFetch(`${API_BASE_URL}/ordenes/fecha-trabajo`, { headers })
         .then(res => res.json())
         .then(data => {
           if (data && data.body) {
@@ -206,7 +206,7 @@ export default function App() {
     };
 
     const fetchPendientesCount = () => {
-      fetch(`${API_BASE_URL}/ordenes/pendientes`, { headers })
+      apiFetch(`${API_BASE_URL}/ordenes/pendientes`, { headers })
         .then(res => res.json())
         .then(data => {
           if (data && data.body) {
@@ -373,20 +373,93 @@ export default function App() {
   useEffect(() => {
     if (!logueado) return;
 
+    // Listener para eventos de sesión expirada por API (HTTP 401)
+    const handleSessionExpired = () => {
+      localStorage.removeItem("token");
+      localStorage.removeItem("last_login");
+      localStorage.removeItem("last_activity_time");
+      Swal.close();
+      setLogueado(false);
+      Swal.fire({
+        icon: "info",
+        title: "Sesión Expirada",
+        text: "Su sesión ha expirado (token de 24 horas vencido). Por favor inicie sesión nuevamente.",
+        confirmButtonText: "Aceptar",
+        confirmButtonColor: "#2563eb"
+      });
+    };
+
+    window.addEventListener("session_expired", handleSessionExpired);
+
+    // CONTROL DE INACTIVIDAD (8 HORAS CONTINUAS SIN USO DE LA APP):
+    // Cualquier interacción (clic, toque, scroll, teclado, mover mouse) reinicia el tiempo a cero.
+    const OCHO_HORAS_MS = 8 * 60 * 60 * 1000;
+
+    const verificarInactividad = (): boolean => {
+      const stored = localStorage.getItem("last_activity_time");
+      const lastTime = stored ? parseInt(stored, 10) : Date.now();
+      const ahora = Date.now();
+
+      if (ahora - lastTime >= OCHO_HORAS_MS) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("last_login");
+        localStorage.removeItem("last_activity_time");
+        Swal.close();
+        setLogueado(false);
+        Swal.fire({
+          icon: "warning",
+          title: "Sesión Cerrada por Inactividad",
+          text: "Ha transcurrido más de 8 horas sin actividad en la aplicación. Su sesión ha sido cerrada por seguridad.",
+          confirmButtonText: "Aceptar",
+          confirmButtonColor: "#2563eb"
+        });
+        return true;
+      }
+      return false;
+    };
+
+    // Si al montar o volver ya transcurrieron 8 horas de inactividad
+    if (verificarInactividad()) {
+      return () => window.removeEventListener("session_expired", handleSessionExpired);
+    }
+
     let ultimoGuardado = Date.now();
+    localStorage.setItem("last_activity_time", ultimoGuardado.toString());
+
+    // Cada interacción del usuario actualiza la fecha/hora de última actividad (reiniciando el contador de 8 horas)
     const registrarActividad = () => {
       const ahora = Date.now();
-      if (ahora - ultimoGuardado > 30000) {
+      if (verificarInactividad()) return;
+
+      // Throttle para evitar escrituras excesivas en localStorage (guardar máximo cada 3 segundos)
+      if (ahora - ultimoGuardado > 3000) {
+        localStorage.setItem("last_activity_time", ahora.toString());
         localStorage.setItem("last_login", ahora.toString());
         ultimoGuardado = ahora;
       }
     };
 
-    const eventos = ["mousedown", "mousemove", "keypress", "scroll", "touchstart", "click"];
-    eventos.forEach((ev) => window.addEventListener(ev, registrarActividad));
+    const eventos = ["mousedown", "mousemove", "keypress", "keydown", "scroll", "touchstart", "click"];
+    eventos.forEach((ev) => window.addEventListener(ev, registrarActividad, { passive: true }));
+
+    // Verificación periódica cada 30 segundos y al reactivar la pestaña/pantalla
+    const checkInterval = setInterval(() => {
+      verificarInactividad();
+    }, 30000);
+
+    const handleFocusOrVisibility = () => {
+      verificarInactividad();
+    };
+
+    window.addEventListener("focus", handleFocusOrVisibility);
+    document.addEventListener("visibilitychange", handleFocusOrVisibility);
 
     return () => {
+      window.removeEventListener("session_expired", handleSessionExpired);
       eventos.forEach((ev) => window.removeEventListener(ev, registrarActividad));
+      clearInterval(checkInterval);
+      window.removeEventListener("focus", handleFocusOrVisibility);
+      document.removeEventListener("visibilitychange", handleFocusOrVisibility);
     };
   }, [logueado]);
 

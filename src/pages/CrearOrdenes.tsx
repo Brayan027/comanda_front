@@ -15,7 +15,7 @@ import {
 } from "react-icons/fi";
 import { Modal, Button, Badge } from "react-bootstrap";
 import Swal from "sweetalert2";
-import { API_BASE_URL, sanitizarError, getTerminalId, isMandatoryPrintEnabled } from "../config/api";
+import { API_BASE_URL, sanitizarError, getTerminalId, isMandatoryPrintEnabled, apiFetch } from "../config/api";
 import "../styles/crear-ordenes.css";
 
 
@@ -257,7 +257,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
 
   const fetchObservacionesPredefinidas = async () => {
     try {
-      const resp = await fetch(`${API_BASE_URL}/ordenes/observaciones-predefinidas`, {
+      const resp = await apiFetch(`${API_BASE_URL}/ordenes/observaciones-predefinidas`, {
         headers
       });
       if (resp.ok) {
@@ -271,7 +271,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
 
   const fetchLineas = async () => {
     try {
-      const resp = await fetch(`${API_BASE_URL}/productos/lineas`, {
+      const resp = await apiFetch(`${API_BASE_URL}/productos/lineas`, {
         headers
       });
       if (resp.ok) {
@@ -289,7 +289,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
     const target = (mesaTarget || mesa || "").trim();
     if (!target) return;
     try {
-      await fetch(`${API_BASE_URL}/ordenes/mesa/cerrar`, {
+      await apiFetch(`${API_BASE_URL}/ordenes/mesa/cerrar`, {
         method: "PUT",
         headers,
         body: JSON.stringify({ mesa: target })
@@ -491,7 +491,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
       const loadComanda = async () => {
         setCargandoComanda(true);
         try {
-          const resp = await fetch(`${API_BASE_URL}/ordenes/${initialOrdenId}`, {
+          const resp = await apiFetch(`${API_BASE_URL}/ordenes/${initialOrdenId}`, {
             method: "GET",
             headers
           });
@@ -506,7 +506,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
               setNumPersonas(comanda.OpeInNumPersonas || 1);
 
               if (comanda.OpeStMesa) {
-                fetch(`${API_BASE_URL}/ordenes/mesa/abrir`, {
+                apiFetch(`${API_BASE_URL}/ordenes/mesa/abrir`, {
                   method: "POST",
                   headers,
                   body: JSON.stringify({ mesa: comanda.OpeStMesa, terminal: terminalName })
@@ -591,7 +591,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
   // Cargar las sugerencias de autocompletado de meseros
   const fetchWaiters = async (term: string) => {
     try {
-      const resp = await fetch(`${API_BASE_URL}/ordenes/waiters?search=${encodeURIComponent(term)}`, {
+      const resp = await apiFetch(`${API_BASE_URL}/ordenes/waiters?search=${encodeURIComponent(term)}`, {
         method: "GET",
         headers
       });
@@ -641,7 +641,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
       if (lineaSeleccionada !== null) {
         url += `&linea=${lineaSeleccionada}`;
       }
-      const resp = await fetch(url, {
+      const resp = await apiFetch(url, {
         method: "GET",
         headers
       });
@@ -662,23 +662,14 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
 
     setCargandoComanda(true);
     try {
-      const abrirResp = await fetch(`${API_BASE_URL}/ordenes/mesa/abrir`, {
+      const abrirResp = await apiFetch(`${API_BASE_URL}/ordenes/mesa/abrir`, {
         method: "POST",
         headers,
         body: JSON.stringify({ mesa: mesa.trim(), terminal: terminalName })
       });
 
       if (abrirResp.status === 401) {
-        localStorage.removeItem("token");
-        localStorage.removeItem("last_login");
-        await Swal.fire({
-          icon: "info",
-          title: "Sesión Expirada",
-          text: "Su sesión ha expirado, por favor inicie sesión nuevamente.",
-          confirmButtonText: "Aceptar",
-          confirmButtonColor: "#2563eb"
-        });
-        window.location.href = "/";
+        setCargandoComanda(false);
         return;
       }
 
@@ -694,7 +685,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
         return;
       }
 
-      const resp = await fetch(`${API_BASE_URL}/ordenes/mesa/${encodeURIComponent(mesa.trim())}`, {
+      const resp = await apiFetch(`${API_BASE_URL}/ordenes/mesa/${encodeURIComponent(mesa.trim())}`, {
         method: "GET",
         headers
       });
@@ -819,7 +810,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
     const customQty = (rawQty === "" || rawQty === undefined) ? 1 : Math.max(1, Number(rawQty) || 1);
 
     try {
-      const resp = await fetch(`${API_BASE_URL}/ordenes/productos/${p.ProIdInProducto}/adicionales`, {
+      const resp = await apiFetch(`${API_BASE_URL}/ordenes/productos/${p.ProIdInProducto}/adicionales`, {
         method: "GET",
         headers
       });
@@ -1179,7 +1170,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
     });
 
     try {
-      const resp = await fetch(`${API_BASE_URL}/ordenes/validar-admin`, {
+      const resp = await apiFetch(`${API_BASE_URL}/ordenes/validar-admin`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1500,7 +1491,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
     });
 
     try {
-      const resp = await fetch(`${API_BASE_URL}/ordenes/${nroOrden}/imprimir`, {
+      const resp = await apiFetch(`${API_BASE_URL}/ordenes/${nroOrden}/imprimir`, {
         method: "POST",
         headers,
         body: JSON.stringify({ esReimpresion: false })
@@ -1628,7 +1619,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
 
       const method = ordenId ? "PUT" : "POST";
 
-      const resp = await fetch(url, {
+      const resp = await apiFetch(url, {
         method,
         headers,
         body: JSON.stringify(payload)

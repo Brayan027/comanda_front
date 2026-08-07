@@ -204,3 +204,20 @@ export function isSameTerminal(t1?: string, t2?: string): boolean {
   if (!t1 || !t2) return false;
   return t1.trim().toUpperCase() === t2.trim().toUpperCase();
 }
+
+/**
+ * Wrapper centralizado de fetch que intercepta respuestas 401 (Token Expirado / No Autorizado)
+ * e informa a la aplicación para cerrar la sesión limpiamente.
+ */
+export async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const response = await fetch(input, init);
+
+  if (response.status === 401) {
+    const urlStr = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+    if (!urlStr.includes("/login")) {
+      window.dispatchEvent(new Event("session_expired"));
+    }
+  }
+
+  return response;
+}

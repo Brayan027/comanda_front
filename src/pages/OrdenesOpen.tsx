@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { FiLayers, FiSearch, FiEdit3, FiChevronLeft, FiChevronRight, FiLock, FiArrowLeft, FiUser } from "react-icons/fi";
 import { Spinner, Badge } from "react-bootstrap";
 import Swal from "sweetalert2";
-import { API_BASE_URL, socket, getTerminalId, formatMesaName, isSameTerminal } from "../config/api";
+import { API_BASE_URL, socket, getTerminalId, formatMesaName, isSameTerminal, apiFetch } from "../config/api";
 
 import "../styles/crear-ordenes.css";
 
@@ -58,7 +58,7 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
   const cargarOrdenes = async (mostrarCargando = true) => {
     try {
       if (mostrarCargando) setCargando(true);
-      const resp = await fetch(`${API_BASE_URL}/ordenes/activas`, {
+      const resp = await apiFetch(`${API_BASE_URL}/ordenes/activas`, {
         method: "GET",
         headers
       });
@@ -84,7 +84,7 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
 
       // Solicitar acceso exclusivo a la mesa directamente en el backend
       // El backend garantiza atomicidad con mutex + transacción SELECT FOR UPDATE
-      const resp = await fetch(`${API_BASE_URL}/ordenes/mesa/abrir`, {
+      const resp = await apiFetch(`${API_BASE_URL}/ordenes/mesa/abrir`, {
         method: "POST",
         headers,
         body: JSON.stringify({
@@ -94,16 +94,6 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
       });
 
       if (resp.status === 401) {
-        localStorage.removeItem("token");
-        localStorage.removeItem("last_login");
-        await Swal.fire({
-          icon: "info",
-          title: "Sesión Expirada",
-          text: "Su sesión ha expirado, por favor inicie sesión nuevamente.",
-          confirmButtonText: "Aceptar",
-          confirmButtonColor: "#2563eb"
-        });
-        window.location.href = "/";
         return;
       }
 
@@ -120,7 +110,7 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
       }
 
       // Verificar que la orden aún exista y tenga ítems activos en la base de datos (no facturada en caja)
-      const checkResp = await fetch(`${API_BASE_URL}/ordenes/${orden.OpeIdInOrdenPedido}`, { headers });
+      const checkResp = await apiFetch(`${API_BASE_URL}/ordenes/${orden.OpeIdInOrdenPedido}`, { headers });
       if (checkResp.ok) {
         const checkData = await checkResp.json();
         const productos = checkData.body?.productos || [];

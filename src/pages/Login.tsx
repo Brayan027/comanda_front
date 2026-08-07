@@ -132,6 +132,7 @@ export default function Login({ onLogin }: LoginProps) {
 
       localStorage.setItem("token", token);
       localStorage.setItem("last_login", Date.now().toString());
+      localStorage.setItem("last_activity_time", Date.now().toString());
       localStorage.setItem("terminal", nombreTerminal.trim()); // Guardar terminal
       localStorage.setItem("usuarioLogueado", usuario.trim().toUpperCase());
       

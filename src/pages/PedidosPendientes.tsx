@@ -16,7 +16,7 @@ import {
 
 import { Spinner, Badge, Modal, Button } from "react-bootstrap";
 import Swal from "sweetalert2";
-import { API_BASE_URL, socket, getTerminalId, isMandatoryPrintEnabled, isMobileOrTabletDevice, formatMesaName, isSameTerminal } from "../config/api";
+import { API_BASE_URL, socket, getTerminalId, isMandatoryPrintEnabled, isMobileOrTabletDevice, formatMesaName, isSameTerminal, apiFetch } from "../config/api";
 
 
 import { playNewOrderSound } from "../utils/audioAlert";
@@ -145,8 +145,8 @@ export default function PedidosPendientes({ onEditarMesa: _onEditarMesa, onVolve
       if (mostrarCargando) setCargando(true);
       
       const [respActivas, respPendientes] = await Promise.all([
-        fetch(`${API_BASE_URL}/ordenes/activas`, { headers }).catch(() => null),
-        fetch(`${API_BASE_URL}/ordenes/pendientes`, { headers }).catch(() => null)
+        apiFetch(`${API_BASE_URL}/ordenes/activas`, { headers }).catch(() => null),
+        apiFetch(`${API_BASE_URL}/ordenes/pendientes`, { headers }).catch(() => null)
       ]);
 
       let activas: any[] = [];
@@ -284,7 +284,7 @@ export default function PedidosPendientes({ onEditarMesa: _onEditarMesa, onVolve
     setSelectedOrder(orden);
     setLoadingDetails(true);
     try {
-      const resp = await fetch(`${API_BASE_URL}/ordenes/${orden.OpeIdInOrdenPedido}`, {
+      const resp = await apiFetch(`${API_BASE_URL}/ordenes/${orden.OpeIdInOrdenPedido}`, {
         headers
       });
       if (resp.ok) {
@@ -314,7 +314,7 @@ export default function PedidosPendientes({ onEditarMesa: _onEditarMesa, onVolve
     }
 
     try {
-      const resp = await fetch(`${API_BASE_URL}/ordenes/mesa/abrir`, {
+      const resp = await apiFetch(`${API_BASE_URL}/ordenes/mesa/abrir`, {
         method: "POST",
         headers,
         body: JSON.stringify({
@@ -358,7 +358,7 @@ export default function PedidosPendientes({ onEditarMesa: _onEditarMesa, onVolve
     });
 
     try {
-      const resp = await fetch(`${API_BASE_URL}/ordenes/${targetId}/confirmar-impresos`, {
+      const resp = await apiFetch(`${API_BASE_URL}/ordenes/${targetId}/confirmar-impresos`, {
         method: "PUT",
         headers
       });
@@ -368,7 +368,7 @@ export default function PedidosPendientes({ onEditarMesa: _onEditarMesa, onVolve
         Swal.fire({
           icon: "success",
           title: "Pedido Confirmado",
-          text: `Mesa ${orden.OpeStMesa} marcada como procesada sin impresión física.`,
+          text: `Mesa: ${orden.OpeStMesa} marcada como procesada.`,
           timer: 1500,
           showConfirmButton: false
         });
@@ -393,7 +393,7 @@ export default function PedidosPendientes({ onEditarMesa: _onEditarMesa, onVolve
       });
     } finally {
       setProcesandoId(null);
-      fetch(`${API_BASE_URL}/ordenes/mesa/cerrar`, {
+      apiFetch(`${API_BASE_URL}/ordenes/mesa/cerrar`, {
         method: "PUT",
         headers,
         body: JSON.stringify({ mesa: orden.OpeStMesa })
@@ -413,7 +413,7 @@ export default function PedidosPendientes({ onEditarMesa: _onEditarMesa, onVolve
     });
 
     try {
-      const resp = await fetch(`${API_BASE_URL}/ordenes/${targetId}/imprimir-pendiente`, {
+      const resp = await apiFetch(`${API_BASE_URL}/ordenes/${targetId}/imprimir-pendiente`, {
         method: "POST",
         headers
       });
@@ -458,7 +458,7 @@ export default function PedidosPendientes({ onEditarMesa: _onEditarMesa, onVolve
       });
     } finally {
       setProcesandoId(null);
-      fetch(`${API_BASE_URL}/ordenes/mesa/cerrar`, {
+      apiFetch(`${API_BASE_URL}/ordenes/mesa/cerrar`, {
         method: "PUT",
         headers,
         body: JSON.stringify({ mesa: orden.OpeStMesa })
