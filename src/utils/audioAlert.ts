@@ -49,6 +49,8 @@ export interface SoundResolution {
   fileName?: string;
 }
 
+import { storage } from "./storage";
+
 /**
  * Obtiene la resolución del sonido configurado desde el backend (o .env local).
  * Admite tanto números (1, 2, 3, 4) como nombres de archivo directos (ej: 'SONIDO2.mp3', 'alerta.wav', 'SONIDO2').
@@ -57,7 +59,7 @@ export function getTipoSonidoConfig(): SoundResolution {
   let val: string | null = null;
 
   try {
-    const apiVal = localStorage.getItem("config_tipoSonidoPendientes");
+    const apiVal = storage.getItem("config_tipoSonidoPendientes");
     if (apiVal !== null && apiVal !== "") {
       val = String(apiVal).trim();
     } else {
@@ -93,7 +95,7 @@ export function getTipoSonidoPendientes(): number {
 export function setTipoSonidoPendientes(tipo: number) {
   try {
     if (tipo >= 1 && tipo <= 4) {
-      localStorage.setItem("tipoSonidoPendientes", String(tipo));
+      storage.setItem("tipoSonidoPendientes", String(tipo));
     }
   } catch {
     // Ignorar

@@ -16,6 +16,7 @@ import {
 import { Modal, Button, Badge } from "react-bootstrap";
 import Swal from "sweetalert2";
 import { API_BASE_URL, sanitizarError, getTerminalId, isMandatoryPrintEnabled, apiFetch } from "../config/api";
+import { storage } from "../utils/storage";
 import "../styles/crear-ordenes.css";
 
 
@@ -149,11 +150,11 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
     };
   }, []);
 
-  const token = localStorage.getItem("token") || "";
+  const token = storage.getItem("token") || "";
 
   
   const comanderaBloqueada = useMemo(() => {
-    return localStorage.getItem("comanderaBloqueada") === "true";
+    return storage.getItem("comanderaBloqueada") === "true";
   }, []);
 
   const headers = useMemo(() => ({

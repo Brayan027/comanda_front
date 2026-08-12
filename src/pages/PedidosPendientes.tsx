@@ -17,6 +17,7 @@ import {
 import { Spinner, Badge, Modal, Button } from "react-bootstrap";
 import Swal from "sweetalert2";
 import { API_BASE_URL, socket, getTerminalId, isMandatoryPrintEnabled, isMobileOrTabletDevice, formatMesaName, isSameTerminal, apiFetch } from "../config/api";
+import { storage } from "../utils/storage";
 
 
 import { playNewOrderSound } from "../utils/audioAlert";
@@ -81,22 +82,22 @@ export default function PedidosPendientes({ onEditarMesa: _onEditarMesa, onVolve
   const [orderDetails, setOrderDetails] = useState<PendingOrderItem[]>([]);
   const [loadingDetails, setLoadingDetails] = useState(false);
 
-  // Estado del Sonido de Alertas (persistido en localStorage)
+  // Estado del Sonido de Alertas (persistido en storage)
   const [soundEnabled, setSoundEnabled] = useState<boolean>(() => {
-    const stored = localStorage.getItem("sonidoPendientesHabilitado");
+    const stored = storage.getItem("sonidoPendientesHabilitado");
     return stored !== null ? stored === "true" : true;
   });
 
   const infoPuntoVenta = useMemo(() => {
     try {
-      const stored = localStorage.getItem("infoPuntoVenta");
+      const stored = storage.getItem("infoPuntoVenta");
       return stored ? JSON.parse(stored) : null;
     } catch {
       return null;
     }
   }, []);
 
-  const token = localStorage.getItem("token") || "";
+  const token = storage.getItem("token") || "";
   const terminalActual = useMemo(() => getTerminalId(), []);
 
   const headers = useMemo(() => ({
@@ -113,7 +114,7 @@ export default function PedidosPendientes({ onEditarMesa: _onEditarMesa, onVolve
     if (esMovil) return;
     setSoundEnabled(prev => {
       const nextVal = !prev;
-      localStorage.setItem("sonidoPendientesHabilitado", String(nextVal));
+      storage.setItem("sonidoPendientesHabilitado", String(nextVal));
       if (nextVal) {
         playNewOrderSound(); // audioAlert.ts ya tiene la guarda interna de PC
       }

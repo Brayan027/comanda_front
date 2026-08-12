@@ -4,6 +4,7 @@
  */
 
 import { io, Socket } from "socket.io-client";
+import { storage } from "../utils/storage";
 
 // URL Base tomada del entorno o fallback a /comandaApi
 const BASE = import.meta.env.VITE_API_BASE_URL || "/comandaApi";
@@ -47,11 +48,11 @@ socket.on("error", () => {
 // Esto permite al servidor liberar mesas automáticamente si el socket se cae
 function registrarTerminalEnServidor() {
   // Usar 'terminal' directamente (es el que el usuario configuró y el que el backend usa)
-  const termId = localStorage.getItem("terminal");
+  const termId = storage.getItem("terminal");
   if (!termId || termId === "TERMINAL 1") return;
   let empresa = "02";
   try {
-    const info = JSON.parse(localStorage.getItem("infoPuntoVenta") || "{}");
+    const info = JSON.parse(storage.getItem("infoPuntoVenta") || "{}");
     empresa = info?.PveIdStEmpresa || "02";
   } catch { /* ignorar */ }
   socket.emit("registrar_terminal", { terminal: termId, empresa });
@@ -74,7 +75,7 @@ socket.on("reconnect", () => {
  * NUNCA sobreescribe un terminal que el usuario configuró manualmente.
  */
 export function getTerminalId(): string {
-  let deviceId = localStorage.getItem("device_unique_id");
+  let deviceId = storage.getItem("device_unique_id");
   if (!deviceId) {
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     const prefix = isMobile ? "MOV" : "POS";
@@ -85,20 +86,20 @@ export function getTerminalId(): string {
       uid = Date.now().toString(36).toUpperCase().substring(0, 4);
     }
     deviceId = `${prefix}_${uid}`;
-    localStorage.setItem("device_unique_id", deviceId);
+    storage.setItem("device_unique_id", deviceId);
   }
 
-  let tabId = sessionStorage.getItem("tab_session_id");
+  let tabId = sessionStorage.getItem("comanda_tab_session_id") || sessionStorage.getItem("tab_session_id");
   if (!tabId) {
     try {
       tabId = crypto.randomUUID().replace(/-/g, "").substring(0, 4).toUpperCase();
     } catch {
       tabId = Math.random().toString(36).substring(2, 6).toUpperCase();
     }
-    sessionStorage.setItem("tab_session_id", tabId);
+    sessionStorage.setItem("comanda_tab_session_id", tabId);
   }
 
-  const terminalUsuario = (localStorage.getItem("terminal") || "TERMINAL 1").trim();
+  const terminalUsuario = (storage.getItem("terminal") || "TERMINAL 1").trim();
   const fullTag = `${deviceId}-${tabId}`;
 
   if (!terminalUsuario.includes(fullTag)) {
@@ -137,7 +138,7 @@ export function sanitizarError(mensaje: string): string {
  * Se configura en el archivo .env del BACKEND (OBLIGATORIO_IMPRIMIR="SI" o "NO").
  */
 export function isMandatoryPrintEnabled(): boolean {
-  const storedVal = localStorage.getItem("obligatorioImprimir");
+  const storedVal = storage.getItem("obligatorioImprimir");
   if (storedVal !== null) {
     return storedVal === "true" || storedVal === "SI" || storedVal === "1" || storedVal === "YES";
   }

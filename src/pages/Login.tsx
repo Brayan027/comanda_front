@@ -1,6 +1,6 @@
-import { useState } from "react";
-import type { FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { LOGIN_URL, sanitizarError } from "../config/api";
+import { storage } from "../utils/storage";
 import { FaUser, FaLock, FaEye, FaEyeSlash, FaDesktop } from "react-icons/fa";
 import logo from "../assets/log1.png";
 import "../styles/Login.css";
@@ -70,9 +70,9 @@ export default function Login({ onLogin }: LoginProps) {
   const [error, setError] = useState("");
   const [verClave, setVerClave] = useState(false);
 
-  // Cargar estado inicial del dispositivo desde localStorage (si existe)
-  const [nombreTerminal, setNombreTerminal] = useState(() => localStorage.getItem("terminal") || "");
-  const [tieneTerminalGuardada] = useState(() => Boolean(localStorage.getItem("terminal")?.trim()));
+  // Cargar estado inicial del dispositivo desde storage (si existe)
+  const [nombreTerminal, setNombreTerminal] = useState(() => storage.getItem("terminal") || "");
+  const [tieneTerminalGuardada] = useState(() => Boolean(storage.getItem("terminal")?.trim()));
 
   async function manejarSubmit(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
@@ -89,7 +89,7 @@ export default function Login({ onLogin }: LoginProps) {
     setError("");
 
     // Si coincide con la guardada es 0, si cambió o es nueva es 1 (crear terminal)
-    const esPrimeraVezCalculado = nombreTerminal.trim() === localStorage.getItem("terminal") ? 0 : 1;
+    const esPrimeraVezCalculado = nombreTerminal.trim() === storage.getItem("terminal") ? 0 : 1;
 
     try {
       const resp = await fetch(LOGIN_URL, {
@@ -130,32 +130,40 @@ export default function Login({ onLogin }: LoginProps) {
         throw new Error("#Log9");
       }
 
-      localStorage.setItem("token", token);
-      localStorage.setItem("last_login", Date.now().toString());
-      localStorage.setItem("last_activity_time", Date.now().toString());
-      localStorage.setItem("terminal", nombreTerminal.trim()); // Guardar terminal
-      localStorage.setItem("usuarioLogueado", usuario.trim().toUpperCase());
+      storage.setItem("token", token);
+      storage.setItem("last_login", Date.now().toString());
+      storage.setItem("last_activity_time", Date.now().toString());
+      storage.setItem("terminal", nombreTerminal.trim()); // Guardar terminal
+      storage.setItem("usuarioLogueado", usuario.trim().toUpperCase());
       
       if (data?.body) {
         if (data.body.vendedor) {
-          localStorage.setItem("vendedor", JSON.stringify(data.body.vendedor));
+          storage.setItem("vendedor", JSON.stringify(data.body.vendedor));
         }
         if (data.body.infoPuntoVenta) {
-          localStorage.setItem("infoPuntoVenta", JSON.stringify(data.body.infoPuntoVenta));
+          storage.setItem("infoPuntoVenta", JSON.stringify(data.body.infoPuntoVenta));
         }
         if (data.body.usuario) {
-          localStorage.setItem("usuario", JSON.stringify(data.body.usuario));
+          storage.setItem("usuario", JSON.stringify(data.body.usuario));
         }
         const bodyData = data.body as any;
         if (bodyData.obligatorioImprimir) {
-          localStorage.setItem("obligatorioImprimir", String(bodyData.obligatorioImprimir));
+          storage.setItem("obligatorioImprimir", String(bodyData.obligatorioImprimir));
+        }
+        if (bodyData.inactividadHoras !== undefined) {
+          const val = Number(bodyData.inactividadHoras);
+          if (isNaN(val) || val < 0.05) {
+            storage.setItem("config_inactividadHoras", "0");
+          } else {
+            storage.setItem("config_inactividadHoras", String(val));
+          }
         }
       }
 
 
 
       // Si existe localstorage de lineas (config anterior), se limpia
-      localStorage.removeItem("lineas");
+      storage.removeItem("lineas");
 
       onLogin();
     } catch (err) {

@@ -3,6 +3,7 @@ import { FiLayers, FiSearch, FiEdit3, FiChevronLeft, FiChevronRight, FiLock, FiA
 import { Spinner, Badge } from "react-bootstrap";
 import Swal from "sweetalert2";
 import { API_BASE_URL, socket, getTerminalId, formatMesaName, isSameTerminal, apiFetch } from "../config/api";
+import { storage } from "../utils/storage";
 
 import "../styles/crear-ordenes.css";
 
@@ -33,14 +34,14 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
 
   const infoPuntoVenta = useMemo(() => {
     try {
-      const stored = localStorage.getItem("infoPuntoVenta");
+      const stored = storage.getItem("infoPuntoVenta");
       return stored ? JSON.parse(stored) : null;
     } catch {
       return null;
     }
   }, []);
 
-  const token = localStorage.getItem("token") || "";
+  const token = storage.getItem("token") || "";
 
   // Terminal ID estable y permanente para este dispositivo (nunca cambia entre recargas)
   const terminalActual = useMemo(() => getTerminalId(), []);

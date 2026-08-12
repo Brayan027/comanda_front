@@ -11,12 +11,12 @@ import { FiHome, FiPlus, FiLayers, FiChevronRight, FiClock } from "react-icons/f
 import Swal from "sweetalert2";
 import type { MenuKey } from "./components/layout/Sidebar";
 import { API_BASE_URL, socket, getTerminalId, isMobileOrTabletDevice, isMandatoryPrintEnabled, apiFetch } from "./config/api";
-
 import { playNewOrderSound } from "./utils/audioAlert";
+import { storage } from "./utils/storage";
 
 export default function App() {
   const [logueado, setLogueado] = useState(() => {
-    const token = localStorage.getItem("token");
+    const token = storage.getItem("token");
     return Boolean(token);
   });
 
@@ -48,13 +48,13 @@ export default function App() {
   useEffect(() => {
     if (!logueado || cantPendientes <= 0 || esMovilOTablet || isMandatoryPrintEnabled()) return;
 
-    const soundOn = localStorage.getItem("sonidoPendientesHabilitado") !== "false";
+    const soundOn = storage.getItem("sonidoPendientesHabilitado") !== "false";
     if (soundOn) {
       playNewOrderSound();
     }
 
     const intervalId = setInterval(() => {
-      const soundActive = localStorage.getItem("sonidoPendientesHabilitado") !== "false";
+      const soundActive = storage.getItem("sonidoPendientesHabilitado") !== "false";
       if (soundActive) {
         playNewOrderSound();
       }
@@ -76,8 +76,8 @@ export default function App() {
   const unlockCurrentOrder = async (id: string | number | null) => {
     if (!id) return;
     try {
-      const token = localStorage.getItem("token") || "";
-      const info = JSON.parse(localStorage.getItem("infoPuntoVenta") || "{}");
+      const token = storage.getItem("token") || "";
+      const info = JSON.parse(storage.getItem("infoPuntoVenta") || "{}");
       await apiFetch(`${API_BASE_URL}/ordenes/mesa/cerrar`, {
         method: "PUT",
         headers: {
@@ -107,7 +107,7 @@ export default function App() {
 
   const infoPuntoVenta = (() => {
     try {
-      const stored = localStorage.getItem("infoPuntoVenta");
+      const stored = storage.getItem("infoPuntoVenta");
       return stored ? JSON.parse(stored) : null;
     } catch {
       return null;
@@ -120,13 +120,13 @@ export default function App() {
       return;
     }
 
-    const token = localStorage.getItem("token") || "";
+    const token = storage.getItem("token") || "";
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${token}`
     };
 
-    const storedInfo = localStorage.getItem("infoPuntoVenta");
+    const storedInfo = storage.getItem("infoPuntoVenta");
     if (storedInfo) {
       try {
         const info = JSON.parse(storedInfo);
@@ -154,11 +154,19 @@ export default function App() {
         .then(data => {
           if (data && data.body) {
             if (data.body.obligatorioImprimir) {
-              localStorage.setItem("obligatorioImprimir", String(data.body.obligatorioImprimir));
+              storage.setItem("obligatorioImprimir", String(data.body.obligatorioImprimir));
               setEsObligatorioState(isMandatoryPrintEnabled());
             }
             if (data.body.tipoSonidoPendientes) {
-              localStorage.setItem("config_tipoSonidoPendientes", String(data.body.tipoSonidoPendientes));
+              storage.setItem("config_tipoSonidoPendientes", String(data.body.tipoSonidoPendientes));
+            }
+            if (data.body.inactividadHoras !== undefined) {
+              const val = Number(data.body.inactividadHoras);
+              if (isNaN(val) || val < 0.05) {
+                storage.setItem("config_inactividadHoras", "0");
+              } else {
+                storage.setItem("config_inactividadHoras", String(val));
+              }
             }
           }
         })
@@ -176,12 +184,12 @@ export default function App() {
             if (data.body.fecha) {
               setFechaTrabajoRaw(data.body.fecha);
               try {
-                const stored = localStorage.getItem("infoPuntoVenta");
+                const stored = storage.getItem("infoPuntoVenta");
                 if (stored) {
                   const info = JSON.parse(stored);
                   if (info.PveDtFechaTrabajo !== data.body.fecha) {
                     info.PveDtFechaTrabajo = data.body.fecha;
-                    localStorage.setItem("infoPuntoVenta", JSON.stringify(info));
+                    storage.setItem("infoPuntoVenta", JSON.stringify(info));
                   }
                 }
               } catch (e) {
@@ -189,12 +197,12 @@ export default function App() {
               }
             }
             if (data.body.bloqueada !== undefined) {
-              localStorage.setItem("comanderaBloqueada", String(data.body.bloqueada));
+              storage.setItem("comanderaBloqueada", String(data.body.bloqueada));
             } else {
-              localStorage.removeItem("comanderaBloqueada");
+              storage.removeItem("comanderaBloqueada");
             }
             if (data.body.obligatorioImprimir !== undefined) {
-              localStorage.setItem("obligatorioImprimir", String(data.body.obligatorioImprimir));
+              storage.setItem("obligatorioImprimir", String(data.body.obligatorioImprimir));
               setEsObligatorioState(isMandatoryPrintEnabled());
             }
 
@@ -218,7 +226,7 @@ export default function App() {
                 const esPcYPendientesHabilitado = !isMobileOrTabletDevice() && !isMandatoryPrintEnabled();
 
                 if (esPcYPendientesHabilitado) {
-                  const soundOn = localStorage.getItem("sonidoPendientesHabilitado") !== "false";
+                  const soundOn = storage.getItem("sonidoPendientesHabilitado") !== "false";
                   if (soundOn) {
                     playNewOrderSound();
                   }
@@ -255,23 +263,23 @@ export default function App() {
       if (data?.fecha) {
         setFechaTrabajoRaw(data.fecha);
         try {
-          const stored = localStorage.getItem("infoPuntoVenta");
+          const stored = storage.getItem("infoPuntoVenta");
           if (stored) {
             const info = JSON.parse(stored);
             info.PveDtFechaTrabajo = data.fecha;
-            localStorage.setItem("infoPuntoVenta", JSON.stringify(info));
+            storage.setItem("infoPuntoVenta", JSON.stringify(info));
           }
         } catch (e) {
           console.error(e);
         }
       }
       if (data?.bloqueada !== undefined) {
-        localStorage.setItem("comanderaBloqueada", String(data.bloqueada));
+        storage.setItem("comanderaBloqueada", String(data.bloqueada));
       } else {
-        localStorage.removeItem("comanderaBloqueada");
+        storage.removeItem("comanderaBloqueada");
       }
       if (data?.obligatorioImprimir !== undefined) {
-        localStorage.setItem("obligatorioImprimir", String(data.obligatorioImprimir));
+        storage.setItem("obligatorioImprimir", String(data.obligatorioImprimir));
         setEsObligatorioState(isMandatoryPrintEnabled());
       }
     };
@@ -293,10 +301,10 @@ export default function App() {
     });
 
     const handleSendBeaconGlobal = () => {
-      const term = localStorage.getItem("terminal") || "TERMINAL 1";
+      const term = storage.getItem("terminal") || "TERMINAL 1";
       let info: any = {};
       try {
-        info = JSON.parse(localStorage.getItem("infoPuntoVenta") || "{}");
+        info = JSON.parse(storage.getItem("infoPuntoVenta") || "{}");
       } catch (e) {}
 
       const payload = JSON.stringify({
@@ -326,7 +334,7 @@ export default function App() {
   const getFechaActual = (rawDate: string | null) => {
     let dateStr = rawDate;
     if (!dateStr) {
-      const stored = localStorage.getItem("infoPuntoVenta");
+      const stored = storage.getItem("infoPuntoVenta");
       if (stored) {
         try {
           const info = JSON.parse(stored);
@@ -375,15 +383,15 @@ export default function App() {
 
     // Listener para eventos de sesión expirada por API (HTTP 401)
     const handleSessionExpired = () => {
-      localStorage.removeItem("token");
-      localStorage.removeItem("last_login");
-      localStorage.removeItem("last_activity_time");
+      storage.removeItem("token");
+      storage.removeItem("last_login");
+      storage.removeItem("last_activity_time");
       Swal.close();
       setLogueado(false);
       Swal.fire({
         icon: "info",
         title: "Sesión Expirada",
-        text: "Su sesión ha expirado (token de 24 horas vencido). Por favor inicie sesión nuevamente.",
+        text: "Su sesión ha finalizado. Por favor inicie sesión nuevamente.",
         confirmButtonText: "Aceptar",
         confirmButtonColor: "#2563eb"
       });
@@ -391,25 +399,42 @@ export default function App() {
 
     window.addEventListener("session_expired", handleSessionExpired);
 
-    // CONTROL DE INACTIVIDAD (8 HORAS CONTINUAS SIN USO DE LA APP):
+    // CONTROL DE INACTIVIDAD CONFIGURABLE ÚNICAMENTE DESDE EL .env DEL BACKEND (INACTIVIDAD_HORAS):
     // Cualquier interacción (clic, toque, scroll, teclado, mover mouse) reinicia el tiempo a cero.
-    const OCHO_HORAS_MS = 8 * 60 * 60 * 1000;
+    // Si en el backend se configura INACTIVIDAD_HORAS=0 (o valores < 0.05), la inactividad queda DESACTIVADA por completo.
+    const getTimeoutHours = (): number => {
+      const backendVal = storage.getItem("config_inactividadHoras");
+      if (backendVal !== null && backendVal !== "") {
+        const val = Number(backendVal);
+        if (isNaN(val) || val < 0.05) return 0;
+        return val;
+      }
+      return 0;
+    };
 
     const verificarInactividad = (): boolean => {
-      const stored = localStorage.getItem("last_activity_time");
+      const timeoutHours = getTimeoutHours();
+      if (timeoutHours <= 0) return false;
+
+      const INACTIVIDAD_MS = timeoutHours * 60 * 60 * 1000;
+      const stored = storage.getItem("last_activity_time");
       const lastTime = stored ? parseInt(stored, 10) : Date.now();
       const ahora = Date.now();
 
-      if (ahora - lastTime >= OCHO_HORAS_MS) {
-        localStorage.removeItem("token");
-        localStorage.removeItem("last_login");
-        localStorage.removeItem("last_activity_time");
+      if (ahora - lastTime >= INACTIVIDAD_MS) {
+        storage.removeItem("token");
+        storage.removeItem("last_login");
+        storage.removeItem("last_activity_time");
         Swal.close();
         setLogueado(false);
+        const tiempoTexto = timeoutHours < 1 
+          ? `${Math.round(timeoutHours * 60)} minutos` 
+          : `${timeoutHours} ${timeoutHours === 1 ? 'hora' : 'horas'}`;
+
         Swal.fire({
           icon: "warning",
           title: "Sesión Cerrada por Inactividad",
-          text: "Ha transcurrido más de 8 horas sin actividad en la aplicación. Su sesión ha sido cerrada por seguridad.",
+          text: `Ha transcurrido más de ${tiempoTexto} sin actividad en la aplicación. Su sesión ha sido cerrada por seguridad.`,
           confirmButtonText: "Aceptar",
           confirmButtonColor: "#2563eb"
         });
@@ -418,13 +443,13 @@ export default function App() {
       return false;
     };
 
-    // Si al montar o volver ya transcurrieron 8 horas de inactividad
+    // Si al montar o volver ya transcurrieron las horas de inactividad
     if (verificarInactividad()) {
       return () => window.removeEventListener("session_expired", handleSessionExpired);
     }
 
     let ultimoGuardado = Date.now();
-    localStorage.setItem("last_activity_time", ultimoGuardado.toString());
+    storage.setItem("last_activity_time", ultimoGuardado.toString());
 
     // Cada interacción del usuario actualiza la fecha/hora de última actividad (reiniciando el contador de 8 horas)
     const registrarActividad = () => {
@@ -433,8 +458,8 @@ export default function App() {
 
       // Throttle para evitar escrituras excesivas en localStorage (guardar máximo cada 3 segundos)
       if (ahora - ultimoGuardado > 3000) {
-        localStorage.setItem("last_activity_time", ahora.toString());
-        localStorage.setItem("last_login", ahora.toString());
+        storage.setItem("last_activity_time", ahora.toString());
+        storage.setItem("last_login", ahora.toString());
         ultimoGuardado = ahora;
       }
     };
@@ -504,7 +529,7 @@ export default function App() {
     try {
       const keys = ["vendedor", "infoPuntoVenta", "usuarioLogueado", "usuario", "user", "nombreUsuario", "lastUser"];
       for (const k of keys) {
-        const item = localStorage.getItem(k);
+        const item = storage.getItem(k);
         if (item) {
           const name = parseCleanName(item);
           if (name) return name;
@@ -549,15 +574,15 @@ export default function App() {
           const puedeSalir = await solicitarConfirmacionNavegacion();
           if (!puedeSalir) return;
 
-          localStorage.removeItem("token");
-          localStorage.removeItem("last_login");
+          storage.removeItem("token");
+          storage.removeItem("last_login");
           setMenuActivo("home");
           setLogueado(false);
         }}
         empresaNombre={infoPuntoVenta?.gmpnomb || infoPuntoVenta?.PveStNombreEmpresa}
         puntoNombre={infoPuntoVenta?.PveStNombre}
         fechaActual={fechaActual}
-        terminal={localStorage.getItem("terminal") || "Terminal Desconocida"}
+        terminal={storage.getItem("terminal") || "Terminal Desconocida"}
         cantPendientes={cantPendientes}
       />
 
