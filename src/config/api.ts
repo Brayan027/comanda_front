@@ -150,6 +150,21 @@ export function isMandatoryPrintEnabled(): boolean {
   return false;
 }
 
+/**
+ * Obtiene el intervalo de polling en milisegundos configurado desde el backend (POLLING_SEGUNDOS).
+ * Valor por defecto: 4000 ms (4 segundos). Mínimo de seguridad: 2000 ms.
+ */
+export function getPollingIntervalMs(): number {
+  const stored = storage.getItem("config_pollingSegundos");
+  if (stored !== null && stored !== "") {
+    const parsed = Number(stored);
+    if (!isNaN(parsed) && parsed >= 2) {
+      return parsed * 1000;
+    }
+  }
+  return 4000;
+}
+
 
 /**
  * Detecta si el dispositivo actual es Móvil o Tablet.

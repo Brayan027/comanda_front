@@ -158,6 +158,9 @@ export default function Login({ onLogin }: LoginProps) {
             storage.setItem("config_inactividadHoras", String(val));
           }
         }
+        if (bodyData.pollingSegundos !== undefined) {
+          storage.setItem("config_pollingSegundos", String(bodyData.pollingSegundos));
+        }
       }
 
 

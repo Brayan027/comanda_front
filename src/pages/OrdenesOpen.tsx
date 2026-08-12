@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { FiLayers, FiSearch, FiEdit3, FiChevronLeft, FiChevronRight, FiLock, FiArrowLeft, FiUser } from "react-icons/fi";
 import { Spinner, Badge } from "react-bootstrap";
 import Swal from "sweetalert2";
-import { API_BASE_URL, socket, getTerminalId, formatMesaName, isSameTerminal, apiFetch } from "../config/api";
+import { API_BASE_URL, socket, getTerminalId, formatMesaName, isSameTerminal, getPollingIntervalMs, apiFetch } from "../config/api";
 import { storage } from "../utils/storage";
 
 import "../styles/crear-ordenes.css";
@@ -142,10 +142,10 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
   useEffect(() => {
     cargarOrdenes(true);
 
-    // Polling automático cada 3.5 segundos para reflejar mesas facturadas desde Dianasis Desktop
+    // Polling dinámico (configurable desde el .env del backend via POLLING_SEGUNDOS)
     const interval = setInterval(() => {
       cargarOrdenes(false);
-    }, 3500);
+    }, getPollingIntervalMs());
 
     const onActualizar = () => {
       cargarOrdenes(false);

@@ -10,7 +10,7 @@ import "bootstrap-icons/font/bootstrap-icons.css";
 import { FiHome, FiPlus, FiLayers, FiChevronRight, FiClock } from "react-icons/fi";
 import Swal from "sweetalert2";
 import type { MenuKey } from "./components/layout/Sidebar";
-import { API_BASE_URL, socket, getTerminalId, isMobileOrTabletDevice, isMandatoryPrintEnabled, apiFetch } from "./config/api";
+import { API_BASE_URL, socket, getTerminalId, isMobileOrTabletDevice, isMandatoryPrintEnabled, getPollingIntervalMs, apiFetch } from "./config/api";
 import { playNewOrderSound } from "./utils/audioAlert";
 import { storage } from "./utils/storage";
 
@@ -168,6 +168,9 @@ export default function App() {
                 storage.setItem("config_inactividadHoras", String(val));
               }
             }
+            if (data.body.pollingSegundos !== undefined) {
+              storage.setItem("config_pollingSegundos", String(data.body.pollingSegundos));
+            }
           }
         })
         .catch(err => console.error("Error al obtener config-app:", err));
@@ -253,10 +256,10 @@ export default function App() {
     fetchFechaTrabajo();
     fetchPendientesCount();
 
-    // Polling cada 4 segundos para actualizar el contador de pendientes cuando Dianasis Desktop factura un pedido
+    // Polling dinámico (configurable desde el .env del backend via POLLING_SEGUNDOS)
     const pollingInterval = setInterval(() => {
       fetchPendientesCount();
-    }, 4000);
+    }, getPollingIntervalMs());
 
     // Listener de socket para recibir actualización de fecha de trabajo en tiempo real
     const handleFechaTrabajoActualizada = (data: { fecha?: string; bloqueada?: boolean; obligatorioImprimir?: boolean }) => {

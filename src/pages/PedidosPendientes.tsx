@@ -16,7 +16,7 @@ import {
 
 import { Spinner, Badge, Modal, Button } from "react-bootstrap";
 import Swal from "sweetalert2";
-import { API_BASE_URL, socket, getTerminalId, isMandatoryPrintEnabled, isMobileOrTabletDevice, formatMesaName, isSameTerminal, apiFetch } from "../config/api";
+import { API_BASE_URL, socket, getTerminalId, isMandatoryPrintEnabled, isMobileOrTabletDevice, formatMesaName, isSameTerminal, getPollingIntervalMs, apiFetch } from "../config/api";
 import { storage } from "../utils/storage";
 
 
@@ -244,10 +244,10 @@ export default function PedidosPendientes({ onEditarMesa: _onEditarMesa, onVolve
   useEffect(() => {
     cargarPendientes(true);
 
-    // Polling cada 4 segundos para detectar compras/facturaciones hechas desde Dianasis Desktop
+    // Polling dinámico (configurable desde el .env del backend via POLLING_SEGUNDOS)
     const pollingInterval = setInterval(() => {
       cargarPendientes(false);
-    }, 4000);
+    }, getPollingIntervalMs());
 
     const onActualizar = () => {
       cargarPendientes(false);
