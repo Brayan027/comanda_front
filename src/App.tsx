@@ -467,7 +467,7 @@ export default function App() {
       }
     };
 
-    const eventos = ["mousedown", "mousemove", "keypress", "keydown", "scroll", "touchstart", "click"];
+    const eventos = ["mousedown", "mousemove", "keypress", "keydown", "scroll", "touchstart", "click", "pointerdown"];
     eventos.forEach((ev) => window.addEventListener(ev, registrarActividad, { passive: true }));
 
     // Verificación periódica cada 30 segundos y al reactivar la pestaña/pantalla

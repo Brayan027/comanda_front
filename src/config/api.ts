@@ -226,7 +226,15 @@ export function isSameTerminal(t1?: string, t2?: string): boolean {
  * e informa a la aplicación para cerrar la sesión limpiamente.
  */
 export async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-  const response = await fetch(input, init);
+  const options: RequestInit = {
+    credentials: "include",
+    ...init,
+    headers: {
+      ...(init?.headers || {}),
+    },
+  };
+
+  const response = await fetch(input, options);
 
   if (response.status === 401) {
     const urlStr = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
