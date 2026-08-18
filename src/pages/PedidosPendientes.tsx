@@ -105,7 +105,7 @@ export default function PedidosPendientes({ onEditarMesa: _onEditarMesa, onVolve
     "Authorization": `Bearer ${token}`,
     "empresa": infoPuntoVenta?.PveIdStEmpresa || "02",
     "bodega": String(infoPuntoVenta?.PveIdInBodega || "1"),
-    "punto": String(infoPuntoVenta?.PveIdInPuntoVenta || "5"),
+    "punto": String(storage.getItem("puntoVenta") || infoPuntoVenta?.PveIdInPuntoVenta || "2"),
     "terminal": terminalActual
   }), [token, infoPuntoVenta, terminalActual]);
 
@@ -162,14 +162,29 @@ export default function PedidosPendientes({ onEditarMesa: _onEditarMesa, onVolve
         pendientes = d.body || [];
       }
 
-      const mapSinImprimir = new Map<string | number, number>();
+      const mapSinImprimir = new Map<string, number>();
       pendientes.forEach(p => {
-        mapSinImprimir.set(p.OpeIdInOrdenPedido, p.totalSinImprimir || 1);
+        const count = Number(p.totalSinImprimir) || 1;
+        if (p.OpeIdInOrdenPedido) mapSinImprimir.set(String(p.OpeIdInOrdenPedido).trim(), count);
+        if (p.OpeIdStDocumento) mapSinImprimir.set(String(p.OpeIdStDocumento).trim(), count);
+        const numOnly = String(p.OpeIdStDocumento || p.OpeIdInOrdenPedido).replace(/^\D+/, '');
+        if (numOnly) mapSinImprimir.set(numOnly, count);
       });
 
       // Combinar todas las órdenes abiertas, asociando su conteo de items sin imprimir y estado de bloqueo
       const ordenesCombinadas: PendingOrder[] = activas.map(a => {
-        const sinImp = mapSinImprimir.get(a.OpeIdInOrdenPedido) || 0;
+        const k1 = String(a.OpeIdInOrdenPedido || "").trim();
+        const k2 = String(a.OpeIdStDocumento || "").trim();
+        const kNum = String(a.OpeIdStDocumento || a.OpeIdInOrdenPedido || "").replace(/^\D+/, '');
+
+        const sinImp = (k1 && mapSinImprimir.has(k1)) 
+          ? mapSinImprimir.get(k1)! 
+          : (k2 && mapSinImprimir.has(k2)) 
+            ? mapSinImprimir.get(k2)! 
+            : (kNum && mapSinImprimir.has(kNum)) 
+              ? mapSinImprimir.get(kNum)! 
+              : 0;
+
         return {
           OpeIdInOrdenPedido: a.OpeIdInOrdenPedido,
           OpeIdStDocumento: a.OpeIdStDocumento || String(a.OpeIdInOrdenPedido),

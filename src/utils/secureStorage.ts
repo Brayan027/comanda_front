@@ -1,6 +1,8 @@
 /**
  * Transparent encrypted and namespaced LocalStorage / SessionStorage interceptor
  * Prevents raw credentials or JWT tokens from being exposed in plain text in DevTools.
+ * NOTA: El JWT y datos de sesión se almacenan cifrados, y se descifran al leerlos.
+ * Se eliminan automáticamente residuos corruptos de "cookie_session".
  */
 
 const ENCRYPTION_PREFIX = "__secure__:";
@@ -41,7 +43,7 @@ function decrypt(value: string): string {
   } catch (e) { return value; }
 }
 
-const SECURE_KEYS = ["token", "last_login", "empresa_activa", "nombre_usuario", "grupo_usuario", "nit_usuario", "usuario"];
+const SECURE_KEYS = ["token", "last_login", "empresa_activa", "nombre_usuario", "grupo_usuario", "nit_usuario", "usuario", "vendedor"];
 
 const shouldSecure = (key: string): boolean => {
   if (!key) return false;
@@ -50,21 +52,29 @@ const shouldSecure = (key: string): boolean => {
 
 function sanitizarStorageExistente(storageObj: Storage) {
   try {
-    const keysToProcess: string[] = [];
+    // 1. Eliminar cualquier clave corrupta con "cookie_session"
+    const keysToRemove: string[] = [];
     for (let i = 0; i < storageObj.length; i++) {
       const k = storageObj.key(i);
-      if (k && shouldSecure(k)) keysToProcess.push(k);
-    }
-    keysToProcess.forEach((k) => {
-      const val = storageObj.getItem(k);
-      if (val) {
-        if (val.startsWith("eyJ") || val.includes("eyJhbGci")) {
-          storageObj.setItem(k, "cookie_session");
-        } else if (!val.startsWith(ENCRYPTION_PREFIX)) {
-          storageObj.setItem(k, val);
+      if (k) {
+        const val = storageObj.getItem(k);
+        if (val === "cookie_session" || (val && val.startsWith(ENCRYPTION_PREFIX) && decrypt(val) === "cookie_session")) {
+          keysToRemove.push(k);
         }
       }
-    });
+    }
+    keysToRemove.forEach(k => storageObj.removeItem(k));
+
+    // 2. Re-cifrar claves inseguras
+    for (let i = 0; i < storageObj.length; i++) {
+      const k = storageObj.key(i);
+      if (k && shouldSecure(k)) {
+        const val = storageObj.getItem(k);
+        if (val && !val.startsWith(ENCRYPTION_PREFIX)) {
+          storageObj.setItem(k, encrypt(val));
+        }
+      }
+    }
   } catch (e) {}
 }
 
@@ -80,22 +90,19 @@ if (typeof window !== "undefined" && typeof Storage !== "undefined") {
     if (val === null) return null;
     if (shouldSecure(key)) {
       const decrypted = decrypt(val);
-      if (decrypted && (decrypted.startsWith("eyJ") || decrypted.includes("eyJhbGci"))) return "cookie_session";
+      if (decrypted === "cookie_session") return null;
       return decrypted;
     }
+    if (val === "cookie_session") return null;
     return val;
   };
 
   Storage.prototype.setItem = function (key: string, value: string): void {
-    let finalValue = value;
-    if (typeof value === "string" && (value.startsWith("eyJ") || value.includes("eyJhbGci"))) {
-      finalValue = "cookie_session";
-    }
-
+    if (value === "cookie_session") return;
     if (shouldSecure(key)) {
-      originalSetItem.call(this, key, encrypt(finalValue));
+      originalSetItem.call(this, key, encrypt(value));
     } else {
-      originalSetItem.call(this, key, finalValue);
+      originalSetItem.call(this, key, value);
     }
   };
 }

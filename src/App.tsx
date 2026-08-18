@@ -10,7 +10,7 @@ import "bootstrap-icons/font/bootstrap-icons.css";
 import { FiHome, FiPlus, FiLayers, FiChevronRight, FiClock } from "react-icons/fi";
 import Swal from "sweetalert2";
 import type { MenuKey } from "./components/layout/Sidebar";
-import { API_BASE_URL, socket, getTerminalId, isMobileOrTabletDevice, isMandatoryPrintEnabled, getPollingIntervalMs, apiFetch } from "./config/api";
+import { API_BASE_URL, socket, getTerminalId, isMobileOrTabletDevice, isMandatoryPrintEnabled, isSelectPuntoVentaEnabled, getPollingIntervalMs, apiFetch } from "./config/api";
 import { playNewOrderSound } from "./utils/audioAlert";
 import { storage } from "./utils/storage";
 
@@ -27,6 +27,7 @@ export default function App() {
   const [cantPendientes, setCantPendientes] = useState(0);
   const [esMovilOTablet, setEsMovilOTablet] = useState(() => isMobileOrTabletDevice());
   const [esObligatorioState, setEsObligatorioState] = useState(() => isMandatoryPrintEnabled());
+  const [permiteSeleccionarPuntoState, setPermiteSeleccionarPuntoState] = useState(() => isSelectPuntoVentaEnabled());
 
   useEffect(() => {
     const handleResize = () => setEsMovilOTablet(isMobileOrTabletDevice());
@@ -105,14 +106,14 @@ export default function App() {
     setComandaResetKey(prev => prev + 1);
   };
 
-  const infoPuntoVenta = (() => {
+  const [infoPuntoState, setInfoPuntoState] = useState<any>(() => {
     try {
       const stored = storage.getItem("infoPuntoVenta");
       return stored ? JSON.parse(stored) : null;
     } catch {
       return null;
     }
-  })();
+  });
 
   useEffect(() => {
     if (!logueado) {
@@ -120,11 +121,13 @@ export default function App() {
       return;
     }
 
-    const token = storage.getItem("token") || "";
+    const token = storage.getItem("token");
     const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${token}`
+      "Content-Type": "application/json"
     };
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
 
     const storedInfo = storage.getItem("infoPuntoVenta");
     if (storedInfo) {
@@ -153,9 +156,18 @@ export default function App() {
         .then(res => res.json())
         .then(data => {
           if (data && data.body) {
+            if (data.body.infoPuntoVenta) {
+              storage.setItem("infoPuntoVenta", JSON.stringify(data.body.infoPuntoVenta));
+              setInfoPuntoState(data.body.infoPuntoVenta);
+            }
             if (data.body.obligatorioImprimir) {
               storage.setItem("obligatorioImprimir", String(data.body.obligatorioImprimir));
               setEsObligatorioState(isMandatoryPrintEnabled());
+            }
+            if (data.body.permiteSeleccionarPuntoVenta !== undefined) {
+              const permite = data.body.permiteSeleccionarPuntoVenta === "SI" || data.body.permiteSeleccionarPuntoVenta === true;
+              storage.setItem("permiteSeleccionarPuntoVenta", permite ? "SI" : "NO");
+              setPermiteSeleccionarPuntoState(permite);
             }
             if (data.body.tipoSonidoPendientes) {
               storage.setItem("config_tipoSonidoPendientes", String(data.body.tipoSonidoPendientes));
@@ -420,9 +432,23 @@ export default function App() {
       if (timeoutHours <= 0) return false;
 
       const INACTIVIDAD_MS = timeoutHours * 60 * 60 * 1000;
-      const stored = storage.getItem("last_activity_time");
-      const lastTime = stored ? parseInt(stored, 10) : Date.now();
       const ahora = Date.now();
+
+      // Proteger sesiones recién iniciadas (hace menos de 5 minutos): nunca expiran por inactividad
+      const storedLogin = storage.getItem("last_login");
+      const lastLogin = storedLogin ? parseInt(storedLogin, 10) : ahora;
+      if (isNaN(lastLogin) || ahora - lastLogin < 300000) {
+        storage.setItem("last_activity_time", ahora.toString());
+        return false;
+      }
+
+      const stored = storage.getItem("last_activity_time");
+      const lastTime = stored ? parseInt(stored, 10) : ahora;
+
+      if (isNaN(lastTime) || lastTime <= 0) {
+        storage.setItem("last_activity_time", ahora.toString());
+        return false;
+      }
 
       if (ahora - lastTime >= INACTIVIDAD_MS) {
         storage.removeItem("token");
@@ -582,11 +608,21 @@ export default function App() {
           setMenuActivo("home");
           setLogueado(false);
         }}
-        empresaNombre={infoPuntoVenta?.gmpnomb || infoPuntoVenta?.PveStNombreEmpresa}
-        puntoNombre={infoPuntoVenta?.PveStNombre}
+        onPuntoVentaCambiado={() => {
+          try {
+            const stored = storage.getItem("infoPuntoVenta");
+            if (stored) {
+              setInfoPuntoState(JSON.parse(stored));
+            }
+          } catch (e) {}
+          window.location.reload();
+        }}
+        empresaNombre={infoPuntoState?.gmpnomb || infoPuntoState?.PveStNombreEmpresa}
+        puntoNombre={infoPuntoState?.PveStNombre}
         fechaActual={fechaActual}
         terminal={storage.getItem("terminal") || "Terminal Desconocida"}
         cantPendientes={cantPendientes}
+        permiteSeleccionarPuntoVenta={permiteSeleccionarPuntoState}
       />
 
       <section className="app-content">

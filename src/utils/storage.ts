@@ -22,13 +22,6 @@ export const storage = {
       return cmdVal;
     }
     
-    // 3. Fallback a clave sin prefijo (para migración)
-    const oldVal = localStorage.getItem(key);
-    if (oldVal !== null) {
-      localStorage.setItem(`${PRIMARY_PREFIX}${key}`, oldVal);
-      return oldVal;
-    }
-    
     return null;
   },
 

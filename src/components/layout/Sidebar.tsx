@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { FiHome, FiLogOut, FiMenu, FiLayers, FiList, FiClock } from "react-icons/fi";
+import { FiHome, FiLogOut, FiMenu, FiLayers, FiList, FiClock, FiMapPin, FiRefreshCw } from "react-icons/fi";
+import { Modal, Button } from "react-bootstrap";
 import logoReporte from "../../assets/LogoReportes.png";
-import { isMandatoryPrintEnabled, isMobileOrTabletDevice } from "../../config/api";
+import { API_BASE_URL, apiFetch, isMandatoryPrintEnabled, isMobileOrTabletDevice, isSelectPuntoVentaEnabled } from "../../config/api";
+import { storage } from "../../utils/storage";
 
 
 export type MenuKey = "home" | "comanda" | "ordenes" | "pendientes";
@@ -9,16 +11,36 @@ type SidebarProps = {
     activo: MenuKey;
     onCambiar: (menu: MenuKey) => void;
     onSalir: () => void;
+    onPuntoVentaCambiado?: (nuevoPuntoId: string | number) => void;
     empresaNombre?: string;
     puntoNombre?: string;
     fechaActual?: string;
     terminal?: string;
     cantPendientes?: number;
     esObligatorioImprimir?: boolean;
+    permiteSeleccionarPuntoVenta?: boolean;
 };
 
-export default function Sidebar({ activo, onCambiar, onSalir, empresaNombre, puntoNombre, fechaActual, terminal, cantPendientes = 0, esObligatorioImprimir }: SidebarProps) {
+export default function Sidebar({ activo, onCambiar, onSalir, onPuntoVentaCambiado, empresaNombre, puntoNombre, fechaActual, terminal, cantPendientes = 0, esObligatorioImprimir, permiteSeleccionarPuntoVenta }: SidebarProps) {
     const [abierto, setAbierto] = useState(false);
+
+    const storedInfo = (() => {
+        try {
+            const s = storage.getItem("infoPuntoVenta");
+            return s ? JSON.parse(s) : null;
+        } catch {
+            return null;
+        }
+    })();
+
+    const nombreEmpresaFinal = empresaNombre || storedInfo?.gmpnomb || storedInfo?.PveStNombreEmpresa || "GRUPO EMPRESARIAL URSA SAS";
+    const nombrePuntoFinal = puntoNombre || storedInfo?.PveStNombre || "";
+
+    // Estado para el modal de Cambiar Punto de Venta
+    const [mostrarModalPunto, setMostrarModalPunto] = useState(false);
+    const [listaPuntos, setListaPuntos] = useState<any[]>([]);
+    const [nuevoPuntoId, setNuevoPuntoId] = useState<string>("");
+    const [guardandoPunto, setGuardandoPunto] = useState(false);
 
     const esObligatorio = esObligatorioImprimir !== undefined ? esObligatorioImprimir : isMandatoryPrintEnabled();
     const esMovilOTablet = isMobileOrTabletDevice();
@@ -36,10 +58,45 @@ export default function Sidebar({ activo, onCambiar, onSalir, empresaNombre, pun
             { key: "pendientes" as const, label: "Pedidos pendientes", icon: FiClock },
         ];
 
+    function abrirModalPunto() {
+        setMostrarModalPunto(true);
+        const actualId = storage.getItem("puntoVenta") || "";
+        setNuevoPuntoId(actualId);
 
+        apiFetch(`${API_BASE_URL}/login/puntos-ventas`)
+            .then((res) => res.json())
+            .then((data) => {
+                if (data && data.body && Array.isArray(data.body)) {
+                    setListaPuntos(data.body);
+                }
+            })
+            .catch((err) => console.error("Error al cargar puntos de venta:", err));
+    }
 
+    async function guardarNuevoPunto() {
+        if (!nuevoPuntoId) return;
+        setGuardandoPunto(true);
+        try {
+            storage.setItem("puntoVenta", String(nuevoPuntoId));
+            
+            const resp = await apiFetch(`${API_BASE_URL}/ordenes/info-punto`, {
+                headers: { punto: String(nuevoPuntoId) }
+            });
+            const data = await resp.json();
+            if (data && data.body) {
+                storage.setItem("infoPuntoVenta", JSON.stringify(data.body));
+            }
 
-
+            setMostrarModalPunto(false);
+            if (onPuntoVentaCambiado) {
+                onPuntoVentaCambiado(nuevoPuntoId);
+            }
+        } catch (err) {
+            console.error("Error al actualizar punto de venta:", err);
+        } finally {
+            setGuardandoPunto(false);
+        }
+    }
 
     function seleccionar(menu: MenuKey) {
         onCambiar(menu);
@@ -50,7 +107,7 @@ export default function Sidebar({ activo, onCambiar, onSalir, empresaNombre, pun
     return (
         <>
             {/* HEADER MÓVIL (Solo se ve en móvil) */}
-            <header className="mobile-header d-lg-none d-flex align-items-center justify-content-between w-100" style={{ paddingLeft: '12px', paddingRight: '12px', paddingTop: '3px', paddingBottom: '3px', gap: '6px', minHeight: '42px' }}>
+            <header className="mobile-header d-lg-none d-flex align-items-center justify-content-between w-100" style={{ paddingLeft: '12px', paddingRight: '12px', paddingTop: '3px', paddingBottom: '3px', gap: '6px', minHeight: '46px' }}>
                 <div className="d-flex align-items-center flex-shrink-0" style={{ gap: '6px' }}>
                     <button
                         className="mobile-menu-btn m-0 flex-shrink-0"
@@ -80,19 +137,24 @@ export default function Sidebar({ activo, onCambiar, onSalir, empresaNombre, pun
                         <img
                             src={logoReporte}
                             alt="Logo Dianasis"
-                            style={{ height: '48px', maxHeight: '48px', width: 'auto', display: 'block', cursor: 'pointer' }}
+                            style={{ height: '44px', maxHeight: '44px', width: 'auto', display: 'block', cursor: 'pointer' }}
                             onClick={() => setAbierto(false)}
                         />
                     </div>
                 </div>
 
-                {/* Info de sesión compacta a la derecha alineada verticalmente */}
+                {/* Info de sesión compacta a la derecha (Empresa en Línea 1, Punto de Venta en Línea 2) */}
                 {fechaActual && (
-                    <div className="text-end text-muted d-flex flex-column align-items-end justify-content-center flex-grow-1" style={{ minWidth: 0, overflow: 'hidden', paddingLeft: '4px', height: '28px' }}>
-                        <span className="fw-bold text-dark text-truncate w-100" style={{ textTransform: 'uppercase', letterSpacing: '0.01em', fontSize: '0.58rem', lineHeight: '1.1', display: 'block' }}>
-                            {empresaNombre} {puntoNombre ? `• ${puntoNombre}` : ''}
+                    <div className="text-end text-muted d-flex flex-column align-items-end justify-content-center flex-grow-1" style={{ minWidth: 0, overflow: 'hidden', paddingLeft: '4px' }}>
+                        <span className="fw-bold text-dark text-truncate w-100" style={{ textTransform: 'uppercase', letterSpacing: '0.01em', fontSize: '0.58rem', lineHeight: '1.1', display: 'block' }} title={nombreEmpresaFinal}>
+                            {nombreEmpresaFinal}
                         </span>
-                        <span className="fw-semibold text-secondary text-truncate w-100 animate__animated animate__fadeIn" style={{ fontSize: '0.54rem', marginTop: '1px', lineHeight: '1.1', display: 'block' }}>
+                        {nombrePuntoFinal && (
+                            <span className="fw-bold text-danger text-truncate w-100" style={{ textTransform: 'uppercase', fontSize: '0.56rem', lineHeight: '1.1', display: 'block' }} title={nombrePuntoFinal}>
+                                📍 {nombrePuntoFinal}
+                            </span>
+                        )}
+                        <span className="fw-semibold text-secondary text-truncate w-100 animate__animated animate__fadeIn" style={{ fontSize: '0.52rem', marginTop: '1px', lineHeight: '1.1', display: 'block' }}>
                             {fechaActual} {terminal ? `• ${terminal.toUpperCase()}` : ''}
                         </span>
                     </div>
@@ -127,31 +189,53 @@ export default function Sidebar({ activo, onCambiar, onSalir, empresaNombre, pun
                         />
                     </div>
 
-                    {/* Información de Sesión Activa debajo del Logo (Texto limpio sin tarjeta) */}
-                    {(empresaNombre || fechaActual) && (
+                    {/* Información de Sesión Activa (Diseño limpio, espacioso y sin sobrecarga de cards) */}
+                    {(nombreEmpresaFinal || fechaActual) && (
                         <div
-                            className="session-info-sidebar w-100 text-start ps-1 pe-1 mt-1 mb-2 animate__animated animate__fadeIn"
+                            className="session-info-sidebar w-100 text-start mt-2 mb-2 animate__animated animate__fadeIn"
                             style={{
-                                lineHeight: '1.35'
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '6px'
                             }}
                         >
+                            {/* EMPRESA */}
                             <div
                                 className="fw-bold text-truncate"
                                 style={{
-                                    fontSize: '0.74rem',
-                                    color: '#334155',
-                                    letterSpacing: '0.02em',
+                                    fontSize: '0.64rem',
+                                    color: '#94a3b8',
+                                    letterSpacing: '0.04em',
                                     textTransform: 'uppercase'
                                 }}
-                                title={`${empresaNombre || ''} ${puntoNombre ? `• ${puntoNombre}` : ''}`}
+                                title={nombreEmpresaFinal}
                             >
-                                {empresaNombre} {puntoNombre ? `• ${puntoNombre}` : ''}
+                                {nombreEmpresaFinal}
                             </div>
 
+                            {/* PUNTO DE VENTA (Limpio, destacado y con buen espacio) */}
+                            {nombrePuntoFinal && (
+                                <div
+                                    className="d-flex align-items-center gap-1.5 fw-bold text-truncate"
+                                    style={{
+                                        fontSize: '0.94rem',
+                                        color: '#e31b23',
+                                        fontWeight: 800,
+                                        letterSpacing: '-0.01em',
+                                        lineHeight: '1.25'
+                                    }}
+                                    title={`Punto de Venta: ${nombrePuntoFinal}`}
+                                >
+                                    <FiMapPin size={15} className="flex-shrink-0" style={{ color: '#e31b23' }} />
+                                    <span className="text-truncate" style={{ textTransform: 'uppercase' }}>{nombrePuntoFinal}</span>
+                                </div>
+                            )}
+
+                            {/* FECHA Y TERMINAL */}
                             <div
-                                className="d-flex align-items-center gap-1.5 flex-wrap mt-1"
+                                className="d-flex align-items-center gap-1.5 flex-wrap mt-0.5"
                                 style={{
-                                    fontSize: '0.7rem',
+                                    fontSize: '0.71rem',
                                     fontWeight: 500,
                                     color: '#64748b'
                                 }}
@@ -170,6 +254,28 @@ export default function Sidebar({ activo, onCambiar, onSalir, empresaNombre, pun
                                     </>
                                 )}
                             </div>
+
+                            {/* BOTÓN/LINK CAMBIAR PUNTO (solo si está habilitado en el .env) */}
+                            {(permiteSeleccionarPuntoVenta !== undefined ? permiteSeleccionarPuntoVenta : isSelectPuntoVentaEnabled()) && (
+                                <div className="mt-1">
+                                    <button
+                                        type="button"
+                                        className="btn-cambiar-punto-link border-0 d-inline-flex align-items-center gap-1.5 px-2.5 py-1 text-danger rounded-pill shadow-none"
+                                        onClick={() => abrirModalPunto()}
+                                        style={{
+                                            fontSize: '0.71rem',
+                                            fontWeight: 600,
+                                            background: '#fff1f2',
+                                            color: '#e31b23',
+                                            transition: 'all 0.2s ease',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        <FiRefreshCw size={11} className="flex-shrink-0" />
+                                        <span>Cambiar Punto de Venta</span>
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
@@ -221,6 +327,59 @@ export default function Sidebar({ activo, onCambiar, onSalir, empresaNombre, pun
                     </div>
                 </div>
             </aside>
+
+            {/* MODAL CAMBIAR PUNTO DE VENTA */}
+            <Modal show={mostrarModalPunto} onHide={() => setMostrarModalPunto(false)} centered size="sm">
+                <Modal.Header closeButton style={{ borderBottom: '1px solid #f1f5f9', padding: '12px 16px' }}>
+                    <Modal.Title style={{ fontSize: '0.92rem', fontWeight: 700, color: '#0f172a' }} className="d-flex align-items-center gap-2">
+                        <FiMapPin style={{ color: '#e31b23' }} />
+                        Cambiar Punto de Venta
+                    </Modal.Title>
+                </Modal.Header>
+                <Modal.Body style={{ padding: '16px' }}>
+                    <div className="mb-3">
+                        <label className="form-label text-muted fw-semibold" style={{ fontSize: '0.73rem', marginBottom: '4px' }}>
+                            Punto de venta actual:
+                        </label>
+                        <div className="fw-bold text-dark px-2.5 py-1.5 rounded" style={{ background: '#f8fafc', border: '1px solid #e2e8f0', fontSize: '0.8rem' }}>
+                            {puntoNombre || "No seleccionado"}
+                        </div>
+                    </div>
+
+                    <div className="mb-2">
+                        <label className="form-label fw-bold text-dark" style={{ fontSize: '0.75rem', marginBottom: '4px' }}>
+                            Seleccionar nuevo Punto de Venta:
+                        </label>
+                        <select
+                            className="form-select form-select-sm fw-semibold"
+                            value={nuevoPuntoId}
+                            onChange={(e) => setNuevoPuntoId(e.target.value)}
+                            style={{ fontSize: '0.82rem', padding: '8px' }}
+                        >
+                            <option value="" disabled>Seleccione...</option>
+                            {listaPuntos.map((p) => (
+                                <option key={p.PveIdInPuntoVenta} value={p.PveIdInPuntoVenta}>
+                                    {p.PveStNombre} (Punto {p.PveIdInPuntoVenta})
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                </Modal.Body>
+                <Modal.Footer style={{ borderTop: '1px solid #f1f5f9', padding: '10px 16px' }}>
+                    <Button variant="light" size="sm" onClick={() => setMostrarModalPunto(false)} style={{ fontSize: '0.78rem', fontWeight: 600 }}>
+                        Cancelar
+                    </Button>
+                    <Button
+                        variant="danger"
+                        size="sm"
+                        disabled={!nuevoPuntoId || guardandoPunto}
+                        onClick={() => void guardarNuevoPunto()}
+                        style={{ fontSize: '0.78rem', fontWeight: 600, background: '#e31b23', borderColor: '#e31b23' }}
+                    >
+                        {guardandoPunto ? "Guardando..." : "Guardar y Cambiar"}
+                    </Button>
+                </Modal.Footer>
+            </Modal>
         </>
     );
 }

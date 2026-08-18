@@ -52,7 +52,7 @@ export default function OrdenesOpen({ onEditar, onVolver }: OrdenesOpenProps) {
     "Authorization": `Bearer ${token}`,
     "empresa": infoPuntoVenta?.PveIdStEmpresa || "02",
     "bodega": String(infoPuntoVenta?.PveIdInBodega || "1"),
-    "punto": String(infoPuntoVenta?.PveIdInPuntoVenta || "5"),
+    "punto": String(storage.getItem("puntoVenta") || infoPuntoVenta?.PveIdInPuntoVenta || "2"),
     "terminal": terminalActual
   }), [token, infoPuntoVenta, terminalActual]);
 

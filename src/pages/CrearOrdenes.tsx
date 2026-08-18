@@ -102,10 +102,10 @@ interface CrearOrdenesProps {
 }
 
 export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegisterNavigationCheck }: CrearOrdenesProps = {}) {
-  // Detalles de sesión obtenidos de localStorage
+  // Detalles de sesión obtenidos de localStorage (usando wrapper aislado storage)
   const infoPuntoVenta = (() => {
     try {
-      const stored = localStorage.getItem("infoPuntoVenta");
+      const stored = storage.getItem("infoPuntoVenta");
       return stored ? JSON.parse(stored) : null;
     } catch {
       return null;
@@ -114,7 +114,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
 
   const loggedVendedor = (() => {
     try {
-      const stored = localStorage.getItem("vendedor");
+      const stored = storage.getItem("vendedor");
       return stored ? JSON.parse(stored) : null;
     } catch {
       return null;
@@ -123,7 +123,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
 
   const loggedUsuario = (() => {
     try {
-      const stored = localStorage.getItem("usuario");
+      const stored = storage.getItem("usuario");
       return stored ? JSON.parse(stored) : null;
     } catch {
       return null;
@@ -162,7 +162,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
     "Authorization": `Bearer ${token}`,
     "empresa": infoPuntoVenta?.PveIdStEmpresa || "02",
     "bodega": String(infoPuntoVenta?.PveIdInBodega || "1"),
-    "punto": String(infoPuntoVenta?.PveIdInPuntoVenta || "5"),
+    "punto": String(storage.getItem("puntoVenta") || infoPuntoVenta?.PveIdInPuntoVenta || "2"),
     "terminal": terminalName
   }), [token, infoPuntoVenta, terminalName]);
 
@@ -313,7 +313,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
       const term = getTerminalId();
       let info: any = {};
       try {
-        info = JSON.parse(localStorage.getItem("infoPuntoVenta") || "{}");
+        info = JSON.parse(storage.getItem("infoPuntoVenta") || "{}");
       } catch (e) {}
 
       const payload = JSON.stringify({
@@ -1597,7 +1597,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
         OpeStMesa: mesa.trim(),
         OpeIdStVendedor: mesero.id,
         OpeInNumPersonas: Number(numPersonas) || 1,
-        OpeIdStComprobante: infoPuntoVenta?.PveIdStComprobante || "28",
+        OpeIdStComprobante: "28",
         nombre_terminal: terminalName,
         productos: carrito.filter(item => !item.esEliminado).map(item => ({
           ProIdInProducto: item.ProIdInProducto,

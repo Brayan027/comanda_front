@@ -1,7 +1,7 @@
-import { useState, type FormEvent } from "react";
-import { LOGIN_URL, sanitizarError } from "../config/api";
+import { useState, useEffect, type FormEvent } from "react";
+import { API_BASE_URL, LOGIN_URL, sanitizarError, apiFetch } from "../config/api";
 import { storage } from "../utils/storage";
-import { FaUser, FaLock, FaEye, FaEyeSlash, FaDesktop } from "react-icons/fa";
+import { FaUser, FaLock, FaEye, FaEyeSlash, FaDesktop, FaMapMarkerAlt } from "react-icons/fa";
 import logo from "../assets/log1.png";
 import "../styles/Login.css";
 
@@ -62,7 +62,6 @@ function extraerToken(data: RespuestaLogin | null): string {
     || ""
   );
 }
-
 export default function Login({ onLogin }: LoginProps) {
   const [usuario, setUsuario] = useState("");
   const [clave, setClave] = useState("");
@@ -70,9 +69,54 @@ export default function Login({ onLogin }: LoginProps) {
   const [error, setError] = useState("");
   const [verClave, setVerClave] = useState(false);
 
-  // Cargar estado inicial del dispositivo desde storage (si existe)
   const [nombreTerminal, setNombreTerminal] = useState(() => storage.getItem("terminal") || "");
   const [tieneTerminalGuardada] = useState(() => Boolean(storage.getItem("terminal")?.trim()));
+
+  const [puntosVentaList, setPuntosVentaList] = useState<any[]>([]);
+  const [puntoVentaSeleccionado, setPuntoVentaSeleccionado] = useState(() => storage.getItem("puntoVenta") || "");
+  const [permiteSeleccionarPunto, setPermiteSeleccionarPunto] = useState<boolean>(() => {
+    const s = storage.getItem("permiteSeleccionarPuntoVenta");
+    if (s !== null) {
+      return s === "SI" || s === "true" || s === "1";
+    }
+    return false; // Por seguridad inicia oculto hasta que el backend confirme
+  });
+
+  useEffect(() => {
+    apiFetch(`${API_BASE_URL}/ordenes/config-app`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data.body) {
+          const permite = data.body.permiteSeleccionarPuntoVenta === "SI" || data.body.permiteSeleccionarPuntoVenta === true;
+          storage.setItem("permiteSeleccionarPuntoVenta", permite ? "SI" : "NO");
+          setPermiteSeleccionarPunto(permite);
+
+          if (permite) {
+            // Solo consultar lista de puntos si está permitido
+            apiFetch(`${API_BASE_URL}/login/puntos-ventas`)
+              .then((r) => r.json())
+              .then((pvData) => {
+                if (pvData && pvData.body && Array.isArray(pvData.body)) {
+                  setPuntosVentaList(pvData.body);
+                  if (pvData.body.length > 0 && !storage.getItem("puntoVenta")) {
+                    setPuntoVentaSeleccionado(String(pvData.body[0].PveIdInPuntoVenta));
+                  }
+                }
+              })
+              .catch((err) => console.error("Error al obtener puntos de venta:", err));
+          }
+
+          if (data.body.infoPuntoVenta) {
+            storage.setItem("infoPuntoVenta", JSON.stringify(data.body.infoPuntoVenta));
+            if (!permite || !storage.getItem("puntoVenta")) {
+              storage.setItem("puntoVenta", String(data.body.infoPuntoVenta.PveIdInPuntoVenta));
+              setPuntoVentaSeleccionado(String(data.body.infoPuntoVenta.PveIdInPuntoVenta));
+            }
+          }
+        }
+      })
+      .catch((err) => console.error("Error al cargar config-app en Login:", err));
+  }, []);
 
   async function manejarSubmit(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
@@ -82,6 +126,11 @@ export default function Login({ onLogin }: LoginProps) {
 
     if (!nombreTerminal.trim()) {
       setError("Por favor ingrese el nombre del dispositivo");
+      return;
+    }
+
+    if (permiteSeleccionarPunto && !puntoVentaSeleccionado && !storage.getItem("puntoVenta")) {
+      setError("Por favor seleccione el Punto de Venta");
       return;
     }
 
@@ -100,6 +149,7 @@ export default function Login({ onLogin }: LoginProps) {
           password: clave,
           nombre_terminal: nombreTerminal,
           es_primera_vez: esPrimeraVezCalculado,
+          punto: puntoVentaSeleccionado || storage.getItem("puntoVenta"),
         }),
       });
 
@@ -136,6 +186,11 @@ export default function Login({ onLogin }: LoginProps) {
       storage.setItem("terminal", nombreTerminal.trim()); // Guardar terminal
       storage.setItem("usuarioLogueado", usuario.trim().toUpperCase());
       
+      const pVal = puntoVentaSeleccionado || data?.body?.infoPuntoVenta?.PveIdInPuntoVenta;
+      if (pVal) {
+        storage.setItem("puntoVenta", String(pVal));
+      }
+      
       if (data?.body) {
         if (data.body.vendedor) {
           storage.setItem("vendedor", JSON.stringify(data.body.vendedor));
@@ -150,6 +205,9 @@ export default function Login({ onLogin }: LoginProps) {
         if (bodyData.obligatorioImprimir) {
           storage.setItem("obligatorioImprimir", String(bodyData.obligatorioImprimir));
         }
+        if (bodyData.permiteSeleccionarPuntoVenta !== undefined) {
+          storage.setItem("permiteSeleccionarPuntoVenta", String(bodyData.permiteSeleccionarPuntoVenta));
+        }
         if (bodyData.inactividadHoras !== undefined) {
           const val = Number(bodyData.inactividadHoras);
           if (isNaN(val) || val < 0.05) {
@@ -162,8 +220,6 @@ export default function Login({ onLogin }: LoginProps) {
           storage.setItem("config_pollingSegundos", String(bodyData.pollingSegundos));
         }
       }
-
-
 
       // Si existe localstorage de lineas (config anterior), se limpia
       storage.removeItem("lineas");
@@ -237,6 +293,29 @@ export default function Login({ onLogin }: LoginProps) {
                   placeholder="Nombre del dispositivo"
                   required
                 />
+              </div>
+            </div>
+          )}
+
+          {/* Campo selección de Punto de Venta (solo si está habilitado en el .env) */}
+          {permiteSeleccionarPunto && (
+            <div className="login-form-group">
+              <div className="login-input-wrapper">
+                <FaMapMarkerAlt className="login-input-icon" style={{ color: '#94a3b8' }} />
+                <select
+                  className="login-input"
+                  value={puntoVentaSeleccionado}
+                  onChange={(e) => setPuntoVentaSeleccionado(e.target.value)}
+                  required
+                  style={{ cursor: 'pointer', appearance: 'auto', background: '#ffffff', color: '#1e293b' }}
+                >
+                  <option value="" disabled>Seleccione el Punto de Venta</option>
+                  {puntosVentaList.map((p) => (
+                    <option key={p.PveIdInPuntoVenta} value={p.PveIdInPuntoVenta}>
+                      {p.PveStNombre} (Punto {p.PveIdInPuntoVenta})
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
           )}

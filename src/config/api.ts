@@ -151,6 +151,19 @@ export function isMandatoryPrintEnabled(): boolean {
 }
 
 /**
+ * Indica si está permitido seleccionar o cambiar el punto de venta en Login y Dashboard.
+ * Se configura en el .env del BACKEND (PERMITE_SELECCIONAR_PUNTO_VENTA="SI" o "NO").
+ * Si es "NO", se usa estrictamente el punto de venta fijado en el servidor.
+ */
+export function isSelectPuntoVentaEnabled(): boolean {
+  const storedVal = storage.getItem("permiteSeleccionarPuntoVenta");
+  if (storedVal !== null) {
+    return storedVal === "true" || storedVal === "SI" || storedVal === "1" || storedVal === "YES";
+  }
+  return true; // Por defecto permitido
+}
+
+/**
  * Obtiene el intervalo de polling en milisegundos configurado desde el backend (POLLING_SEGUNDOS).
  * Valor por defecto: 4000 ms (4 segundos). Mínimo de seguridad: 2000 ms.
  */
@@ -226,12 +239,39 @@ export function isSameTerminal(t1?: string, t2?: string): boolean {
  * e informa a la aplicación para cerrar la sesión limpiamente.
  */
 export async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const token = storage.getItem("token");
+  const headers: Record<string, string> = {
+    ...(init?.headers as Record<string, string> || {}),
+  };
+
+  // Inyectar punto de venta configurado en este dispositivo si no está especificado
+  let puntoId = storage.getItem("puntoVenta");
+  if (!puntoId) {
+    try {
+      const info = JSON.parse(storage.getItem("infoPuntoVenta") || "{}");
+      if (info?.PveIdInPuntoVenta) {
+        puntoId = String(info.PveIdInPuntoVenta);
+      }
+    } catch {}
+  }
+  if (puntoId && !headers["punto"] && !headers["Punto"] && !headers["x-punto"]) {
+    headers["punto"] = puntoId;
+  }
+
+  // Siempre inyectar el token en X-Auth-Token para evitar que IIS sobreescriba Authorization
+  if (token && token !== "null" && token !== "undefined") {
+    headers["X-Auth-Token"] = token;
+    // También intentar Authorization por si el proxy no lo toca
+    const currentAuth = (headers["Authorization"] || headers["authorization"] || "").trim();
+    if (!currentAuth || currentAuth === "Bearer" || currentAuth === "Bearer null" || currentAuth === "Bearer undefined") {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+  }
+
   const options: RequestInit = {
     credentials: "include",
     ...init,
-    headers: {
-      ...(init?.headers || {}),
-    },
+    headers,
   };
 
   const response = await fetch(input, options);
@@ -239,7 +279,13 @@ export async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Pr
   if (response.status === 401) {
     const urlStr = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
     if (!urlStr.includes("/login")) {
-      window.dispatchEvent(new Event("session_expired"));
+      // Protección: no cerrar sesión si el login fue hace menos de 30 segundos
+      const lastLoginStr = storage.getItem("last_login");
+      const lastLogin = lastLoginStr ? parseInt(lastLoginStr, 10) : 0;
+      const segundosDesdeLogin = (Date.now() - lastLogin) / 1000;
+      if (!lastLoginStr || isNaN(lastLogin) || segundosDesdeLogin > 30) {
+        window.dispatchEvent(new Event("session_expired"));
+      }
     }
   }
 
