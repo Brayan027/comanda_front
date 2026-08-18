@@ -10,7 +10,7 @@ import "bootstrap-icons/font/bootstrap-icons.css";
 import { FiHome, FiPlus, FiLayers, FiChevronRight, FiClock } from "react-icons/fi";
 import Swal from "sweetalert2";
 import type { MenuKey } from "./components/layout/Sidebar";
-import { API_BASE_URL, socket, getTerminalId, isMobileOrTabletDevice, isMandatoryPrintEnabled, isSelectPuntoVentaEnabled, getPollingIntervalMs, apiFetch } from "./config/api";
+import { API_BASE_URL, socket, getTerminalId, isMobileOrTabletDevice, isMandatoryPrintEnabled, getPollingIntervalMs, apiFetch } from "./config/api";
 import { playNewOrderSound } from "./utils/audioAlert";
 import { storage } from "./utils/storage";
 
@@ -27,7 +27,6 @@ export default function App() {
   const [cantPendientes, setCantPendientes] = useState(0);
   const [esMovilOTablet, setEsMovilOTablet] = useState(() => isMobileOrTabletDevice());
   const [esObligatorioState, setEsObligatorioState] = useState(() => isMandatoryPrintEnabled());
-  const [permiteSeleccionarPuntoState, setPermiteSeleccionarPuntoState] = useState(() => isSelectPuntoVentaEnabled());
 
   useEffect(() => {
     const handleResize = () => setEsMovilOTablet(isMobileOrTabletDevice());
@@ -167,7 +166,6 @@ export default function App() {
             if (data.body.permiteSeleccionarPuntoVenta !== undefined) {
               const permite = data.body.permiteSeleccionarPuntoVenta === "SI" || data.body.permiteSeleccionarPuntoVenta === true;
               storage.setItem("permiteSeleccionarPuntoVenta", permite ? "SI" : "NO");
-              setPermiteSeleccionarPuntoState(permite);
             }
             if (data.body.tipoSonidoPendientes) {
               storage.setItem("config_tipoSonidoPendientes", String(data.body.tipoSonidoPendientes));
@@ -608,21 +606,11 @@ export default function App() {
           setMenuActivo("home");
           setLogueado(false);
         }}
-        onPuntoVentaCambiado={() => {
-          try {
-            const stored = storage.getItem("infoPuntoVenta");
-            if (stored) {
-              setInfoPuntoState(JSON.parse(stored));
-            }
-          } catch (e) {}
-          window.location.reload();
-        }}
         empresaNombre={infoPuntoState?.gmpnomb || infoPuntoState?.PveStNombreEmpresa}
         puntoNombre={infoPuntoState?.PveStNombre}
         fechaActual={fechaActual}
         terminal={storage.getItem("terminal") || "Terminal Desconocida"}
         cantPendientes={cantPendientes}
-        permiteSeleccionarPuntoVenta={permiteSeleccionarPuntoState}
       />
 
       <section className="app-content">

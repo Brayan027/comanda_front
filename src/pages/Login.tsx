@@ -74,12 +74,13 @@ export default function Login({ onLogin }: LoginProps) {
 
   const [puntosVentaList, setPuntosVentaList] = useState<any[]>([]);
   const [puntoVentaSeleccionado, setPuntoVentaSeleccionado] = useState(() => storage.getItem("puntoVenta") || "");
+  const [cargandoPuntos, setCargandoPuntos] = useState(false);
   const [permiteSeleccionarPunto, setPermiteSeleccionarPunto] = useState<boolean>(() => {
     const s = storage.getItem("permiteSeleccionarPuntoVenta");
     if (s !== null) {
-      return s === "SI" || s === "true" || s === "1";
+      return s === "1" || s === "SI" || s === "true" || s === "YES";
     }
-    return false; // Por seguridad inicia oculto hasta que el backend confirme
+    return false; // Inicia oculto hasta que el backend confirme si es 1
   });
 
   useEffect(() => {
@@ -87,23 +88,28 @@ export default function Login({ onLogin }: LoginProps) {
       .then((res) => res.json())
       .then((data) => {
         if (data && data.body) {
-          const permite = data.body.permiteSeleccionarPuntoVenta === "SI" || data.body.permiteSeleccionarPuntoVenta === true;
-          storage.setItem("permiteSeleccionarPuntoVenta", permite ? "SI" : "NO");
+          const permite = data.body.permiteSeleccionarPuntoVenta === "1" || 
+                          data.body.permiteSeleccionarPuntoVenta === 1 || 
+                          data.body.permiteSeleccionarPuntoVenta === "SI" || 
+                          data.body.permiteSeleccionarPuntoVenta === true;
+          storage.setItem("permiteSeleccionarPuntoVenta", permite ? "1" : "0");
           setPermiteSeleccionarPunto(permite);
 
           if (permite) {
-            // Solo consultar lista de puntos si está permitido
+            setCargandoPuntos(true);
             apiFetch(`${API_BASE_URL}/login/puntos-ventas`)
               .then((r) => r.json())
               .then((pvData) => {
                 if (pvData && pvData.body && Array.isArray(pvData.body)) {
                   setPuntosVentaList(pvData.body);
-                  if (pvData.body.length > 0 && !storage.getItem("puntoVenta")) {
-                    setPuntoVentaSeleccionado(String(pvData.body[0].PveIdInPuntoVenta));
+                  const savedPunto = storage.getItem("puntoVenta");
+                  if (savedPunto) {
+                    setPuntoVentaSeleccionado(savedPunto);
                   }
                 }
               })
-              .catch((err) => console.error("Error al obtener puntos de venta:", err));
+              .catch((err) => console.error("Error al obtener puntos de venta:", err))
+              .finally(() => setCargandoPuntos(false));
           }
 
           if (data.body.infoPuntoVenta) {
@@ -297,7 +303,7 @@ export default function Login({ onLogin }: LoginProps) {
             </div>
           )}
 
-          {/* Campo selección de Punto de Venta (solo si está habilitado en el .env) */}
+          {/* Campo selección de Punto de Venta (solo si PERMITE_SELECCIONAR_PUNTO_VENTA=1) */}
           {permiteSeleccionarPunto && (
             <div className="login-form-group">
               <div className="login-input-wrapper">
@@ -309,7 +315,9 @@ export default function Login({ onLogin }: LoginProps) {
                   required
                   style={{ cursor: 'pointer', appearance: 'auto', background: '#ffffff', color: '#1e293b' }}
                 >
-                  <option value="" disabled>Seleccione el Punto de Venta</option>
+                  <option value="" disabled>
+                    {cargandoPuntos ? "Cargando puntos de venta..." : "Seleccione el Punto de Venta"}
+                  </option>
                   {puntosVentaList.map((p) => (
                     <option key={p.PveIdInPuntoVenta} value={p.PveIdInPuntoVenta}>
                       {p.PveStNombre} (Punto {p.PveIdInPuntoVenta})
