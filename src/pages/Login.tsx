@@ -155,7 +155,7 @@ export default function Login({ onLogin }: LoginProps) {
           password: clave,
           nombre_terminal: nombreTerminal,
           es_primera_vez: esPrimeraVezCalculado,
-          punto: puntoVentaSeleccionado || storage.getItem("puntoVenta"),
+          punto: permiteSeleccionarPunto ? (puntoVentaSeleccionado || undefined) : undefined,
         }),
       });
 
@@ -192,7 +192,9 @@ export default function Login({ onLogin }: LoginProps) {
       storage.setItem("terminal", nombreTerminal.trim()); // Guardar terminal
       storage.setItem("usuarioLogueado", usuario.trim().toUpperCase());
       
-      const pVal = puntoVentaSeleccionado || data?.body?.infoPuntoVenta?.PveIdInPuntoVenta;
+      const pVal = permiteSeleccionarPunto
+        ? (puntoVentaSeleccionado || data?.body?.infoPuntoVenta?.PveIdInPuntoVenta)
+        : data?.body?.infoPuntoVenta?.PveIdInPuntoVenta;
       if (pVal) {
         storage.setItem("puntoVenta", String(pVal));
       }
