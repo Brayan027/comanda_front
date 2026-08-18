@@ -189,13 +189,13 @@ export default function App() {
     fetchConfigApp();
 
     const fetchFechaTrabajo = () => {
-
       apiFetch(`${API_BASE_URL}/ordenes/fecha-trabajo`, { headers })
         .then(res => res.json())
         .then(data => {
           if (data && data.body) {
             if (data.body.fecha) {
               setFechaTrabajoRaw(data.body.fecha);
+              storage.removeItem("sinFechaTrabajo");
               try {
                 const stored = storage.getItem("infoPuntoVenta");
                 if (stored) {
@@ -208,6 +208,9 @@ export default function App() {
               } catch (e) {
                 console.error(e);
               }
+            } else {
+              setFechaTrabajoRaw(null);
+              storage.setItem("sinFechaTrabajo", "true");
             }
             if (data.body.bloqueada !== undefined) {
               storage.setItem("comanderaBloqueada", String(data.body.bloqueada));
@@ -218,11 +221,15 @@ export default function App() {
               storage.setItem("obligatorioImprimir", String(data.body.obligatorioImprimir));
               setEsObligatorioState(isMandatoryPrintEnabled());
             }
-
+          } else {
+            setFechaTrabajoRaw(null);
+            storage.setItem("sinFechaTrabajo", "true");
           }
         })
         .catch(err => {
           console.error("Error al obtener la fecha de trabajo:", err);
+          setFechaTrabajoRaw(null);
+          storage.setItem("sinFechaTrabajo", "true");
         });
     };
 
@@ -275,6 +282,7 @@ export default function App() {
     const handleFechaTrabajoActualizada = (data: { fecha?: string; bloqueada?: boolean; obligatorioImprimir?: boolean }) => {
       if (data?.fecha) {
         setFechaTrabajoRaw(data.fecha);
+        storage.removeItem("sinFechaTrabajo");
         try {
           const stored = storage.getItem("infoPuntoVenta");
           if (stored) {
@@ -285,6 +293,9 @@ export default function App() {
         } catch (e) {
           console.error(e);
         }
+      } else {
+        setFechaTrabajoRaw(null);
+        storage.setItem("sinFechaTrabajo", "true");
       }
       if (data?.bloqueada !== undefined) {
         storage.setItem("comanderaBloqueada", String(data.bloqueada));
@@ -318,17 +329,17 @@ export default function App() {
       let info: any = {};
       try {
         info = JSON.parse(storage.getItem("infoPuntoVenta") || "{}");
-      } catch (e) {}
-
-      const payload = JSON.stringify({
-        terminal: term,
+      } catch (e) {
+        console.error(e);
+      }
+      const dataPayload = JSON.stringify({
         empresa: info?.PveIdStEmpresa || "02",
-        punto: String(info?.PveIdInPuntoVenta || "5")
+        punto: info?.PveIdInPuntoVenta || "5",
+        terminal: term
       });
-
+      const blob = new Blob([dataPayload], { type: "application/json" });
       if (navigator.sendBeacon) {
-        const blob = new Blob([payload], { type: "application/json" });
-        navigator.sendBeacon(`${API_BASE_URL}/ordenes/mesa/cerrar-beacon`, blob);
+        navigator.sendBeacon(`${API_BASE_URL}/ordenes/mesa/cerrar-terminal`, blob);
       }
     };
 
@@ -337,6 +348,7 @@ export default function App() {
 
     return () => {
       clearInterval(pollingInterval);
+      socket.off("nuevo_pedido_pendiente", handleOrdenesActualizadas);
       socket.off("fecha_trabajo_actualizada", handleFechaTrabajoActualizada);
       socket.off("ordenes_actualizadas", handleOrdenesActualizadas);
       window.removeEventListener("pagehide", handleSendBeaconGlobal);
@@ -360,10 +372,8 @@ export default function App() {
       }
     }
 
-    if (!dateStr) {
-      const now = new Date();
-      const f = now.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-      return f.charAt(0).toUpperCase() + f.slice(1);
+    if (!dateStr || dateStr.startsWith('0000-00-00')) {
+      return "CONFIGURAR FECHA DE TRABAJO";
     }
 
     const cleanDate = String(dateStr).split("T")[0].split(" ")[0];
@@ -373,20 +383,19 @@ export default function App() {
       const year = Number(parts[0]);
       const month = Number(parts[1]) - 1;
       const day = Number(parts[2]);
+      if (year < 2000) return "CONFIGURAR FECHA DE TRABAJO";
       const baseDate = new Date(Date.UTC(year, month, day));
       const f = baseDate.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
       return f.charAt(0).toUpperCase() + f.slice(1);
     }
 
     const fallbackDate = new Date(dateStr);
-    if (!isNaN(fallbackDate.getTime())) {
+    if (!isNaN(fallbackDate.getTime()) && fallbackDate.getFullYear() >= 2000) {
       const f = fallbackDate.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
       return f.charAt(0).toUpperCase() + f.slice(1);
     }
 
-    const now = new Date();
-    const f = now.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-    return f.charAt(0).toUpperCase() + f.slice(1);
+    return "CONFIGURAR FECHA DE TRABAJO";
   };
 
   const fechaActual = getFechaActual(fechaTrabajoRaw);

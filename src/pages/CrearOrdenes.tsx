@@ -661,6 +661,17 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
   const verificarMesa = async () => {
     if (!mesa.trim()) return;
 
+    const sinFecha = storage.getItem("sinFechaTrabajo") === "true";
+    if (sinFecha) {
+      Swal.fire({
+        icon: "warning",
+        title: "⚠️ Configurar Fecha de Trabajo",
+        text: "Debe configurar la fecha de trabajo en el sistema Dianasis para este punto de venta antes de registrar o modificar pedidos.",
+        confirmButtonColor: "#ef4444"
+      });
+      return;
+    }
+
     setCargandoComanda(true);
     try {
       const abrirResp = await apiFetch(`${API_BASE_URL}/ordenes/mesa/abrir`, {
@@ -1554,6 +1565,17 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
 
   // Guardar/Actualizar la orden en la base de datos
   const guardarComanda = async () => {
+    const sinFecha = storage.getItem("sinFechaTrabajo") === "true";
+    if (sinFecha) {
+      Swal.fire({
+        icon: "error",
+        title: "⚠️ Configurar Fecha de Trabajo",
+        text: "Debe configurar la fecha de trabajo en el sistema Dianasis para este punto de venta antes de registrar o modificar pedidos.",
+        confirmButtonColor: "#ef4444"
+      });
+      return;
+    }
+
     if (comanderaBloqueada) {
       Swal.fire({
         icon: "error",

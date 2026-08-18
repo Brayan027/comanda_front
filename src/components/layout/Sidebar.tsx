@@ -105,9 +105,15 @@ export default function Sidebar({ activo, onCambiar, onSalir, empresaNombre, pun
                                 📍 {nombrePuntoFinal}
                             </span>
                         )}
-                        <span className="fw-semibold text-secondary text-truncate w-100 animate__animated animate__fadeIn" style={{ fontSize: '0.52rem', marginTop: '1px', lineHeight: '1.1', display: 'block' }}>
-                            {fechaActual} {terminal ? `• ${terminal.toUpperCase()}` : ''}
-                        </span>
+                        {fechaActual === "CONFIGURAR FECHA DE TRABAJO" ? (
+                            <span className="badge bg-danger text-white fw-bold text-truncate w-100 animate__animated animate__pulse animate__infinite" style={{ fontSize: '0.52rem', marginTop: '2px', lineHeight: '1.1', display: 'block', padding: '2px 4px' }}>
+                                ⚠️ CONFIGURAR FECHA DE TRABAJO
+                            </span>
+                        ) : (
+                            <span className="fw-semibold text-secondary text-truncate w-100 animate__animated animate__fadeIn" style={{ fontSize: '0.52rem', marginTop: '1px', lineHeight: '1.1', display: 'block' }}>
+                                {fechaActual} {terminal ? `• ${terminal.toUpperCase()}` : ''}
+                            </span>
+                        )}
                     </div>
                 )}
             </header>
@@ -191,7 +197,13 @@ export default function Sidebar({ activo, onCambiar, onSalir, empresaNombre, pun
                                     color: '#64748b'
                                 }}
                             >
-                                <span>{fechaActual}</span>
+                                {fechaActual === "CONFIGURAR FECHA DE TRABAJO" ? (
+                                    <span className="badge bg-danger text-white fw-bold py-1 px-2 animate__animated animate__pulse animate__infinite" style={{ fontSize: '0.66rem' }}>
+                                        ⚠️ CONFIGURAR FECHA DE TRABAJO
+                                    </span>
+                                ) : (
+                                    <span>{fechaActual}</span>
+                                )}
                                 {terminal && (
                                     <>
                                         <span style={{ color: '#cbd5e1' }}>•</span>
