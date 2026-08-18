@@ -658,18 +658,19 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
   };
 
   // Verificar si la mesa tiene una comanda/orden abierta
-  const verificarMesa = async () => {
-    if (!mesa.trim()) return;
+  const verificarMesa = async (): Promise<boolean> => {
+    if (!mesa.trim()) return false;
 
     const sinFecha = storage.getItem("sinFechaTrabajo") === "true";
     if (sinFecha) {
       Swal.fire({
-        icon: "warning",
+        icon: "error",
         title: "⚠️ Configurar Fecha de Trabajo",
         text: "Debe configurar la fecha de trabajo en el sistema Dianasis para este punto de venta antes de registrar o modificar pedidos.",
-        confirmButtonColor: "#ef4444"
+        confirmButtonColor: "#ef4444",
+        confirmButtonText: "Entendido"
       });
-      return;
+      return false;
     }
 
     setCargandoComanda(true);
@@ -682,7 +683,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
 
       if (abrirResp.status === 401) {
         setCargandoComanda(false);
-        return;
+        return false;
       }
 
       const abrirData = await abrirResp.json();
@@ -691,10 +692,11 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
           icon: "warning",
           title: "🔒 Mesa Ocupada",
           text: "La mesa ya se encuentra abierta en otro dispositivo.",
-          confirmButtonColor: "#ef4444"
+          confirmButtonColor: "#ef4444",
+          confirmButtonText: "Entendido"
         });
         setCargandoComanda(false);
-        return;
+        return false;
       }
 
       const resp = await apiFetch(`${API_BASE_URL}/ordenes/mesa/${encodeURIComponent(mesa.trim())}`, {
@@ -769,6 +771,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
             toast: true,
             position: "top-end"
           });
+          return true;
         }
       } else {
         // La mesa está libre
@@ -784,9 +787,12 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
           toast: true,
           position: "top-end"
         });
+        return true;
       }
+      return false;
     } catch (e) {
       console.error("Error verificando mesa", e);
+      return false;
     } finally {
       setCargandoComanda(false);
     }
@@ -794,6 +800,18 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
 
   // Agregar un producto (verifica los modificadores primero)
   const addProductToCart = async (p: Product) => {
+    const sinFecha = storage.getItem("sinFechaTrabajo") === "true";
+    if (sinFecha) {
+      Swal.fire({
+        icon: "error",
+        title: "⚠️ Configurar Fecha de Trabajo",
+        text: "Debe configurar la fecha de trabajo en el sistema Dianasis para este punto de venta antes de registrar o modificar pedidos.",
+        confirmButtonColor: "#ef4444",
+        confirmButtonText: "Entendido"
+      });
+      return;
+    }
+
     if (comanderaBloqueada) return;
 
     if (!cabeceraConfirmada) {
@@ -815,7 +833,8 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
         });
         return;
       }
-      await verificarMesa();
+      const ok = await verificarMesa();
+      if (!ok) return;
     }
 
     const rawQty = cantidadesRapidas[p.ProIdInProducto];
