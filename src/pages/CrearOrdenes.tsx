@@ -668,7 +668,8 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
         title: "⚠️ Configurar Fecha de Trabajo",
         text: "Debe configurar la fecha de trabajo en el sistema Dianasis para este punto de venta antes de registrar o modificar pedidos.",
         confirmButtonColor: "#ef4444",
-        confirmButtonText: "Entendido"
+        confirmButtonText: "Entendido",
+        allowEnterKey: false
       });
       return false;
     }
@@ -807,7 +808,8 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
         title: "⚠️ Configurar Fecha de Trabajo",
         text: "Debe configurar la fecha de trabajo en el sistema Dianasis para este punto de venta antes de registrar o modificar pedidos.",
         confirmButtonColor: "#ef4444",
-        confirmButtonText: "Entendido"
+        confirmButtonText: "Entendido",
+        allowEnterKey: false
       });
       return;
     }
@@ -1590,7 +1592,9 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
         icon: "error",
         title: "⚠️ Configurar Fecha de Trabajo",
         text: "Debe configurar la fecha de trabajo en el sistema Dianasis para este punto de venta antes de registrar o modificar pedidos.",
-        confirmButtonColor: "#ef4444"
+        confirmButtonColor: "#ef4444",
+        confirmButtonText: "Entendido",
+        allowEnterKey: false
       });
       return;
     }
@@ -1878,12 +1882,15 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
                     onChange={(e) => setMesa(e.target.value.toUpperCase())}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
+                        e.preventDefault();
+                        e.stopPropagation();
                         if (!mesa.trim()) {
                           Swal.fire({
                             icon: "error",
                             title: "Mesa Requerida",
                             text: "Falta ingresar la mesa.",
-                            confirmButtonColor: "#e31b23"
+                            confirmButtonColor: "#e31b23",
+                            allowEnterKey: false
                           });
                           return;
                         }
@@ -1892,7 +1899,8 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
                             icon: "error",
                             title: "Mesero Requerido",
                             text: "Falta seleccionar el mesero responsable.",
-                            confirmButtonColor: "#e31b23"
+                            confirmButtonColor: "#e31b23",
+                            allowEnterKey: false
                           });
                           return;
                         }
