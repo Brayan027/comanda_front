@@ -75,38 +75,9 @@ socket.on("reconnect", () => {
  * NUNCA sobreescribe un terminal que el usuario configuró manualmente.
  */
 export function getTerminalId(): string {
-  let deviceId = storage.getItem("device_unique_id");
-  if (!deviceId) {
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    const prefix = isMobile ? "MOV" : "POS";
-    let uid: string;
-    try {
-      uid = crypto.randomUUID().replace(/-/g, "").substring(0, 4).toUpperCase();
-    } catch {
-      uid = Date.now().toString(36).toUpperCase().substring(0, 4);
-    }
-    deviceId = `${prefix}_${uid}`;
-    storage.setItem("device_unique_id", deviceId);
-  }
-
-  let tabId = sessionStorage.getItem("comanda_tab_session_id") || sessionStorage.getItem("tab_session_id");
-  if (!tabId) {
-    try {
-      tabId = crypto.randomUUID().replace(/-/g, "").substring(0, 4).toUpperCase();
-    } catch {
-      tabId = Math.random().toString(36).substring(2, 6).toUpperCase();
-    }
-    sessionStorage.setItem("comanda_tab_session_id", tabId);
-  }
-
   const terminalUsuario = (storage.getItem("terminal") || "TERMINAL 1").trim();
-  const fullTag = `${deviceId}-${tabId}`;
-
-  if (!terminalUsuario.includes(fullTag)) {
-    return `${terminalUsuario} (${fullTag})`;
-  }
-
-  return terminalUsuario;
+  // Si en el almacenamiento local quedó guardado con paréntesis de versiones anteriores, limpiarlo
+  return terminalUsuario.replace(/\s*\([^)]*\)/g, "").trim() || "TERMINAL 1";
 }
 
 
