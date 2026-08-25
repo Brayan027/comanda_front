@@ -1642,7 +1642,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
         OpeStMesa: mesa.trim(),
         OpeIdStVendedor: mesero.id,
         OpeInNumPersonas: Number(numPersonas) || 1,
-        OpeIdStComprobante: "28",
+        OpeIdStComprobante: infoPuntoVenta?.ComprobanteComanda || undefined,
         nombre_terminal: terminalName,
         productos: carrito.filter(item => !item.esEliminado).map(item => ({
           ProIdInProducto: item.ProIdInProducto,
