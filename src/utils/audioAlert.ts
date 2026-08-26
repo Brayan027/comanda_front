@@ -185,7 +185,6 @@ export function playNewOrderSound(forcedModeOrFile?: number | string) {
  */
 function playAudioFileWithFallbacks(fileName: string, ctx: AudioContext, fallbackNow: number) {
   const backendAudioUrl = `${API_BASE_URL}/audio/${fileName}`;
-  const frontendAudioUrl = `/sonido/${fileName}`;
 
   try {
     const audio = new Audio(backendAudioUrl);
@@ -199,19 +198,8 @@ function playAudioFileWithFallbacks(fileName: string, ctx: AudioContext, fallbac
     const playPromise = audio.play();
     if (playPromise !== undefined) {
       playPromise.catch(() => {
-        // Fallback a la carpeta local del frontend /sonido/
-        const frontendAudio = new Audio(frontendAudioUrl);
-        frontendAudio.volume = 1.0;
-        currentAudioElement = frontendAudio;
-
-        frontendAudio.onended = () => {
-          isCurrentlyPlaying = false;
-        };
-
-        frontendAudio.play().catch(() => {
-          // Fallback a sintetizador si no se puede cargar el archivo
-          playGongSynth(ctx, fallbackNow);
-        });
+        // Fallback a sintetizador si no se puede cargar el archivo desde el backend
+        playGongSynth(ctx, fallbackNow);
       });
     }
   } catch {

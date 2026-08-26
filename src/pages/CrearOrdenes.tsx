@@ -169,6 +169,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
   // Variables de estado
   const [mesa, setMesa] = useState("");
   const [ordenId, setOrdenId] = useState<string | number | null>(null);
+  const [errorImpresora, setErrorImpresora] = useState<string | null>(null);
   
   // Estado para el autocompletado de meseros
   const [meseroBusqueda, setMeseroBusqueda] = useState("");
@@ -1534,6 +1535,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
       Swal.close();
 
       if (resp.ok && resData.body?.success !== false) {
+        setErrorImpresora(null);
         Swal.fire({
           icon: "success",
           title: "Impresión exitosa",
@@ -1545,6 +1547,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
         if (onClearInitial) onClearInitial();
       } else {
         const errorText = resData.mensaje || resData.body?.error || resData.error || "La impresora no respondió. Revisa la conexión.";
+        setErrorImpresora(errorText);
 
         Swal.fire({
           icon: "warning",
@@ -1559,15 +1562,16 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
           if (r.isConfirmed) {
             reintentarImpresionManual(nroOrden);
           }
-          // Al cerrar, no se hace nada: la orden permanece guardada en el sistema de forma segura.
         });
       }
     } catch (e) {
       Swal.close();
+      const errText = "No se pudo comunicar con el servicio de impresión.";
+      setErrorImpresora(errText);
       Swal.fire({
         icon: "error",
         title: "Error de Conexión",
-        text: "No se pudo comunicar con el servicio de impresión.",
+        text: errText,
         showCancelButton: true,
         confirmButtonText: "🔄 Reintentar",
         cancelButtonText: "Cerrar",
@@ -1577,12 +1581,9 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
         if (r.isConfirmed) {
           reintentarImpresionManual(nroOrden);
         }
-        // Al cerrar, no se hace nada: la orden permanece guardada en el sistema de forma segura.
       });
     }
   };
-
-
 
   // Guardar/Actualizar la orden en la base de datos
   const guardarComanda = async () => {
@@ -1688,6 +1689,7 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
         throw new Error(errorMsg);
       }
 
+      setErrorImpresora(null);
       Swal.close();
 
       const nroGuardado = resData?.body?.nro_orden || ordenId;
@@ -1713,10 +1715,12 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
     } catch (err) {
       Swal.close();
       const msg = err instanceof Error ? err.message : "Error al guardar";
+      const sanitized = sanitizarError(msg);
+      setErrorImpresora(sanitized);
       Swal.fire({
         icon: "error",
         title: "Error al guardar",
-        text: sanitizarError(msg)
+        text: sanitized
       });
     } finally {
       setGuardando(false);
@@ -1777,9 +1781,41 @@ export default function CrearOrdenes({ initialOrdenId, onClearInitial, onRegiste
               >
                 <FiPlus size={14} />
               </div>
-              <h1 className="co-header-title text-nowrap" style={{ fontSize: "0.85rem", whiteSpace: "nowrap" }}>
+              <h1 className="co-header-title text-nowrap m-0" style={{ fontSize: "0.85rem", whiteSpace: "nowrap" }}>
                 {ordenId ? `ORDEN #${ordenId}` : "NUEVO PEDIDO"}
               </h1>
+
+              {errorImpresora && (
+                <button
+                  type="button"
+                  className="btn btn-sm d-flex align-items-center gap-1 p-1 px-2 border-0 shadow-sm"
+                  style={{
+                    background: "#fee2e2",
+                    border: "1.5px solid #ef4444",
+                    color: "#b91c1c",
+                    borderRadius: "8px",
+                    fontSize: "0.72rem",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    animation: "pulse 1.5s infinite",
+                    flexShrink: 0,
+                    lineHeight: 1
+                  }}
+                  title={errorImpresora}
+                  onClick={() => {
+                    Swal.fire({
+                      icon: "error",
+                      title: "Problema con la Impresora",
+                      text: errorImpresora,
+                      confirmButtonColor: "#e31b23",
+                      confirmButtonText: "Entendido"
+                    });
+                  }}
+                >
+                  <img src="/impresora_rota.png" alt="Fallo Impresora" style={{ width: "20px", height: "20px", objectFit: "contain", flexShrink: 0 }} onError={(e) => { (e.currentTarget as HTMLElement).style.display = "none"; }} />
+                  <span className="d-none d-sm-inline" style={{ fontSize: "0.72rem" }}>Fallo Impresora</span>
+                </button>
+              )}
             </div>
 
             <div className="d-flex align-items-center gap-2 flex-nowrap ms-auto">
